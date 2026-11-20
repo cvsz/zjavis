@@ -23,12 +23,23 @@ REQUIRED_CHECKS = (
     "verify-independent-approval",
 )
 
+VALID_LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
+VALID_PERMISSIONS = frozenset({"pull", "triage", "push", "maintain", "admin"})
+
 
 def gh_api(method: str, endpoint: str, payload: dict[str, Any] | None = None) -> Any:
-    cmd = ["gh", "api", "--method", method, "-H", "Accept: application/vnd.github+json", endpoint]
+    cmd = [
+        "gh",
+        "api",
+        "--method",
+        method,
+        "-H",
+        "Accept: application/vnd.github+json",
+        endpoint,
+    ]
     if payload is not None:
         cmd += ["--input", "-"]
-    proc = subprocess.run(
+    proc = subprocess.run(  # noqa: UP022
         cmd,
         input=json.dumps(payload) if payload is not None else None,
         text=True,
@@ -43,9 +54,15 @@ def gh_api(method: str, endpoint: str, payload: dict[str, Any] | None = None) ->
     return json.loads(proc.stdout)
 
 
+def validate_github_login(login: str) -> str:
+    """Validate a GitHub login string and return it normalized."""
+    if not login or not VALID_LOGIN_RE.fullmatch(login):
+        raise ValueError(f"Invalid GitHub login: {login!r}")
+    return login
+
+
 def validate_independent_reviewer(repo: str, reviewer: str) -> str:
-    if not reviewer or not re.fullmatch(r"[A-Za-z0-9-]+", reviewer):
-        raise ValueError("INDEPENDENT_REVIEWER must be a valid GitHub login.")
+    reviewer = validate_github_login(reviewer)
     owner = repo.split("/", 1)[0]
     if reviewer.casefold() == owner.casefold():
         raise ValueError("INDEPENDENT_REVIEWER must differ from the repository owner.")
@@ -103,17 +120,21 @@ def protection_payload() -> dict[str, Any]:
     }
 
 
-def print_plan(repo: str, branch: str) -> None:
+def print_plan(repo: str, branch: str, collaborators: list[str] | None = None) -> None:
     print(f"Repository: {repo}")
     print(f"Branch: {branch}")
     print("Planned administration changes:")
+    if collaborators:
+        print(f"- add collaborators: {', '.join(collaborators)}")
     print("- require pull requests with >=1 approval")
     print("- dismiss stale approvals")
     print("- require CODEOWNERS review")
     print("- require approval after the latest push")
     print("- require conversation resolution")
     print("- require branch to be up to date")
-    print("- require repository variable INDEPENDENT_REVIEWER with an independent GitHub login")
+    print(
+        "- require repository variable INDEPENDENT_REVIEWER with an independent GitHub login"
+    )
     print("- require checks:")
     for check in REQUIRED_CHECKS:
         print(f"  - {check}")
@@ -160,13 +181,49 @@ def apply(repo: str, branch: str) -> None:
     )
 
 
+def verify_collaborators(
+    repo: str, collaborators: list[str], permission: str
+) -> list[str]:
+    """Verify that each collaborator exists with the expected permission. Returns list of errors."""
+    errors: list[str] = []
+    for login in collaborators:
+        try:
+            result = gh_api("GET", f"repos/{repo}/collaborators/{login}/permission")
+        except RuntimeError as exc:
+            errors.append(f"{login}: cannot verify collaborator ({exc})")
+            continue
+        if result is None:
+            errors.append(f"{login}: collaborator not found or no permission data")
+            continue
+        actual = str(result.get("permission") or "")
+        if actual != permission:
+            errors.append(
+                f"{login}: expected permission '{permission}', got '{actual}'"
+            )
+    return errors
+
+
+def add_collaborators(
+    repo: str, collaborators: list[str], permission: str = "pull"
+) -> None:
+    if permission not in VALID_PERMISSIONS:
+        raise ValueError(
+            f"Invalid permission: {permission}; must be one of {sorted(VALID_PERMISSIONS)}"
+        )
+    for login in collaborators:
+        validate_github_login(login)
+        gh_api("PUT", f"repos/{repo}/collaborators/{login}", {"permission": permission})
+
+
 def verify(repo: str, branch: str) -> list[str]:
     errors: list[str] = []
 
     try:
         reviewer = configured_independent_reviewer(repo)
         if reviewer is None:
-            errors.append("repository Actions variable INDEPENDENT_REVIEWER is not configured")
+            errors.append(
+                "repository Actions variable INDEPENDENT_REVIEWER is not configured"
+            )
     except (RuntimeError, ValueError) as exc:
         errors.append(f"independent reviewer configuration not verified: {exc}")
 
@@ -211,11 +268,15 @@ def verify(repo: str, branch: str) -> list[str]:
     security = repo_state.get("security_and_analysis") or {}
     if (security.get("secret_scanning") or {}).get("status") != "enabled":
         errors.append("secret scanning is not enabled")
-    if (security.get("secret_scanning_push_protection") or {}).get("status") != "enabled":
+    if (security.get("secret_scanning_push_protection") or {}).get(
+        "status"
+    ) != "enabled":
         errors.append("secret scanning push protection is not enabled")
 
     try:
-        private_reporting = gh_api("GET", f"repos/{repo}/private-vulnerability-reporting")
+        private_reporting = gh_api(
+            "GET", f"repos/{repo}/private-vulnerability-reporting"
+        )
         if private_reporting.get("enabled") is not True:
             errors.append("private vulnerability reporting is not enabled")
     except RuntimeError as exc:
@@ -238,14 +299,57 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=DEFAULT_REPO)
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
-    parser.add_argument("--apply", action="store_true", help="apply administration changes")
-    parser.add_argument("--verify", action="store_true", help="verify effective settings")
+    parser.add_argument(
+        "--apply", action="store_true", help="apply administration changes"
+    )
+    parser.add_argument(
+        "--verify", action="store_true", help="verify effective settings"
+    )
+    parser.add_argument(
+        "--collaborators",
+        help="Comma-separated list of GitHub logins to add as collaborators",
+    )
+    parser.add_argument(
+        "--collaborator-permission",
+        default="pull",
+        help="Permission level (pull, triage, push, maintain, admin)",
+    )
     args = parser.parse_args()
 
     require_gh()
-    print_plan(args.repo, args.branch)
+    collaborators = (
+        [validate_github_login(c.strip()) for c in args.collaborators.split(",")]
+        if args.collaborators
+        else []
+    )
+    print_plan(args.repo, args.branch, collaborators if collaborators else None)
 
-    if not args.apply and not args.verify:
+    if collaborators:
+        if args.apply:
+            try:
+                add_collaborators(
+                    args.repo, collaborators, args.collaborator_permission
+                )
+            except (RuntimeError, ValueError) as exc:
+                print(f"\nCollaborator add failed: {exc}", file=sys.stderr)
+                return 1
+            print(
+                f"\nAdded collaborators: {', '.join(collaborators)} (permission: {args.collaborator_permission})"
+            )
+            # Verify collaborators were added correctly
+            verify_errors = verify_collaborators(
+                args.repo, collaborators, args.collaborator_permission
+            )
+            if verify_errors:
+                print("\nCollaborator verification warnings:", file=sys.stderr)
+                for error in verify_errors:
+                    print(f"- {error}", file=sys.stderr)
+        else:
+            print(
+                f"\nDry-run: would add collaborators: {', '.join(collaborators)} (permission: {args.collaborator_permission})"
+            )
+
+    if not args.apply and not args.verify and not collaborators:
         print("\nDry-run only. Re-run with --apply to mutate GitHub settings.")
         return 0
 
