@@ -1,9 +1,10 @@
 SHELL := /bin/sh
 
-.PHONY: help validate-template setup format lint test build security ci
+.PHONY: help validate-template setup install format lint test build security ci
 
 help:
 	@printf '%s\n' 'Targets:' \
+		'  make install           - Initialize a new repository from this template (preview + validate)' \
 		'  make validate-template - Run repository structure and link validation' \
 		'  make test              - Run python unit tests' \
 		'  make lint              - Run python syntax and structure checks' \
@@ -14,6 +15,13 @@ help:
 validate-template:
 	python3 scripts/validate_repo.py
 	python3 -m unittest discover -s tests -v
+
+install: ## Initialize project identity for new repo use (dry-run preview + validate)
+	@echo "==> Previewing project identity bootstrap..."
+	python3 scripts/bootstrap.py --name "$(NAME)" --owner "$(OWNER)" --codeowner "$(CODEOWNER)" --description '$(DESCRIPTION)'
+	@echo "==> To apply the identity changes, re-run bootstrap with --apply."
+	@echo "==> Validating inherited baseline..."
+	make validate-template
 
 format:
 	python3 -m py_compile scripts/*.py tests/*.py
