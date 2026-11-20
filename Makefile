@@ -1,10 +1,14 @@
 SHELL := /bin/sh
 
-.PHONY: help validate-template setup install format lint test build security ci
+REPO ?= cvsz/ztemplate
+PERMISSION ?= pull
+
+.PHONY: help validate-template setup install collaborators format lint test build security ci
 
 help:
 	@printf '%s\n' 'Targets:' \
 		'  make install           - Initialize a new repository from this template (preview + validate)' \
+		'  make collaborators   - Add GitHub collaborators to a repository (preview; APPLY=1 to apply)' \
 		'  make validate-template - Run repository structure and link validation' \
 		'  make test              - Run python unit tests' \
 		'  make lint              - Run python syntax and structure checks' \
@@ -22,6 +26,10 @@ install: ## Initialize project identity for new repo use (dry-run preview + vali
 	@echo "==> To apply the identity changes, re-run bootstrap with --apply."
 	@echo "==> Validating inherited baseline..."
 	make validate-template
+
+collaborators: ## Add GitHub collaborators to a repository (preview; APPLY=1 to apply)
+	@if [ -z "$(COLLABORATORS)" ]; then echo 'Usage: make collaborators COLLABORATORS=user1,user2,user3 [REPO=owner/repo] [PERMISSION=pull] [APPLY=1]' >&2; exit 2; fi
+	python3 scripts/github_admin.py --repo "$(REPO)" --collaborators "$(COLLABORATORS)" --collaborator-permission "$(PERMISSION)" $(if $(APPLY),--apply,)
 
 format:
 	python3 -m py_compile scripts/*.py tests/*.py

@@ -67,6 +67,21 @@ def configured_independent_reviewer(repo: str) -> str | None:
     return validate_independent_reviewer(repo, str(variable.get("value") or ""))
 
 
+def validate_collaborator(login: str) -> str:
+    if not login or not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38}[A-Za-z0-9])?", login):
+        raise ValueError(f"Invalid GitHub login: {login}")
+    return login
+
+
+def add_collaborators(repo: str, collaborators: list[str], permission: str = "pull") -> None:
+    valid_permissions = {"pull", "triage", "push", "maintain", "admin"}
+    if permission not in valid_permissions:
+        raise ValueError(f"Invalid permission: {permission}; must be one of {sorted(valid_permissions)}")
+    for login in collaborators:
+        validate_collaborator(login)
+        gh_api("PUT", f"repos/{repo}/collaborators/{login}", {"permission": permission})
+
+
 def require_gh() -> None:
     proc = subprocess.run(
         ["gh", "auth", "status"],
@@ -103,10 +118,12 @@ def protection_payload() -> dict[str, Any]:
     }
 
 
-def print_plan(repo: str, branch: str) -> None:
+def print_plan(repo: str, branch: str, collaborators: list[str] | None = None) -> None:
     print(f"Repository: {repo}")
     print(f"Branch: {branch}")
     print("Planned administration changes:")
+    if collaborators:
+        print(f"- add collaborators: {', '.join(collaborators)}")
     print("- require pull requests with >=1 approval")
     print("- dismiss stale approvals")
     print("- require CODEOWNERS review")
@@ -240,12 +257,26 @@ def main() -> int:
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
     parser.add_argument("--apply", action="store_true", help="apply administration changes")
     parser.add_argument("--verify", action="store_true", help="verify effective settings")
+    parser.add_argument("--collaborators", help="Comma-separated list of GitHub logins to add as collaborators")
+    parser.add_argument("--collaborator-permission", default="pull", help="Permission level (pull, triage, push, maintain, admin)")
     args = parser.parse_args()
 
     require_gh()
-    print_plan(args.repo, args.branch)
+    collaborators = [validate_collaborator(c.strip()) for c in args.collaborators.split(",")] if args.collaborators else []
+    print_plan(args.repo, args.branch, collaborators if collaborators else None)
 
-    if not args.apply and not args.verify:
+    if collaborators:
+        if args.apply:
+            try:
+                add_collaborators(args.repo, collaborators, args.collaborator_permission)
+            except (RuntimeError, ValueError) as exc:
+                print(f"\nCollaborator add failed: {exc}", file=sys.stderr)
+                return 1
+            print(f"\nAdded collaborators: {', '.join(collaborators)} (permission: {args.collaborator_permission})")
+        else:
+            print(f"\nDry-run: would add collaborators: {', '.join(collaborators)} (permission: {args.collaborator_permission})")
+
+    if not args.apply and not args.verify and not collaborators:
         print("\nDry-run only. Re-run with --apply to mutate GitHub settings.")
         return 0
 
