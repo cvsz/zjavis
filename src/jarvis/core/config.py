@@ -98,6 +98,20 @@ class Settings(BaseSettings):
         default=120, description="Default model request timeout in seconds"
     )
 
+    # --- Model Gateway Provider Configuration --------------------------------
+    openai_api_key: str | None = Field(
+        default=None,
+        description="OpenAI API key (required for OpenAI provider)",
+    )
+    openai_base_url: str | None = Field(
+        default=None,
+        description="OpenAI-compatible API base URL",
+    )
+    ollama_base_url: str | None = Field(
+        default=None,
+        description="Ollama base URL (default: http://localhost:11434)",
+    )
+
     # --- Feature flags -----------------------------------------------------
     voice_enabled: bool = Field(
         default=False, description="Enable voice interface (requires hardware)"
