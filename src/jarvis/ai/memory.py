@@ -164,14 +164,15 @@ class MemoryService:
         self,
         *,
         tenant_id: str,
-        event_type: str | None = None,
+        query: str | None = None,
         memory_type: str | None = None,
         limit: int = 10,
     ) -> list[Memory]:
-        """Search memories with tenant isolation and optional filters.
+        """Search memories with tenant isolation and optional keyword filter.
 
         Args:
             tenant_id: Tenant ID for isolation.
+            query: Optional search query for keyword matching.
             memory_type: Optional memory type filter.
             limit: Maximum number of results.
 
@@ -185,6 +186,10 @@ class MemoryService:
 
         if memory_type:
             query_stmt = query_stmt.where(Memory.memory_type == memory_type)
+
+        if query:
+            search_term = f"%{query}%"
+            query_stmt = query_stmt.where(Memory.content.ilike(search_term))
 
         query_stmt = query_stmt.order_by(Memory.created_at.desc()).limit(limit)
         result = await self.session.execute(query_stmt)
