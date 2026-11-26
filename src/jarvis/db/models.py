@@ -260,7 +260,10 @@ class Memory(Base, TimestampMixin):
     )
     memory_type = Column(String(50), nullable=False)  # working, conversation, episodic, semantic, procedural, project, preference
     content = Column(Text, nullable=False)
+    content_hash = Column(String(64), nullable=True, index=True)  # SHA-256 hash for deduplication
     source = Column(String(255), nullable=True)
+    source_type = Column(String(50), nullable=True)  # document, web, conversation, email, etc.
+    source_id = Column(String(255), nullable=True, index=True)  # External source identifier
     confidence = Column(Integer, nullable=True)  # 0-100
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
