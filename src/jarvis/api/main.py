@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from jarvis.api.auth import router as auth_router
+from jarvis.api.conversations import router as conversations_router
 from jarvis.api.health import router as health_router
 from jarvis.core.config import settings
 from jarvis.core.exceptions import (
@@ -23,6 +24,8 @@ from jarvis.core.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
+APP_VERSION = "0.1.0"
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
@@ -35,7 +38,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="JARVIS API",
         description="Personal AI Operating System core platform API",
-        version=settings.__version__ if hasattr(settings, "__version__") else "0.1.0",
+        version=APP_VERSION,
         debug=settings.debug,
     )
 
@@ -65,10 +68,11 @@ def create_app() -> FastAPI:
     # Routers
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(conversations_router)
 
     logger.info(
         "JARVIS application created",
-        extra={"env": settings.app_env, "version": "0.1.0"},
+        extra={"env": settings.app_env, "version": APP_VERSION},
     )
 
     return app
