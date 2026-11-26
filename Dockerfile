@@ -1,15 +1,19 @@
-# Production-Grade Python Runtime Dockerfile
+# JARVIS Application Dockerfile
 FROM python:3.12-alpine AS runtime
 
 LABEL maintainer="maintainers@example.com"
-LABEL description="zTemplate Production-Grade Python Container Baseline"
+LABEL description="JARVIS Personal AI Operating System core platform"
 
 WORKDIR /app
 
-# Copy necessary application modules, scripts, and tests
-COPY scripts/ /app/scripts/
-COPY tests/ /app/tests/
-COPY README.md ABOUT.md /app/
+# Install runtime dependencies only
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source, migrations, and alembic config
+COPY src/ /app/src/
+COPY alembic/ /app/alembic/
+COPY alembic.ini ./
 
 # Create a secure non-root user and set permissions
 RUN adduser -D -u 1000 appuser && \
@@ -18,6 +22,7 @@ RUN adduser -D -u 1000 appuser && \
 USER appuser
 
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/src
 
-# Default validation command
-CMD ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+# Default command: run the JARVIS API server
+CMD ["python3", "-m", "jarvis"]

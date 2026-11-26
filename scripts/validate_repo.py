@@ -171,6 +171,7 @@ def validate_no_secret_content() -> list[str]:
                     "${{ secrets.",
                     "your-",
                     "changeme",
+                    "change-me",
                     "todo",
                     "git credential",
                 )
