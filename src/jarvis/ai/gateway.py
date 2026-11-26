@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any
 
+from jarvis.ai.context import assemble_context, estimate_budget_usage
 from jarvis.ai.provider import (
     LocalProviderAdapter,
     ModelCapability,
@@ -161,6 +162,42 @@ class ModelGateway:
             raise ProviderError(f"No model route for task type: {task_type}")
         return route
 
+    def _check_budget(self, provider: str, model: str, estimated_tokens: int = 0) -> None:
+        """Check budget limits before allowing a request.
+
+        Args:
+            provider: Provider name.
+            model: Model name.
+            estimated_tokens: Estimated tokens for the request.
+
+        Raises:
+            ProviderError: If budget is exceeded.
+        """
+        if not settings.model_gateway_budget_enabled:
+            return
+
+        key = f"{provider}:{model}"
+        current_usage = self._usage.get(key, 0)
+        budget = settings.model_gateway_budget_limit
+
+        metrics = estimate_budget_usage(current_usage + estimated_tokens, budget)
+        if metrics["exceeded"]:
+            raise ProviderError(
+                f"Budget exceeded for {provider}:{model}. "
+                f"Used: {metrics['used']}, Limit: {metrics['limit']}"
+            )
+
+    def _record_usage(self, provider: str, model: str, tokens: int = 0) -> None:
+        """Record usage for provider:model.
+
+        Args:
+            provider: Provider name.
+            model: Model name.
+            tokens: Token count to add.
+        """
+        key = f"{provider}:{model}"
+        self._usage[key] = self._usage.get(key, 0) + max(tokens, 1)
+
     async def complete(
         self,
         *,
@@ -190,6 +227,20 @@ class ModelGateway:
         if adapter is None:
             raise ProviderError(f"Provider not registered: {route.provider}")
 
+        # Assemble context with token budget
+        max_tokens = route.capability.max_context_tokens
+        assembled_messages = assemble_context(
+            messages, max_tokens=max_tokens
+        )
+
+        # Estimate token count for budget check
+        estimated_tokens = sum(
+            len(str(m.get("content", ""))) // 4 for m in assembled_messages
+        )
+
+        # Check budget before execution
+        self._check_budget(route.provider, route.model, estimated_tokens)
+
         self.logger.info(
             "Model completion requested",
             extra={
@@ -197,11 +248,13 @@ class ModelGateway:
                 "model": route.model,
                 "task_type": task_type,
                 "message_count": len(messages),
+                "assembled_messages": len(assembled_messages),
+                "estimated_tokens": estimated_tokens,
             },
         )
 
         try:
-            result = await adapter.complete(model=route.model, messages=messages, **kwargs)
+            result = await adapter.complete(model=route.model, messages=assembled_messages, **kwargs)
         except Exception as exc:
             self.logger.error(
                 "Provider completion failed",
@@ -210,8 +263,8 @@ class ModelGateway:
             raise ProviderError(f"Provider {route.provider} failed: {exc}") from exc
 
         # Usage accounting
-        key = f"{route.provider}:{route.model}"
-        self._usage[key] = self._usage.get(key, 0) + 1
+        used_tokens = result.get("usage", {}).get("total_tokens", estimated_tokens)
+        self._record_usage(route.provider, route.model, used_tokens)
 
         return {
             **result,
@@ -255,9 +308,22 @@ class ModelGateway:
             },
         )
 
+        # Assemble context
+        assembled_messages = assemble_context(
+            messages, max_tokens=route.capability.max_context_tokens
+        )
+
+        # Estimate token count for budget check
+        estimated_tokens = sum(
+            len(str(m.get("content", ""))) // 4 for m in assembled_messages
+        )
+
+        # Check budget before execution
+        self._check_budget(route.provider, route.model, estimated_tokens)
+
         try:
             async for chunk in adapter.complete_stream(
-                model=route.model, messages=messages, **kwargs
+                model=route.model, messages=assembled_messages, **kwargs
             ):
                 yield {
                     **chunk,
@@ -275,6 +341,21 @@ class ModelGateway:
     def usage(self) -> dict[str, int]:
         """Return usage accounting by provider:model."""
         return dict(self._usage)
+
+    def usage_stats(self) -> dict[str, dict[str, Any]]:
+        """Return detailed usage accounting with budget information.
+
+        Returns:
+            Dict mapping provider:model to usage stats including budget info.
+        """
+        result: dict[str, dict[str, Any]] = {}
+        for key, used in self._usage.items():
+            result[key] = estimate_budget_usage(
+                used, settings.model_gateway_budget_limit
+            )
+            result[key]["provider"] = key.split(":", 1)[0]
+            result[key]["model"] = key.split(":", 1)[1] if ":" in key else ""
+        return result
 
 
 gateway = ModelGateway()

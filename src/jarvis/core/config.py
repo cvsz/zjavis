@@ -112,6 +112,20 @@ class Settings(BaseSettings):
         description="Ollama base URL (default: http://localhost:11434)",
     )
 
+    # --- Model Gateway Budget Configuration --------------------------------
+    model_gateway_budget_enabled: bool = Field(
+        default=False,
+        description="Enable budget enforcement for model gateway",
+    )
+    model_gateway_budget_limit: int = Field(
+        default=100000,
+        description="Total token budget per budget window",
+    )
+    model_gateway_budget_window_seconds: int = Field(
+        default=86400,
+        description="Budget reset window in seconds (default: 24 hours)",
+    )
+
     # --- Feature flags -----------------------------------------------------
     voice_enabled: bool = Field(
         default=False, description="Enable voice interface (requires hardware)"
