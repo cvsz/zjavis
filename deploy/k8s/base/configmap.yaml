@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jarvis-config
+  namespace: jarvis
+  labels:
+    app.kubernetes.io/name: jarvis
+data:
+  JARVIS_APP_ENV: "production"
+  JARVIS_LOG_LEVEL: "info"
+  JARVIS_HOST: "0.0.0.0"
+  JARVIS_PORT: "8000"
+  JARVIS_DATABASE_URL: "postgresql+psycopg://jarvis:jarvis@postgres:5432/jarvis"
+  JARVIS_MODEL_GATEWAY_ENABLED: "true"
+  JARVIS_CLOUD_FALLBACK_ENABLED: "false"
+  JARVIS_DEFAULT_PROVIDER: "local"
+  JARVIS_DEFAULT_MODEL: "local-model"
+  JARVIS_MAX_TOKENS: "4096"
+  JARVIS_REQUEST_TIMEOUT_SECONDS: "120"
+  JARVIS_MODEL_GATEWAY_BUDGET_ENABLED: "false"
+  JARVIS_MODEL_GATEWAY_BUDGET_LIMIT: "100000"
+  JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS: "86400"
+  JARVIS_VOICE_ENABLED: "false"
+  JARVIS_VISION_ENABLED: "false"
+  JARVIS_AGENT_RUNTIME_ENABLED: "true"
+  JARVIS_SMART_ENVIRONMENT_ENABLED: "false"

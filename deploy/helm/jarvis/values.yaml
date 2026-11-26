@@ -1,0 +1,129 @@
+# JARVIS Helm chart values
+
+# Replica count
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: ghcr.io/cvsz/zjavis
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# Image pull secrets
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: false
+  automount: true
+  annotations: {}
+  name: ""
+
+# Namespace
+namespace: jarvis
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  protocol: TCP
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: jarvis.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Environment variables
+env:
+  JARVIS_APP_ENV: "production"
+  JARVIS_LOG_LEVEL: "info"
+  JARVIS_HOST: "0.0.0.0"
+  JARVIS_PORT: "8000"
+  JARVIS_DATABASE_URL: "postgresql+psycopg://jarvis:jarvis@postgres:5432/jarvis"
+  JARVIS_MODEL_GATEWAY_ENABLED: "true"
+  JARVIS_CLOUD_FALLBACK_ENABLED: "false"
+  JARVIS_DEFAULT_PROVIDER: "local"
+  JARVIS_DEFAULT_MODEL: "local-model"
+  JARVIS_MAX_TOKENS: "4096"
+  JARVIS_REQUEST_TIMEOUT_SECONDS: "120"
+  JARVIS_MODEL_GATEWAY_BUDGET_ENABLED: "false"
+  JARVIS_MODEL_GATEWAY_BUDGET_LIMIT: "100000"
+  JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS: "86400"
+  JARVIS_VOICE_ENABLED: "false"
+  JARVIS_VISION_ENABLED: "false"
+  JARVIS_AGENT_RUNTIME_ENABLED: "true"
+  JARVIS_SMART_ENVIRONMENT_ENABLED: "false"
+
+# Secret values (override via --set or external secrets)
+secret:
+  JARVIS_APP_SECRET: "REPLACE_ME_WITH_SECURE_SECRET"
+  JARVIS_OPENAI_API_KEY: ""
+  JARVIS_OLLAMA_BASE_URL: ""
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Pod security context
+podSecurityContext: {}
+
+# Volumes
+volumes: []
+volumeMounts: []

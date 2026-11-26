@@ -12,6 +12,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from jarvis.api.agent_runtime import router as agent_runtime_router
 from jarvis.api.agents import router as agents_router
 from jarvis.api.approvals import router as approvals_router
 from jarvis.api.audit import router as audit_router
@@ -19,7 +20,10 @@ from jarvis.api.auth import router as auth_router
 from jarvis.api.conversations import router as conversations_router
 from jarvis.api.health import router as health_router
 from jarvis.api.memory import router as memory_router
+from jarvis.api.smart_environment import router as smart_environment_router
 from jarvis.api.tasks import router as tasks_router
+from jarvis.api.vision import router as vision_router
+from jarvis.api.voice import router as voice_router
 from jarvis.core.config import settings
 from jarvis.core.exceptions import (
     AuthenticationError,
@@ -109,6 +113,10 @@ def create_app() -> FastAPI:
     app.include_router(audit_router)
     app.include_router(agents_router)
     app.include_router(tasks_router)
+    app.include_router(voice_router)
+    app.include_router(vision_router)
+    app.include_router(agent_runtime_router)
+    app.include_router(smart_environment_router)
 
     logger.info(
         "JARVIS application created",

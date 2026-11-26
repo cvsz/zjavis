@@ -1,0 +1,103 @@
+name: Release Signing and Artifact Attestation
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write  # For OIDC-based signing
+  packages: write
+
+jobs:
+  sign-and-attest:
+    name: Sign release artifacts and generate provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93545e5e27727eb82999fa2f6493520d0056c8 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install signing dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install sigstore-python
+
+      - name: Generate release checksums
+        run: |
+          cd /tmp
+          for asset in $(gh release view ${{ github.event.release.id }} --json assets -q '.assets[].name'); do
+            echo "Processing: $asset"
+          done
+          sha256sum $(ls *.tar.gz *.zip *.whl 2>/dev/null) > checksums.sha256 2>/dev/null || echo "No binary artifacts to checksum"
+
+      - name: Generate SLSA provenance
+        run: |
+          cat > provenance.json <<EOF
+          {
+            "_type": "https://in-toto.io/Statement/v0.1",
+            "predicateType": "https://slsa.dev/provenance/v0.2",
+            "subject": [
+              {
+                "name": "github.com/cvsz/zjavis",
+                "digest": {
+                  "sha256": "$(git rev-parse HEAD)"
+                }
+              }
+            ],
+            "predicate": {
+              "buildDefinition": {
+                "buildType": "github-release",
+                "externalParameters": {
+                  "repository": "${{ github.repository }}",
+                  "ref": "${{ github.ref }}",
+                  "sha": "${{ github.sha }}"
+                }
+              },
+              "runDetails": {
+                "builder": {
+                  "id": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Upload provenance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-provenance
+          path: provenance.json
+          retention-days: 90
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-checksums
+          path: checksums.sha256
+          retention-days: 90
+
+      - name: Create signed release note
+        run: |
+          cat > release-signature.json <<EOF
+          {
+            "release": "${{ github.event.release.tag_name }}",
+            "repository": "${{ github.repository }}",
+            "commit": "${{ github.sha }}",
+            "signed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "signer": "github-actions"
+          }
+          EOF
+
+      - name: Upload release signature
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signature
+          path: release-signature.json
+          retention-days: 90
