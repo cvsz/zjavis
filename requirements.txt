@@ -16,7 +16,7 @@ greenlet
 alembic==1.20.0
 
 # Security
-bcrypt==4.2.0
+# Password hashing uses stdlib hashlib.pbkdf2_hmac — no third-party dependency
 
 # Configuration / environment
 python-dotenv>=1.0.0

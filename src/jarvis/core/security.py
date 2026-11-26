@@ -15,50 +15,66 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
-import bcrypt
-
 from .config import settings
 from .exceptions import AuthenticationError, AuthorizationError
 
-# bcrypt has a 72-byte password limit.
-_MAX_PASSWORD_BYTES = 72
+# PBKDF2 iterations for password hashing (OWASP recommended minimum: 210,000 as of 2023)
+_PBKDF2_ITERATIONS = 210000
 
 APP_SECRET = settings.app_secret
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a bcrypt hash.
+    """Verify a plain password against a PBKDF2-HMAC-SHA256 hash.
 
     Args:
         plain_password: The plaintext password.
-        hashed_password: The stored bcrypt hash.
+        hashed_password: The stored hash in ``$pbkdf2-sha256$iterations$salt$hash`` format.
 
     Returns:
         True if the password matches, False otherwise.
     """
     try:
-        return bcrypt.checkpw(
-            plain_password[:_MAX_PASSWORD_BYTES].encode("utf-8"),
-            hashed_password.encode("utf-8"),
+        parts = hashed_password.split("$")
+        if len(parts) != 5 or parts[0] != "" or parts[1] != "pbkdf2-sha256":
+            return False
+        _, _, iterations_str, salt_b64, hash_b64 = parts
+        iterations = int(iterations_str)
+        salt = base64.b64decode(salt_b64)
+        expected_hash = base64.b64decode(hash_b64)
+        computed_hash = hashlib.pbkdf2_hmac(
+            "sha256",
+            plain_password.encode("utf-8"),
+            salt,
+            iterations,
         )
-    except Exception:
+        return hmac.compare_digest(expected_hash, computed_hash)
+    except Exception:  # noqa: BLE001 — return False on any verification error
         return False
 
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt.
+    """Hash a plaintext password using PBKDF2-HMAC-SHA256.
 
     Args:
         password: The plaintext password to hash.
 
     Returns:
-        The bcrypt hash string.
+        The hash string in ``$pbkdf2-sha256$iterations$salt$hash`` format.
     """
-    return bcrypt.hashpw(
-        password[:_MAX_PASSWORD_BYTES].encode("utf-8"),
-        bcrypt.gensalt(),
-    ).decode("utf-8")
+    salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        _PBKDF2_ITERATIONS,
+    )
+    return (
+        f"$pbkdf2-sha256${_PBKDF2_ITERATIONS}$"
+        f"{base64.b64encode(salt).decode('ascii')}$"
+        f"{base64.b64encode(dk).decode('ascii')}"
+    )
 
 
 def _encode_b64j(json_obj: dict[str, Any]) -> str:
