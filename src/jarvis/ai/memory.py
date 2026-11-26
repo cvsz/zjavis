@@ -99,7 +99,7 @@ class MemoryService:
             select(Memory).where(
                 Memory.content_hash == content_hash,
                 Memory.tenant_id == tenant_id,
-                Memory.is_deleted == False,
+                Memory.is_deleted == False,  
             )
         )
         existing_memory = existing.scalar_one_or_none()
@@ -155,7 +155,7 @@ class MemoryService:
             select(Memory).where(
                 Memory.id == memory_id,
                 Memory.tenant_id == tenant_id,
-                Memory.is_deleted == False,
+                Memory.is_deleted == False,  
             )
         )
         return result.scalar_one_or_none()
@@ -181,7 +181,7 @@ class MemoryService:
         """
         query_stmt = select(Memory).where(
             Memory.tenant_id == tenant_id,
-            Memory.is_deleted == False,
+            Memory.is_deleted == False,  
         )
 
         if memory_type:
@@ -213,7 +213,7 @@ class MemoryService:
         if memory is None:
             return False
 
-        memory.is_deleted = True
+        memory.is_deleted = True  # type: ignore[assignment]
         await self.session.commit()
         logger.info(
             "Memory deleted",
@@ -231,13 +231,13 @@ class MemoryService:
         result = await self.session.execute(
             select(Memory).where(
                 Memory.is_deleted == False,
-                Memory.expires_at < now,
+                Memory.expires_at < now,  # type: ignore[arg-type]
             )
         )
         expired_memories = result.scalars().all()
         count = len(expired_memories)
         for memory in expired_memories:
-            memory.is_deleted = True
+            memory.is_deleted = True  # type: ignore[assignment]
         await self.session.commit()
         logger.info("Expired memories deleted", extra={"count": count})
         return count
@@ -252,16 +252,16 @@ class MemoryService:
             Dict with memory statistics.
         """
         result = await self.session.execute(
-            select(Memory).where(
+            select(Memory).where(  
                 Memory.tenant_id == tenant_id,
-                Memory.is_deleted == False,
+                Memory.is_deleted == False,  
             )
         )
         memories = result.scalars().all()
 
         type_counts: dict[str, int] = {}
         for m in memories:
-            type_counts[m.memory_type] = type_counts.get(m.memory_type, 0) + 1
+            type_counts[str(m.memory_type)] = type_counts.get(str(m.memory_type), 0) + 1  
 
         return {
             "total": len(memories),
