@@ -33,7 +33,7 @@ async def health() -> dict[str, Any]:
 
 @router.get("/ready", summary="Readiness probe")
 async def ready(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> dict[str, Any]:
     """Readiness probe: indicates the application and dependencies are ready.
 

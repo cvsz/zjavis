@@ -43,7 +43,7 @@ class UserResponse(BaseModel):
 @router.post("/login", response_model=LoginResponse, summary="Authenticate and obtain tokens")
 async def login(
     request: LoginRequest,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> LoginResponse:
     """Authenticate a user and return access/refresh tokens.
 
@@ -67,7 +67,7 @@ async def login(
 
 @router.get("/me", response_model=UserResponse, summary="Get current user profile")
 async def get_me(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> UserResponse:
     """Return the profile of the currently authenticated user."""
@@ -86,7 +86,7 @@ async def get_me(
     summary="Verify superuser access (admin only)",
 )
 async def superuser_check(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> dict[str, str]:
     """Require superuser access. Returns success if authorized."""

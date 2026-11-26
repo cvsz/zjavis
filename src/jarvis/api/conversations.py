@@ -51,7 +51,7 @@ class MessageResponse(BaseModel):
 @router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 async def create_conversation(
     request: ConversationCreate,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> ConversationResponse:
     """Create a new conversation for the authenticated user."""
@@ -76,7 +76,7 @@ async def create_conversation(
 
 @router.get("", response_model=list[ConversationResponse])
 async def list_conversations(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> list[ConversationResponse]:
     """List conversations for the authenticated user."""
@@ -105,7 +105,7 @@ async def list_conversations(
 async def create_message(
     conversation_id: UUID,
     request: MessageCreate,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> MessageResponse:
     """Add a message to a conversation."""

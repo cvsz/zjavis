@@ -6,8 +6,11 @@ endpoints, authentication routes, and global error handling.
 
 from __future__ import annotations
 
+import time
+from collections.abc import Awaitable, Callable
+
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from jarvis.api.auth import router as auth_router
 from jarvis.api.conversations import router as conversations_router
@@ -21,6 +24,7 @@ from jarvis.core.exceptions import (
     NotFoundError,
 )
 from jarvis.core.logging import get_logger, setup_logging
+from jarvis.core.metrics import record_request
 
 logger = get_logger(__name__)
 
@@ -63,6 +67,32 @@ def create_app() -> FastAPI:
                 "message": exc.message,
                 "details": exc.details,
             },
+        )
+
+    # Metrics middleware: record request rate and latency per endpoint.
+    @app.middleware("http")
+    async def metrics_middleware(
+        request: Request, call_next: Callable[[Request], Awaitable[JSONResponse]]
+    ) -> JSONResponse:
+        start = time.time()
+        try:
+            response: JSONResponse = await call_next(request)
+        except Exception:
+            duration = time.time() - start
+            record_request(request.method, request.url.path, 500, duration)
+            raise
+        duration = time.time() - start
+        record_request(request.method, request.url.path, response.status_code, duration)
+        return response
+
+    # Metrics endpoint for Prometheus scraping.
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics() -> PlainTextResponse:
+        from jarvis.core.metrics import get_metrics
+
+        return PlainTextResponse(
+            content=get_metrics(),
+            media_type="text/plain; version=0.0.4; charset=utf-8",
         )
 
     # Routers
