@@ -2,11 +2,11 @@
 # Pinned for reproducible builds
 
 # Web framework
-fastapi==0.149.0
-uvicorn==0.54.0
-pydantic==2.14.1
-pydantic-settings==2.16.2
-starlette==0.52.1
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.10.0
+pydantic-settings>=2.4.0
+starlette>=0.53.0
 
 # Database
 SQLAlchemy==2.1.5
