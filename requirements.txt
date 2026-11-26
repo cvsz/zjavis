@@ -16,10 +16,10 @@ alembic==1.20.0
 
 # Security
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+bcrypt==4.2.0
 
 # Configuration / environment
-python-dotenv==1.0.1
+python-dotenv>=1.0.0
 
 # Logging
 ansilogs==1.2.0
