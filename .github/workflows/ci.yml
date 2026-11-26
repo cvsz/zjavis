@@ -33,11 +33,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt -r requirements-dev.txt
+
       - name: Validate repository structure and Markdown links
         run: python3 scripts/validate_repo.py
 
       - name: Exercise startup bootstrap tests
-        run: python3 -m unittest discover -s tests -v
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
         env:
           JARVIS_DATABASE_URL: postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis
           JARVIS_APP_SECRET: ci-secret-key-for-testing-only
