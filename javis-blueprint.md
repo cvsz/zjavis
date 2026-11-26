@@ -1837,6 +1837,311 @@ Key settings:
 | `JARVIS_LOG_LEVEL` | `info` | No | Log level |
 | `JARVIS_HOST` | `127.0.0.1` | No | Bind host |
 | `JARVIS_PORT` | `8000` | No | Bind port |
+| `JARVIS_DEBUG` | `false` | No | Debug mode |
+| `JARVIS_DATABASE_URL` | `postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis` | No | PostgreSQL connection URL |
+| `JARVIS_DATABASE_ECHO` | `false` | No | SQL statement logging |
+| `JARVIS_DATABASE_POOL_SIZE` | `10` | No | DB connection pool size |
+| `JARVIS_DATABASE_MAX_OVERFLOW` | `20` | No | DB max overflow connections |
+| `JARVIS_APP_SECRET` | `dev-secret-change-me-in-production` | **Yes** | Secret key for JWT signing |
+| `JARVIS_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | Token expiration |
+| `JARVIS_ALGORITHM` | `HS256` | No | JWT signing algorithm |
+| `JARVIS_MODEL_GATEWAY_ENABLED` | `true` | No | Enable model gateway |
+| `JARVIS_CLOUD_FALLBACK_ENABLED` | `false` | No | Cloud model fallback (disabled by default) |
+| `JARVIS_DEFAULT_PROVIDER` | `local` | No | Default model provider |
+| `JARVIS_DEFAULT_MODEL` | `local-model` | No | Default model name |
+| `JARVIS_MAX_TOKENS` | `4096` | No | Max tokens per request |
+| `JARVIS_REQUEST_TIMEOUT_SECONDS` | `120` | No | Default model request timeout |
+| `JARVIS_VOICE_ENABLED` | `false` | No | Voice interface |
+| `JARVIS_VISION_ENABLED` | `false` | No | Vision interface |
+| `JARVIS_AGENT_RUNTIME_ENABLED` | `true` | No | Agent runtime |
+| `JARVIS_SMART_ENVIRONMENT_ENABLED` | `false` | No | Smart environment |
+
+The `Settings` class validates that `JARVIS_APP_SECRET` is not the
+development default when `JARVIS_APP_ENV=production`, failing closed
+if it is.
+
+## 26.2 Security — `src/jarvis/core/security.py`
+
+Password hashing uses PBKDF2-HMAC-SHA256 with 210,000 iterations
+(OWASP recommended minimum as of 2023). Tokens use HMAC-SHA256 from the
+Python standard library (no third-party JWT dependencies with known
+vulnerabilities).
+
+Key functions:
+
+| Function | Purpose |
+|---|---|
+| `hash_password(password)` | Hash password with PBKDF2-SHA256 |
+| `verify_password(plain, hashed)` | Verify password against hash |
+| `create_access_token(subject, ...)` | Create signed access token |
+| `decode_access_token(token)` | Decode and validate token |
+| `generate_secure_token(length)` | Generate URL-safe random token |
+| `redact_secret(value)` | Redact secret for logging |
+| `require_permission(perms, required)` | Enforce capability permission |
+
+Token format: `header.payload.signature` where header and payload are
+base64url-encoded JSON and signature is HMAC-SHA256 hex digest.
+
+**Permissions defined:**
+
+| Permission | Description |
+|---|---|
+| `system.read` | System read access |
+| `repository.read` | Repository read access |
+| `repository.write` | Repository write access |
+| `browser.read` | Browser read access |
+| `browser.interact` | Browser interaction access |
+| `terminal.allowlisted` | Allowlisted terminal access |
+| `container.inspect` | Container inspection |
+| `database.read` | Database read access |
+| `database.mutate` | Database mutation access |
+| `deployment.request` | Deployment request |
+| `deployment.execute` | Deployment execution |
+| `secrets.metadata.read` | Secret metadata read |
+
+## 26.3 Policy Engine — `src/jarvis/core/policy.py`
+
+Policy decision point implementing blueprint §15.3. Every action is
+evaluated at execution time. Decision outcomes:
+
+| Decision | Meaning |
+|---|---|
+| `ALLOW` | Action permitted |
+| `DENY` | Action denied |
+| `REQUIRE_APPROVAL` | Action requires human approval |
+| `REQUIRE_REAUTHENTICATION` | Re-authentication required |
+| `OUT_OF_SCOPE` | Permission not recognized |
+
+Actions requiring approval regardless of permissions:
+- `database.mutate`
+- `deployment.execute`
+
+High-risk actions (`risk_level` in `high`/`critical`) also require approval.
+
+## 26.4 Database Models — `src/jarvis/db/models.py`
+
+SQLAlchemy 2.0 async models for all 14 core entities per blueprint §13.1:
+
+| Table | Description |
+|---|---|
+| `organizations` | Top-level tenants |
+| `users` | Authenticated principals |
+| `tenants` | Data isolation boundaries |
+| `roles` | Named permission sets |
+| `permissions` | Atomic capability grants |
+| `role_bindings` | Role-to-user assignments |
+| `sessions` | User session state |
+| `conversations` | Chat sessions |
+| `messages` | Chat messages |
+| `memories` | Persisted memory items |
+| `agents` | Agent definitions |
+| `tasks` | Units of work |
+| `approvals` | Consequential action approvals |
+| `audit_events` | Tamper-evident audit records |
+
+All entities use UUID primary keys, tenant-aware foreign keys, and
+`TimestampMixin` for `created_at`/`updated_at`.
+
+## 26.5 API Routes
+
+### `/api/v1/auth` — Authentication
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/login` | POST | Authenticate user, return access/refresh tokens |
+| `/me` | GET | Get current user profile |
+| `/superuser-check` | POST | Verify superuser access |
+
+### `/api/v1/conversations` — Conversation Management
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `` | POST | Create new conversation |
+| `` | GET | List conversations for user |
+| `/{conversation_id}/messages` | POST | Add message to conversation |
+
+### `/health` — Health Probes
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Liveness probe |
+| `/ready` | GET | Readiness probe (checks DB connectivity) |
+
+### `/metrics` — Observability
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/metrics` | GET | Prometheus text-format metrics |
+
+## 26.6 Application Entry — `src/jarvis/api/main.py`
+
+FastAPI application factory `create_app()` with:
+
+- Global `JarvisError` exception handler returning structured JSON errors
+- Health, auth, and conversations routers
+- Structured logging setup
+- `jarvis` module entry point (`python3 -m jarvis`)
+- Metrics middleware recording request rate and latency
+- `/metrics` Prometheus endpoint
+
+## 26.7 Database Session — `src/jarvis/db/session.py`
+
+SQLAlchemy async engine with connection pooling, session factory, and
+FastAPI dependency injection. Connection parameters read exclusively from
+environment configuration. Connection pooling with `pool_pre_ping` for
+stale connection recovery.
+
+## 26.8 Database Migrations — `alembic/versions/0001_initial_schema.py`
+
+Initial migration creating all 14 core tables:
+`organizations`, `users`, `tenants`, `roles`, `permissions`,
+`role_bindings`, `sessions`, `conversations`, `messages`, `memories`,
+`agents`, `tasks`, `approvals`, `audit_events`.
+
+Downgrade drops all tables in reverse dependency order.
+
+## 26.9 Tests
+
+| Test File | Tests | Description |
+|---|---|---|
+| `tests/unit/test_config.py` | 5 | Configuration loading, validation, defaults |
+| `tests/unit/test_security.py` | 8 | Password hashing, JWT tokens, permissions, redaction |
+| `tests/unit/test_policy.py` | 6 | Policy engine decisions (ALLOW/DENY/APPROVE/etc.) |
+| `tests/unit/test_logging.py` | 3 | Logging setup, secret redaction |
+| `tests/unit/test_db.py` | 1 | Database model metadata |
+| `tests/integration/test_health.py` | 2 | Health and readiness endpoints |
+| `tests/integration/test_auth.py` | 4 | Login, invalid password, nonexistent user, auth required |
+
+Total: 29 unit + integration tests.
+
+## 26.10 Docker Configuration
+
+### Dockerfile
+
+Single-stage build. Non-root user `appuser` (UID 1000). Installs
+`requirements.txt` only. Copies `src/`, `alembic/`, and `alembic.ini`.
+Runs `python3 -m jarvis`.
+
+### docker-compose.yml
+
+Three services: `postgres` (PostgreSQL 16), `redis` (Redis 7), `jarvis`
+(FastAPI API). Health checks on all services. Named volumes for data
+persistence.
+
+## 26.11 CI/CD Configuration — `.github/workflows/ci.yml`
+
+The CI pipeline runs on every push and pull request:
+
+1. **Checkout** — Checkout repository code
+2. **Install Python dependencies** — Install `requirements.txt` and `requirements-dev.txt`
+3. **Validate repository structure** — Run `scripts/validate_repo.py`
+4. **Run unit tests** — `pytest tests/unit`
+5. **Check for secret files** — Ensure no `.env`, `.pem`, `.key` files tracked
+6. **Validate shell syntax** — `bash -n` on shell scripts
+7. **Validate YAML syntax** — Ruby YAML validation on `.github/` files
+
+Branch protection requires:
+- Pull request review with CODEOWNERS approval
+- Required status checks (all CI jobs)
+- Conversation resolution
+- Branch up-to-date
+- Block force pushes and deletion
+- Enforce rules for administrators
+
+## 26.10 Operations Runbooks
+
+| Scenario | Runbook Location | Status |
+|---|---|---|
+| Service unavailable | Not implemented | BLOCKED |
+| Provider unavailable | Not implemented | BLOCKED |
+| GPU out of memory | Not implemented | BLOCKED |
+| Database unavailable | Not implemented | BLOCKED |
+| Event broker unavailable | Not implemented | BLOCKED |
+| Queue backlog | Not implemented | BLOCKED |
+| Stuck task | Not implemented | BLOCKED |
+| Agent runaway | Not implemented | BLOCKED |
+| Secret compromise | Not implemented | BLOCKED |
+| Suspected data leak | Not implemented | BLOCKED |
+| Backup failure | Not implemented | BLOCKED |
+| Restore procedure | Not implemented | BLOCKED |
+| Rollback procedure | Not implemented | BLOCKED |
+
+## 26.11 Troubleshooting Guide
+
+| Symptom | Likely Cause | Resolution |
+|---|---|---|
+| `JARVIS_APP_SECRET` validation error | Production env with default secret | Set `JARVIS_APP_SECRET` env var |
+| Database connection refused | PostgreSQL not running | Start PostgreSQL or check `DATABASE_URL` |
+| `ModuleNotFoundError: jarvis` | `PYTHONPATH` not set | Set `PYTHONPATH=src` |
+| Token validation fails | Wrong secret key | Ensure same `JARVIS_APP_SECRET` |
+| Migration fails | Alembic not initialized | Run `alembic upgrade head` |
+| Health check fails | Database unreachable | Check PostgreSQL connectivity |
+| Permission denied | Missing permission | Check `Permission` class constants |
+
+**End of JARVIS Master Blueprint — Complete Specification.**
+
+--------------------------------------------------------------------------------
+
+# 27. Implementation Status — Blueprint Coverage
+
+| Blueprint Section | Requirement | Implementation Status | Evidence |
+|---|---|---|---|
+| §0 | Executive Summary | COMPLETE | `javis-blueprint.md` |
+| §1 | Product Vision and Scope | DOCUMENTED | `javis-blueprint.md` |
+| §2 | Architecture Overview | IMPLEMENTED (Phase 1) | `src/jarvis/` modular package |
+| §3 | JARVIS Core Intelligence Engine | PARTIAL | Config, policy, auth implemented |
+| §4 | Model Gateway | COMPLETE | `src/jarvis/ai/gateway.py` |
+| §5 | Voice Intelligence | NOT IMPLEMENTED | Feature flag only |
+| §6 | Vision Intelligence | NOT IMPLEMENTED | Feature flag only |
+| §7 | Memory and Knowledge | PARTIAL (data model only) | `Memory` model with 7 types |
+| §8 | Multi-Agent Ecosystem | PARTIAL (model only) | `Agent` model defined |
+| §9 | Tool/MCP/Browser/Computer | NOT IMPLEMENTED | Capability strings defined |
+| §10 | Software Engineering Intelligence | NOT IMPLEMENTED | No engineering agent |
+| §11 | Smart Environment | NOT IMPLEMENTED | Feature flag only |
+| §12 | Dashboard/clients | NOT IMPLEMENTED | No frontend |
+| §13 | Data Architecture | COMPLETE (data model) | 14 SQLAlchemy models |
+| §14 | API and Event Contracts | PARTIAL (2 of 18 API groups) | `/api/v1/auth`, `/api/v1/conversations` |
+| §15 | Security Architecture | PARTIAL | Auth, RBAC, secrets, audit |
+| §16 | Infrastructure and Deployment | PARTIAL | Docker Compose |
+| §17 | Observability | PARTIAL | Logging + metrics endpoints |
+| §18 | Backup/Recovery | NOT IMPLEMENTED | No backup code |
+| §19 | Testing Strategy | PARTIAL | Unit + integration tests |
+| §20 | Repository Organization | PARTIAL | `src/jarvis/` flat package |
+| §21 | Implementation Roadmap | PARTIAL (Phase 1) | Phase 1 complete |
+| §22 | Acceptance Criteria | PARTIAL | Some metrics implemented |
+| §23 | Master Implementation Directive | IMPLEMENTED | Followed in implementation |
+| §24 | Config Reference | IMPLEMENTED | Documented in config.py |
+| §25 | Engineering Position | DOCUMENTED | Documented in blueprint |
+| §26 | Implementation Reference | IMPLEMENTED | Code examples |
+| §27 | Blueprint Coverage Summary | IMPLEMENTED | This table |
+| §28 | Configuration Reference | IMPLEMENTED | Environment variable reference |
+
+--------------------------------------------------------------------------------
+
+**End of JARVIS Master Blueprint — Complete Specification.**
+
+--------------------------------------------------------------------------------
+
+# 26. Implementation Reference — Source Code
+
+This section contains the canonical implementation examples for JARVIS
+Phase 1 (Core Platform). All code is under `src/jarvis/` in the
+`cvsz/zjavis` repository.
+
+## 26.1 Configuration — `src/jarvis/core/config.py`
+
+Type-safe configuration using `pydantic-settings`. All values come from
+environment variables with `JARVIS_` prefix. Production secrets must
+never be hardcoded.
+
+Key settings:
+
+| Variable | Default | Required in Production | Description |
+|---|---|---|---|
+| `JARVIS_APP_ENV` | `development` | No | Deployment environment |
+| `JARVIS_LOG_LEVEL` | `info` | No | Log level |
+| `JARVIS_HOST` | `127.0.0.1` | No | Bind host |
+| `JARVIS_PORT` | `8000` | No | Bind port |
 | `JARVIS_DATABASE_URL` | `postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis` | No | PostgreSQL connection URL |
 | `JARVIS_APP_SECRET` | `dev-secret-change-me-in-production` | **Yes** | Secret key for JWT signing |
 | `JARVIS_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | Token expiration |
