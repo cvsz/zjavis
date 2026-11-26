@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from jarvis.api.auth import router as auth_router
 from jarvis.api.conversations import router as conversations_router
 from jarvis.api.health import router as health_router
+from jarvis.api.memory import router as memory_router
 from jarvis.core.config import settings
 from jarvis.core.exceptions import (
     AuthenticationError,
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(conversations_router)
+    app.include_router(memory_router)
 
     logger.info(
         "JARVIS application created",
