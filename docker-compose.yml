@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jarvis-postgres
+    environment:
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: jarvis
+      POSTGRES_DB: jarvis
+    ports:
+      - "5432:5432"
+    volumes:
+      - jarvis_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d jarvis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: jarvis-redis
+    command: redis-server --requirepass jarvis
+    ports:
+      - "6379:6379"
+    volumes:
+      - jarvis_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "jarvis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  jarvis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jarvis-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      JARVIS_APP_ENV: development
+      JARVIS_LOG_LEVEL: debug
+      JARVIS_DATABASE_URL: postgresql+psycopg://jarvis:jarvis@postgres:5432/jarvis
+      JARVIS_SECRET_KEY: change-me-in-development-only
+      JARVIS_HOST: 0.0.0.0
+      JARVIS_PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  jarvis_postgres_data:
+  jarvis_redis_data:

@@ -15,15 +15,37 @@ concurrency:
 jobs:
   repository-baseline:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: jarvis
+          POSTGRES_PASSWORD: jarvis
+          POSTGRES_DB: jarvis
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U jarvis -d jarvis"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Validate repository structure and Markdown links
         run: python3 scripts/validate_repo.py
 
       - name: Exercise startup bootstrap tests
-        run: python3 -m unittest discover -s tests -v
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
+        env:
+          JARVIS_DATABASE_URL: postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis
+          JARVIS_APP_SECRET: ci-secret-key-for-testing-only
 
       - name: Check for common secret file names
         shell: bash
