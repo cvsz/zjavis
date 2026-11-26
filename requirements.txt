@@ -12,6 +12,7 @@ starlette==0.52.1
 SQLAlchemy==2.1.5
 psycopg==3.3.6
 psycopg-binary==3.3.6
+greenlet
 alembic==1.20.0
 
 # Security
