@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jarvis
+spec:
+  template:
+    spec:
+      containers:
+        - name: jarvis
+          env:
+            - name: JARVIS_APP_ENV
+              value: "development"
+            - name: JARVIS_LOG_LEVEL
+              value: "debug"
+            - name: JARVIS_APP_SECRET
+              value: "dev-secret-change-me-in-production"

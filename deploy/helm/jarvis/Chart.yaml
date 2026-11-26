@@ -1,0 +1,18 @@
+apiVersion: v2
+name: jarvis
+description: JARVIS Personal AI Operating System - Helm chart
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.24.0-0"
+keywords:
+  - ai
+  - jarvis
+  - personal-ai
+  - model-gateway
+home: https://github.com/cvsz/zjavis
+sources:
+  - https://github.com/cvsz/zjavis
+maintainers:
+  - name: cvsz
+    email: seaza@msn.com
