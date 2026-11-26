@@ -1,0 +1,45 @@
+name: SBOM and Provenance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+  packages: write
+  security-events: write
+
+jobs:
+  sbom:
+    name: Generate SBOM and provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install syft for SBOM generation
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: |
+          syft dir:. -o spdx-json=sbom.spdx.json
+          echo "sbom_path=sbom.spdx.json" >> $GITHUB_OUTPUT
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9b7886c06021bb7e46223a74 # v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+      - name: Generate provenance (SLSA)
+        run: |
+          echo '{"buildType": "jarvis-ci", "invocation": {"configSource": {"uri": "github.com/cvsz/zjavis"}}}' > provenance.json
+
+      - name: Upload provenance artifact
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9b7886c06021bb7e46223a74 # v4
+        with:
+          name: provenance
+          path: provenance.json

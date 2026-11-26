@@ -1,0 +1,37 @@
+name: Container Vulnerability Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 2 * * 0"  # Weekly
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-scan:
+    name: Trivy container vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build container image
+        run: docker build -t jarvis:local .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6a3e0934721e3992ab67cc57320872693f7a8e04 # v0.28.0
+        with:
+          image: "jarvis:local"
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: 0
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sarif_file: trivy-results.sarif
