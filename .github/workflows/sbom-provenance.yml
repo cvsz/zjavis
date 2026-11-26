@@ -26,10 +26,9 @@ jobs:
       - name: Generate SBOM
         run: |
           syft dir:. -o spdx-json=sbom.spdx.json
-          echo "sbom_path=sbom.spdx.json" >> $GITHUB_OUTPUT
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9b7886c06021bb7e46223a74 # v4
+        uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.spdx.json
@@ -39,7 +38,7 @@ jobs:
           echo '{"buildType": "jarvis-ci", "invocation": {"configSource": {"uri": "github.com/cvsz/zjavis"}}}' > provenance.json
 
       - name: Upload provenance artifact
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9b7886c06021bb7e46223a74 # v4
+        uses: actions/upload-artifact@v4
         with:
           name: provenance
           path: provenance.json
