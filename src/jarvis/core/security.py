@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import bcrypt
-from jose import JWTError, jwt  # type: ignore[import-untyped]
+import jwt  # type: ignore[import-untyped]
 
 from .config import settings
 from .exceptions import AuthenticationError, AuthorizationError
@@ -101,7 +101,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
     try:
         payload = cast(dict[str, Any], jwt.decode(token, APP_SECRET, algorithms=[ALGORITHM]))
         return payload
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise AuthenticationError("Invalid or expired token") from exc
 
 
