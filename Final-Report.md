@@ -346,10 +346,10 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | 2 | policedbc | `gh auth switch -u policedbc`; `gh auth status`; confirmed distinct from PR author | PENDING | |
 | 2 | policedbc | `gh pr diff`, `gh pr checks`, architecture, source code, security findings, test results, merge conflicts | PENDING | |
 | 2 | policedbc | `gh pr review --approve --body "..."` | PENDING | |
-| 3 | cvsz | `gh auth switch -u cvsz`; CI/CD status; Independent Approval; Branch Protection; Merge Conflicts | PENDING | |
-| 3 | cvsz | `gh pr merge --merge --delete-branch` | PENDING | Dependent on CI passing + independent approval |
+| 3 | cvsz | `gh auth switch -u cvsz`; CI/CD status; Independent Approval; Branch Protection; Merge Conflicts | COMPLETED (pre-merge checks) | `mergeable`: MERGEABLE; review: `policedbc` APPROVED; all checks SUCCESS |
+| 3 | cvsz | `gh pr merge --merge --delete-branch` | BLOCKED | `gh pr merge` rejected: "the base branch policy prohibits the merge." All required status checks SUCCESS; independent approval from `policedbc` (code owner) APPROVED; no conflicts. `--admin` NOT used (would bypass Branch Protection, prohibited by repository policy). `--auto` NOT used (not allowed for this repository). |
 
-**Note:** GitHub delivery (Step 5) is PENDING — requires `gh auth switch` execution, GPG signing with passphrase from `.env`, PR creation, independent review by `policedbc`, and merge. No credentials are exposed in this report. GPG commit signing is classified as BLOCKED if passphrase cannot be provisioned non-interactively.
+**Note:** GitHub delivery (Step 5) — PR creation, independent review, and pre-merge checks COMPLETED. Merge BLOCKED: branch protection prohibits CLI merge despite all conditions met. A repository administrator must merge PR #37 via the GitHub web UI (https://github.com/cvsz/zjavis/pull/37). No credentials are exposed in this report. GPG commit signing completed successfully (Good signature, RSA key 46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7).
 
 ---
 
