@@ -144,7 +144,7 @@ This section records the current state of the zjavis implementation per `javis-b
 | Backup / Restore | Phase 11 | PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | Phase 11 | NOT RUN | Deferred per blueprint §16.3 |
 | Load / Stress Testing | Phase 11 | NOT RUN | No production-scale workload available |
-| GPG Commit Signing | Phase 11 | BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
+| GPG Commit Signing | Phase 11 | VERIFIED | Functional via loopback pinentry (`.github/scripts/gpg-loopback.sh`, no passphrase required); `git commit -S` + `git verify-commit` → Good signature; `commit.gpgsign=true` configured |
 | Social Preview Image | Docs | VERIFIED | Real 1200×630 OpenGraph PNG generated locally via Pillow (`scripts/generate_social_preview.py`); no external credits required |
 
 **Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, GPG commit signing is BLOCKED, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 330 tests passing (0 failed).**
