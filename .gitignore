@@ -47,3 +47,4 @@ logs/
 # Local runtime data
 .tmp/
 tmp/
+zjavis-run.sh
