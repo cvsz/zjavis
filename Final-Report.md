@@ -23,7 +23,7 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 51 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
 
-Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision, and Smart Environment are feature-flagged stubs (BLOCKED, no hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients, and GPG commit signing are NOT RUN or BLOCKED.
+Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision, and Smart Environment are feature-flagged stubs (BLOCKED, no hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients are NOT RUN. GPG commit signing is VERIFIED functional via loopback pinentry.
 
 ---
 
@@ -48,7 +48,7 @@ The following findings were collected during deep inspection of the source code,
 | F13 | Medium | Phase 9 Smart Environment (`src/jarvis/ai/smart_environment.py`) | Stub only — returns empty/error | Requires IoT hardware + device credentials | Not available in this environment | BLOCKED |
 | F14 | High | Backup/restore | Restore drill not performed | Documentation only; no drill executed | Requires isolated restore test | NOT RUN |
 | F15 | Medium | OpenTelemetry tracing export | No OTLP endpoint configured; module is no-op when opentelemetry not installed | No tracing export infrastructure | Requires OTLP endpoint + opentelemetry deps | NOT RUN |
-| F16 | High | GPG commit signing | Signing key requires passphrase; no TTY in non-interactive environment | Cannot complete `git commit -S` unattended | Requires passphrase provisioning / GPG agent | BLOCKED |
+| F16 | High | GPG commit signing | Signing key requires passphrase; no TTY in non-interactive environment | GPG signing works non-interactively via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; clearsign verified exit 0; `git commit -S` functional; all branch commits GPG-signed | FIXED |
 | F17 | High | Kubernetes/Helm | Deferred per blueprint §16.3 | Not justified for first usable deployment | Revisit when multi-node scheduling needed | NOT RUN |
 | F18 | Medium | Load/stress testing | No production-scale workload available | No load tooling configured | NOT RUN | NOT RUN |
 | F19 | Medium | Phase 10 Dashboard/Clients | Not implemented | No frontend codebase | NOT RUN | NOT RUN |
@@ -57,9 +57,9 @@ The following findings were collected during deep inspection of the source code,
 | F22 | Medium | `alembic/env.py` | `connectable.dispose()` awaited on sync engine returning `None`, raising `TypeError: 'NoneType' object can't be awaited` and blocking all Alembic migrations | Incorrect `await` on sync engine `.dispose()` | Changed to `connectable.dispose()` (no await) for sync engine; `alembic upgrade head` verified passing against live PostgreSQL | FIXED |
 
 **Total findings:** 22  
-**Fixed:** 10 (F1-F8, F21-F22)  
+**Fixed:** 11 (F1-F8, F16, F21-F22)  
 **Documented False Positives:** 2 (F9, F10)  
-**BLOCKED:** 5 (F11-F13, F16, F20)  
+**BLOCKED:** 4 (F11-F13, F20)  
 **NOT RUN:** 5 (F14, F15, F17, F18, F19)
 
 ---
@@ -304,7 +304,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | 13 | MEDIUM | `src/jarvis/ai/smart_environment.py` | Smart env stub | Requires IoT hardware + credentials | BLOCKED |
 | 14 | HIGH | `docs/backup-restore.md` | No restore drill | Documentation only; drill not executed | NOT RUN |
 | 15 | MEDIUM | `src/jarvis/core/tracing.py` | No tracing export | No OTLP endpoint configured | NOT RUN |
-| 16 | HIGH | Git commit signing | No TTY for passphrase | Cannot complete `git commit -S` unattended | BLOCKED |
+| 16 | HIGH | Git commit signing | No TTY for passphrase | GPG signing works non-interactively via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key `46ABBD40...` has no passphrase; clearsign verified exit 0; all 17 branch commits show `git log %G?=G` (Good signature). Earlier "BLOCKED (no TTY)" claim was stale. | FIXED |
 | 17 | HIGH | `deploy/k8s`, `deploy/helm` | K8s/Helm not implemented | Deferred per blueprint §16.3 | NOT RUN |
 | 18 | MEDIUM | Load/stress testing | No production workload | NOT RUN | NOT RUN |
 | 19 | MEDIUM | Phase 10 clients | Not implemented | No frontend | NOT RUN |
@@ -322,7 +322,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Backup/restore restore drill | Not performed; documentation only | NOT RUN |
 | OpenTelemetry tracing export | No OTLP endpoint configured; module no-op | NOT RUN |
 | Alembic migrations | `connectable.dispose()` sync engine bug fixed; `alembic upgrade head` verified passing against live PostgreSQL | VERIFIED (resolved) |
-| GPG commit signing | Signing key requires passphrase; no TTY | BLOCKED |
+| GPG commit signing | Signing key requires passphrase; no TTY | VERIFIED — clearsign and `git commit -S` work via loopback pinentry; signing key has no passphrase; all branch commits GPG-signed (`%G?=G`) |
 | Kubernetes/Helm deployment | Deferred per blueprint §16.3 | NOT RUN |
 | Load/stress testing | No production-scale workload | NOT RUN |
 | Phase 10 Dashboard / Clients | Not implemented | NOT RUN |
@@ -364,7 +364,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 - Voice, Vision, Smart Environment: stubs only (BLOCKED, no hardware/credentials)
 - Backup/restore restore drill: NOT RUN
 - OpenTelemetry tracing export: NOT RUN
-- GPG commit signing: BLOCKED (no TTY for passphrase)
+- GPG commit signing: VERIFIED — functional via loopback pinentry (no passphrase required); all branch commits GPG-signed
 - Kubernetes/Helm deployment: NOT RUN (deferred)
 - Load/stress testing: NOT RUN
 - Phase 10 Dashboard/Clients: NOT RUN
@@ -398,7 +398,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | Voice/Vision/Smart Env | | | | ⬜ | | |
 | Backup/Restore docs | ✅ | | | | | |
 | Backup/Restore restore drill | | | | | | ⬜ |
-| GPG commit signing | | | | ⬜ | | |
+| GPG commit signing | ✅ | | | | | |
 | K8s/Helm | | | | | | ⬜ |
 | Load/stress testing | | | | | | ⬜ |
 | Phase 10 Clients | | | | | | ⬜ |
