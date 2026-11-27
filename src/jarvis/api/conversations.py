@@ -7,6 +7,7 @@ Integrates with the AI model gateway for AI responses.
 from __future__ import annotations
 
 import json
+import re
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -17,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.gateway import gateway
 from jarvis.api.auth import get_current_user
-from jarvis.core.exceptions import NotFoundError
+from jarvis.core.exceptions import NotFoundError, ValidationError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
 from jarvis.db.models import Conversation, Message
@@ -25,6 +26,32 @@ from jarvis.db.models import Conversation, Message
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
+
+# Dangerous patterns to reject in user input (prompt injection / XSS attempt)
+_DANGEROUS_PATTERNS = [
+    re.compile(r"<script\b[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL),
+    re.compile(r"javascript:", re.IGNORECASE),
+    re.compile(r"on\w+\s*=", re.IGNORECASE),
+    re.compile(r"ignore\s+previous\s+instructions", re.IGNORECASE),
+    re.compile(r"system\s*:\s*you\s+are", re.IGNORECASE),
+]
+
+
+def sanitize_message_content(content: str) -> str:
+    """Sanitize user-provided message content.
+
+    Removes dangerous HTML/script patterns and normalizes whitespace.
+    Raises ValidationError if content contains blocked patterns.
+    """
+    for pattern in _DANGEROUS_PATTERNS:
+        if pattern.search(content):
+            raise ValidationError(
+                "Message content contains blocked patterns",
+                code="blocked_content",
+                details={"pattern": pattern.pattern},
+            )
+    # Normalize whitespace
+    return re.sub(r"\s+", " ", content).strip()
 
 
 class ConversationCreate(BaseModel):
@@ -74,10 +101,11 @@ async def create_conversation(
 ) -> ConversationResponse:
     """Create a new conversation for the authenticated user."""
     user = await get_current_user(session, authorization)
+    safe_title = sanitize_message_content(request.title) if request.title else None
     conversation = Conversation(
-        tenant_id=UUID("00000000-0000-0000-0000-000000000000"),
+        tenant_id=user.id,
         user_id=user.id,
-        title=request.title,
+        title=safe_title,
     )
     session.add(conversation)
     await session.commit()
@@ -87,8 +115,8 @@ async def create_conversation(
         id=str(conversation.id),
         tenant_id=str(conversation.tenant_id),
         user_id=str(conversation.user_id),
-        title=conversation.title,  # type: ignore[arg-type]
-        is_archived=conversation.is_archived,  # type: ignore[arg-type]
+        title=conversation.title,
+        is_archived=conversation.is_archived,
     )
 
 
@@ -108,8 +136,8 @@ async def list_conversations(
             id=str(c.id),
             tenant_id=str(c.tenant_id),
             user_id=str(c.user_id),
-            title=c.title,  # type: ignore[arg-type]
-            is_archived=c.is_archived,  # type: ignore[arg-type]
+            title=c.title,
+            is_archived=c.is_archived,
         )
         for c in conversations
     ]
@@ -136,10 +164,12 @@ async def create_message(
     conversation = result.scalar_one_or_none()
     if conversation is None:
         raise NotFoundError(f"Conversation not found: {conversation_id}")
+    # Sanitize message content
+    safe_content = sanitize_message_content(request.content)
     message = Message(
         conversation_id=conversation_id,
         role=request.role,
-        content=request.content,
+        content=safe_content,
     )
     session.add(message)
     await session.commit()
@@ -151,9 +181,9 @@ async def create_message(
     return MessageResponse(
         id=str(message.id),
         conversation_id=str(message.conversation_id),
-        role=message.role,  # type: ignore[arg-type]
-        content=message.content,  # type: ignore[arg-type]
-        token_count=message.token_count,  # type: ignore[arg-type]
+        role=message.role,
+        content=message.content,
+        token_count=message.token_count,
     )
 
 
@@ -184,11 +214,14 @@ async def chat(
     if conversation is None:
         raise NotFoundError(f"Conversation not found: {conversation_id}")
 
+    # Sanitize user message content
+    safe_message = sanitize_message_content(request.message)
+
     # Create user message
     user_message = Message(
         conversation_id=conversation_id,
         role="user",
-        content=request.message,
+        content=safe_message,
     )
     session.add(user_message)
     await session.commit()
@@ -201,7 +234,7 @@ async def chat(
         .order_by(Message.created_at.desc())
         .limit(10)
     )
-    recent_messages = result.scalars().all()
+    recent_messages = list(result.scalars().all())
     recent_messages.reverse()  # Chronological order
 
     # Build messages for model gateway
@@ -272,11 +305,14 @@ async def chat_stream(
     if conversation is None:
         raise NotFoundError(f"Conversation not found: {conversation_id}")
 
+    # Sanitize user message content
+    safe_message = sanitize_message_content(request.message)
+
     # Create user message
     user_message = Message(
         conversation_id=conversation_id,
         role="user",
-        content=request.message,
+        content=safe_message,
     )
     session.add(user_message)
     await session.commit()
@@ -289,7 +325,7 @@ async def chat_stream(
         .order_by(Message.created_at.desc())
         .limit(10)
     )
-    recent_messages = result_msgs.scalars().all()
+    recent_messages = list(result_msgs.scalars().all())
     recent_messages.reverse()
 
     messages = [

@@ -213,7 +213,7 @@ class MemoryService:
         if memory is None:
             return False
 
-        memory.is_deleted = True  # type: ignore[assignment]
+        memory.is_deleted = True
         await self.session.commit()
         logger.info(
             "Memory deleted",
@@ -231,7 +231,7 @@ class MemoryService:
         result = await self.session.execute(
             select(Memory).where(
                 Memory.is_deleted.is_(False),
-                Memory.expires_at < now,  # type: ignore[arg-type]
+                Memory.expires_at < now,
             )
         )
         expired_memories = result.scalars().all()

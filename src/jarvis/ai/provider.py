@@ -61,7 +61,7 @@ class ProviderAdapter:
     @property
     def api_key_redacted(self) -> str:
         """Return a redacted form of the credential for logging."""
-        return redact_secret(self._credential)
+        return str(redact_secret(self._credential))
 
     async def complete(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
         """Complete a chat completion. Must be implemented by subclasses."""

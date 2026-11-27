@@ -57,7 +57,7 @@ async def request_approval(
         task_id=str(approval.task_id),
         requested_by=str(approval.requested_by),
         approved_by=str(approval.approved_by) if approval.approved_by else None,
-        state=approval.state,  # type: ignore[arg-type]
+        state=approval.state,
         expires_at=str(approval.expires_at) if approval.expires_at else None,
     )
 
@@ -83,7 +83,7 @@ async def list_approvals(
             task_id=str(a.task_id),
             requested_by=str(a.requested_by),
             approved_by=str(a.approved_by) if a.approved_by else None,
-            state=a.state,  # type: ignore[arg-type]
+            state=a.state,
             expires_at=str(a.expires_at) if a.expires_at else None,
         )
         for a in approvals
@@ -105,7 +105,7 @@ async def get_approval(
         task_id=str(approval.task_id),
         requested_by=str(approval.requested_by),
         approved_by=str(approval.approved_by) if approval.approved_by else None,
-        state=approval.state,  # type: ignore[arg-type]
+        state=approval.state,
         expires_at=str(approval.expires_at) if approval.expires_at else None,
     )
 
@@ -125,7 +125,7 @@ async def grant_approval(
         task_id=str(approval.task_id),
         requested_by=str(approval.requested_by),
         approved_by=str(approval.approved_by) if approval.approved_by else None,
-        state=approval.state,  # type: ignore[arg-type]
+        state=approval.state,
         expires_at=str(approval.expires_at) if approval.expires_at else None,
     )
 
@@ -145,6 +145,6 @@ async def deny_approval(
         task_id=str(approval.task_id),
         requested_by=str(approval.requested_by),
         approved_by=str(approval.approved_by) if approval.approved_by else None,
-        state=approval.state,  # type: ignore[arg-type]
+        state=approval.state,
         expires_at=str(approval.expires_at) if approval.expires_at else None,
     )

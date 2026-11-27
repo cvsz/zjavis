@@ -74,14 +74,14 @@ async def create_memory(
         id=str(memory.id),
         tenant_id=str(memory.tenant_id),
         user_id=str(memory.user_id),
-        memory_type=memory.memory_type,  # type: ignore[arg-type]
-        content=memory.content,  # type: ignore[arg-type]
-        source=memory.source,  # type: ignore[arg-type]
-        source_type=memory.source_type,  # type: ignore[arg-type]
-        source_id=memory.source_id,  # type: ignore[arg-type]
-        confidence=memory.confidence,  # type: ignore[arg-type]
+        memory_type=memory.memory_type,
+        content=memory.content,
+        source=memory.source,
+        source_type=memory.source_type,
+        source_id=memory.source_id,
+        confidence=memory.confidence,
         expires_at=str(memory.expires_at) if memory.expires_at else None,
-        is_deleted=memory.is_deleted,  # type: ignore[arg-type]
+        is_deleted=memory.is_deleted,
         created_at=str(memory.created_at),
         updated_at=str(memory.updated_at),
     )
@@ -107,14 +107,14 @@ async def list_memories(
             id=str(m.id),
             tenant_id=str(m.tenant_id),
             user_id=str(m.user_id),
-            memory_type=m.memory_type,  # type: ignore[arg-type]
-            content=m.content,  # type: ignore[arg-type]
-            source=m.source,  # type: ignore[arg-type]
-            source_type=m.source_type,  # type: ignore[arg-type]
-            source_id=m.source_id,  # type: ignore[arg-type]
-            confidence=m.confidence,  # type: ignore[arg-type]
+            memory_type=m.memory_type,
+            content=m.content,
+            source=m.source,
+            source_type=m.source_type,
+            source_id=m.source_id,
+            confidence=m.confidence,
             expires_at=str(m.expires_at) if m.expires_at else None,
-            is_deleted=m.is_deleted,  # type: ignore[arg-type]
+            is_deleted=m.is_deleted,
             created_at=str(m.created_at),
             updated_at=str(m.updated_at),
         )
@@ -138,14 +138,14 @@ async def get_memory(
         id=str(memory.id),
         tenant_id=str(memory.tenant_id),
         user_id=str(memory.user_id),
-        memory_type=memory.memory_type,  # type: ignore[arg-type]
-        content=memory.content,  # type: ignore[arg-type]
-        source=memory.source,  # type: ignore[arg-type]
-        source_type=memory.source_type,  # type: ignore[arg-type]
-        source_id=memory.source_id,  # type: ignore[arg-type]
-        confidence=memory.confidence,  # type: ignore[arg-type]
+        memory_type=memory.memory_type,
+        content=memory.content,
+        source=memory.source,
+        source_type=memory.source_type,
+        source_id=memory.source_id,
+        confidence=memory.confidence,
         expires_at=str(memory.expires_at) if memory.expires_at else None,
-        is_deleted=memory.is_deleted,  # type: ignore[arg-type]
+        is_deleted=memory.is_deleted,
         created_at=str(memory.created_at),
         updated_at=str(memory.updated_at),
     )
@@ -242,14 +242,14 @@ async def search_memory(
             id=str(m.id),
             tenant_id=str(m.tenant_id),
             user_id=str(m.user_id),
-            memory_type=m.memory_type,  # type: ignore[arg-type]
-            content=m.content,  # type: ignore[arg-type]
-            source=m.source,  # type: ignore[arg-type]
-            source_type=m.source_type,  # type: ignore[arg-type]
-            source_id=m.source_id,  # type: ignore[arg-type]
-            confidence=m.confidence,  # type: ignore[arg-type]
+            memory_type=m.memory_type,
+            content=m.content,
+            source=m.source,
+            source_type=m.source_type,
+            source_id=m.source_id,
+            confidence=m.confidence,
             expires_at=str(m.expires_at) if m.expires_at else None,
-            is_deleted=m.is_deleted,  # type: ignore[arg-type]
+            is_deleted=m.is_deleted,
             created_at=str(m.created_at),
             updated_at=str(m.updated_at),
         )

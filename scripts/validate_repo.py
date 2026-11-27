@@ -190,9 +190,9 @@ def validate_no_secret_content() -> list[str]:
 
 
 def validate_python_syntax() -> list[str]:
-    """Compile-check all Python files under scripts/ and tests/."""
+    """Compile-check all Python files under scripts/, tests/, and src/jarvis/."""
     errors: list[str] = []
-    for directory in ("scripts", "tests"):
+    for directory in ("scripts", "tests", "src/jarvis"):
         base = ROOT / directory
         if not base.is_dir():
             continue
@@ -237,7 +237,7 @@ def validate_yaml_syntax() -> list[str]:
     if not base.is_dir():
         return errors
     try:
-        import yaml  # type: ignore
+        import yaml
     except ImportError:
         return errors  # yaml not available; skip YAML validation
     for yml in sorted(base.rglob("*.yml")) + sorted(base.rglob("*.yaml")):

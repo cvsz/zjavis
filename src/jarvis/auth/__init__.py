@@ -48,7 +48,7 @@ async def authenticate_user(
     if user is None:
         logger.warning("Authentication failed: user not found", extra={"username": username})
         raise AuthenticationError("Invalid username or password")
-    if not verify_password(password, user.password_hash):  # type: ignore[arg-type]
+    if not verify_password(password, user.password_hash):
         logger.warning("Authentication failed: invalid password", extra={"username": username})
         raise AuthenticationError("Invalid username or password")
     if not user.is_active:

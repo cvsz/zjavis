@@ -82,7 +82,7 @@ class AgentRuntime:
         task_uuid = self._uuid(task.id)
         if task_uuid is None:
             return False
-        return await approval_service.is_approved(task_uuid)
+        return bool(await approval_service.is_approved(task_uuid))
 
     async def _record_audit(
         self,
@@ -144,8 +144,8 @@ class AgentRuntime:
             )
 
         # Mark task as running
-        task.state = "running"  # type: ignore[assignment]
-        task.started_at = datetime.now(UTC)  # type: ignore[assignment]
+        task.state = "running"
+        task.started_at = datetime.now(UTC)
         await self.session.commit()
 
         try:
@@ -173,9 +173,9 @@ class AgentRuntime:
             )
 
             # Mark task as completed
-            task.state = "completed"  # type: ignore[assignment]
-            task.completed_at = datetime.now(UTC)  # type: ignore[assignment]
-            task.error_message = None  # type: ignore[assignment]
+            task.state = "completed"
+            task.completed_at = datetime.now(UTC)
+            task.error_message = None
             await self.session.commit()
 
             await self._record_audit(
@@ -206,9 +206,9 @@ class AgentRuntime:
             }
 
         except Exception as exc:  # record failure then re-raise
-            task.state = "failed"  # type: ignore[assignment]
-            task.completed_at = datetime.now(UTC)  # type: ignore[assignment]
-            task.error_message = str(exc)  # type: ignore[assignment]
+            task.state = "failed"
+            task.completed_at = datetime.now(UTC)
+            task.error_message = str(exc)
             await self.session.commit()
 
             await self._record_audit(

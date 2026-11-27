@@ -10,6 +10,7 @@ import time
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from jarvis.api.agent_runtime import router as agent_runtime_router
@@ -39,6 +40,34 @@ logger = get_logger(__name__)
 
 APP_VERSION = "0.1.0"
 
+# Rate-limit storage: {client_key: [timestamps]}
+_RATE_LIMIT_STORE: dict[str, list[float]] = {}
+_RATE_LIMIT_MAX_REQUESTS = 60
+_RATE_LIMIT_WINDOW_SECONDS = 60
+
+
+def _client_key(request: Request) -> str:
+    """Derive a client identifier for rate limiting."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    client = request.client
+    return client.host if client else "unknown"
+
+
+def _check_rate_limit(key: str) -> bool:
+    """Return True if the request is within rate limits, False otherwise."""
+    now = time.time()
+    window_start = now - _RATE_LIMIT_WINDOW_SECONDS
+    timestamps = _RATE_LIMIT_STORE.get(key, [])
+    # Prune old entries
+    recent = [ts for ts in timestamps if ts > window_start]
+    if len(recent) >= _RATE_LIMIT_MAX_REQUESTS:
+        return False
+    recent.append(now)
+    _RATE_LIMIT_STORE[key] = recent
+    return True
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
@@ -53,6 +82,15 @@ def create_app() -> FastAPI:
         description="Personal AI Operating System core platform API",
         version=APP_VERSION,
         debug=settings.debug,
+    )
+
+    # CORS — restrict to same-origin by default; configure via env if needed.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     # Global error handler for JarvisError -> consistent JSON responses.
@@ -78,20 +116,43 @@ def create_app() -> FastAPI:
             },
         )
 
-    # Metrics middleware: record request rate and latency per endpoint.
+    # Security headers + rate limiting middleware.
     @app.middleware("http")
-    async def metrics_middleware(
+    async def security_and_metrics_middleware(
         request: Request, call_next: Callable[[Request], Awaitable[JSONResponse]]
     ) -> JSONResponse:
+        # Rate limiting (applies to all endpoints except health/metrics)
+        path = request.url.path
+        if path not in ("/health", "/ready", "/metrics"):
+            key = _client_key(request)
+            if not _check_rate_limit(key):
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={
+                        "error": "rate_limited",
+                        "message": "Too many requests. Please try again later.",
+                        "details": {},
+                    },
+                    headers={
+                        "Retry-After": str(_RATE_LIMIT_WINDOW_SECONDS),
+                    },
+                )
+
         start = time.time()
         try:
             response: JSONResponse = await call_next(request)
         except Exception:
             duration = time.time() - start
-            record_request(request.method, request.url.path, 500, duration)
+            record_request(request.method, path, 500, duration)
             raise
         duration = time.time() - start
-        record_request(request.method, request.url.path, response.status_code, duration)
+        record_request(request.method, path, response.status_code, duration)
+
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
         return response
 
     # Metrics endpoint for Prometheus scraping.

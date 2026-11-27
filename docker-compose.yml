@@ -46,7 +46,7 @@ services:
       JARVIS_APP_ENV: development
       JARVIS_LOG_LEVEL: debug
       JARVIS_DATABASE_URL: postgresql+psycopg://jarvis:jarvis@postgres:5432/jarvis
-      JARVIS_SECRET_KEY: change-me-in-development-only
+      JARVIS_APP_SECRET: dev-secret-key-change-me-in-production
       JARVIS_HOST: 0.0.0.0
       JARVIS_PORT: 8000
     ports:

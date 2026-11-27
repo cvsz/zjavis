@@ -36,7 +36,7 @@ class AddCollaboratorsTests(unittest.TestCase):
         add_collaborators(
             "cvsz/ztemplate", ["user1", "user2", "user3"], permission="pull"
         )
-        expected_calls = [
+        expected_calls: list[tuple[tuple[str, str, dict[str, str]], dict[str, object]]] = [
             (
                 (
                     "PUT",
