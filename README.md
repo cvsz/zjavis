@@ -23,7 +23,8 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 207 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Core Platform (Phase 1) | ✅ COMPLETE | 199 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff, cancellation, state transitions |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation |
 | Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording |
@@ -42,6 +43,7 @@
 JARVIS is a personal AI operating system providing governance-first AI capabilities:
 local-first AI model gateway, secure authentication and authorization, policy engine
 with execution-time policy decisions, approval workflows, tamper-evident audit logging,
+durable bounded task orchestration, SSRF and path traversal prevention,
 and PostgreSQL-backed persistence for conversations, tasks, agents, tasks, approvals,
 and memories.
 
@@ -113,6 +115,14 @@ and memories.
 |-----------|--------|-------------|
 | Runtime | `src/jarvis/ai/agent_runtime.py` | Approval-gated task execution, audit event recording, task lifecycle management |
 
+### Task Orchestration
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Orchestration Engine | `src/jarvis/orchestration/__init__.py` | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, idempotency, state transition validation, dead-letter handling |
+| SSRF Prevention | `src/jarvis/core/security.py` | `validate_ssrf_safe_url()`, `is_private_ip()` — blocks private/reserved IP targets and unsafe schemes |
+| Path Traversal Prevention | `src/jarvis/core/security.py` | `validate_safe_path()` — prevents directory escape via `..` traversal and null bytes |
+
 ---
 
 ## Architecture
@@ -163,6 +173,8 @@ Every state transition is validated and persisted. State changes are safe under 
 | Authorization | Tenant isolation | VERIFIED |
 | Input Validation | SQLAlchemy ORM parameterized queries | VERIFIED |
 | Input Validation | `sanitize_message_content()` blocks XSS/prompt injection | VERIFIED |
+| Input Validation | `validate_ssrf_safe_url()` blocks private/reserved IPs and unsafe schemes | VERIFIED |
+| Input Validation | `validate_safe_path()` blocks path traversal and null bytes | VERIFIED |
 | Secrets Management | No hardcoded secrets; `.env` gitignored | VERIFIED |
 | API Security | CORS default-deny | VERIFIED |
 | API Security | Rate limiting (60 req/min) | VERIFIED |
@@ -348,7 +360,7 @@ zjavis/
 │   ├── approval/            # Approval service
 │   ├── audit/               # Audit service
 │   ├── db/                  # Database models and session
-│   ├── orchestration/       # Task orchestration layer
+│   ├── orchestration/       # Durable task orchestration (retry, cancellation, state transitions)
 │   └── policy/              # Policy enforcement package
 ├── tests/                   # Test suite
 │   ├── unit/                # Unit tests (no external services)

@@ -67,9 +67,9 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS |
 | MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS |
-| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 149 passed |
+| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 199 passed |
 | Pytest (template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | 46 passed |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 207 passed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 245 passed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (documented False Positives) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
 | Docker build | `docker build -t jarvis:local .` | PASS |

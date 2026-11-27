@@ -11,6 +11,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -262,3 +263,167 @@ def require_permission(
             code="insufficient_permission",
             details={"required": required},
         )
+
+
+# ---------------------------------------------------------------------------
+# SSRF Prevention
+# ---------------------------------------------------------------------------
+
+# Private/reserved IP ranges per RFC 1918, RFC 5737, RFC 6598, RFC 3927.
+# Tool and browser adapters must not resolve or connect to these addresses.
+_PRIVATE_IP_NETWORKS: list[tuple[int, int]] = [
+    (0x0A000000, 0x0AFFFFFF),  # 10.0.0.0/8
+    (0xAC100000, 0xAC1FFFFF),  # 172.16.0.0/12
+    (0xC0A80000, 0xC0A8FFFF),  # 192.168.0.0/16
+    (0x7F000000, 0x7FFFFFFF),  # 127.0.0.0/8 (loopback)
+    (0xA9FE0000, 0xA9FEFFFF),  # 169.254.0.0/16 (link-local)
+    (0x00000000, 0x00FFFFFF),  # 0.0.0.0/8 (this network)
+    (0xE0000000, 0xEFFFFFFF),  # 224.0.0.0/4 (multicast)
+    (0xF0000000, 0xFFFFFFFF),  # 240.0.0.0/4 (reserved)
+    (0x64400000, 0x647FFFFF),  # 100.64.0.0/10 (CGN)
+]
+
+
+def _ip_to_int(ip: str) -> int | None:
+    """Convert a dotted-quad IPv4 string to an integer, or None."""
+    parts = ip.split(".")
+    if len(parts) != 4:
+        return None
+    try:
+        vals = [int(p) for p in parts]
+    except ValueError:
+        return None
+    if any(v < 0 or v > 255 for v in vals):
+        return None
+    return (vals[0] << 24) | (vals[1] << 16) | (vals[2] << 8) | vals[3]
+
+
+def is_private_ip(host: str) -> bool:
+    """Return True if the host resolves to a private/reserved IPv4 address.
+
+    This is a host-name-level heuristic: it checks literal IPv4 addresses
+    only. Hostnames that resolve at runtime to private addresses must be
+    blocked at the DNS resolution layer by the caller.
+    """
+    ip = _ip_to_int(host)
+    if ip is None:
+        return False
+    for start, end in _PRIVATE_IP_NETWORKS:
+        if start <= ip <= end:
+            return True
+    return False
+
+
+def validate_ssrf_safe_url(url: str) -> None:
+    """Validate that a URL does not target private or reserved addresses.
+
+    Raises ValidationError if the URL uses an unsafe scheme or targets
+    a private/reserved IPv4 address.
+
+    Args:
+        url: The URL to validate.
+
+    Raises:
+        ValidationError: If the URL is unsafe.
+    """
+    from jarvis.core.exceptions import ValidationError
+
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+    except Exception as exc:
+        raise ValidationError(f"Invalid URL: {url}") from exc
+
+    scheme = parsed.scheme.lower()
+    if scheme not in ("http", "https"):
+        raise ValidationError(
+            f"Unsafe URL scheme: {scheme}. Only http and https are allowed.",
+            code="unsafe_url_scheme",
+            details={"scheme": scheme, "url": url},
+        )
+
+    hostname = parsed.hostname
+    if hostname is None:
+        raise ValidationError(
+            "URL must include a hostname",
+            code="missing_hostname",
+            details={"url": url},
+        )
+
+    if is_private_ip(hostname):
+        raise ValidationError(
+            f"URL targets private/reserved address: {hostname}",
+            code="ssrf_private_address",
+            details={"hostname": hostname, "url": url},
+        )
+
+
+# ---------------------------------------------------------------------------
+# Path Traversal Prevention
+# ---------------------------------------------------------------------------
+
+
+def validate_safe_path(
+    base_dir: str,
+    requested_path: str,
+    *,
+    allow_absolute: bool = False,
+) -> str:
+    """Validate that a requested path does not escape the base directory.
+
+    Prevents path traversal attacks (e.g. ``../../../etc/passwd``).
+    Returns the normalized absolute path if safe.
+
+    Args:
+        base_dir: The trusted base directory.
+        requested_path: The user-supplied path to validate.
+        allow_absolute: Whether absolute paths are permitted.
+
+    Returns:
+        The normalized absolute path within base_dir.
+
+    Raises:
+        ValidationError: If the path escapes base_dir or is otherwise unsafe.
+    """
+    from jarvis.core.exceptions import ValidationError
+
+    base = os.path.realpath(base_dir)
+    if not os.path.isdir(base):
+        raise ValidationError(
+            f"Base directory does not exist: {base_dir}",
+            code="invalid_base_directory",
+            details={"base_dir": base_dir},
+        )
+
+    if os.path.isabs(requested_path) and not allow_absolute:
+        raise ValidationError(
+            "Absolute paths are not allowed",
+            code="absolute_path_not_allowed",
+            details={"requested_path": requested_path},
+        )
+
+    # Reject null bytes and obvious traversal markers
+    if "\x00" in requested_path:
+        raise ValidationError(
+            "Path contains null byte",
+            code="path_null_byte",
+            details={"requested_path": requested_path},
+        )
+
+    combined = os.path.join(base, requested_path)
+    normalized = os.path.realpath(combined)
+
+    # Ensure the normalized path is still within base_dir
+    if not normalized.startswith(base + os.sep) and normalized != base:
+        raise ValidationError(
+            "Path traversal detected: path escapes base directory",
+            code="path_traversal",
+            details={
+                "base_dir": base,
+                "requested_path": requested_path,
+                "resolved": normalized,
+            },
+        )
+
+    return normalized

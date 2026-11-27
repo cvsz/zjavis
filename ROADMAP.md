@@ -74,6 +74,9 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] Budgets and limits (model gateway budget)
 - [x] Cancellation and recovery (task retry_count, error_message)
 - [x] Approval workflow (ApprovalService integration)
+- [x] Task orchestration engine (bounded execution, exponential backoff retry, cancellation, state transition validation, idempotency)
+- [x] SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`)
+- [x] Path traversal prevention (`validate_safe_path`)
 
 ## Phase 7 — Tool and Computer Integration (NOT IMPLEMENTED)
 

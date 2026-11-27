@@ -77,6 +77,8 @@ Security incidents affecting production systems should preserve evidence and use
 - `sanitize_message_content()` blocks: `<script>` tags, `javascript:` URLs, `on*` event handlers, `ignore previous instructions`, `system: you are` prompt injection patterns
 - Pydantic models with field constraints (min_length, max_length, type validation)
 - UUID validation for path parameters
+- SSRF prevention: `validate_ssrf_safe_url()` rejects `http`/`https` URLs targeting private/reserved IPv4 addresses (RFC 1918, RFC 5737, RFC 6598, RFC 3927) and non-http(s) schemes
+- Path traversal prevention: `validate_safe_path()` resolves and confines user-supplied paths within a trusted base directory, rejecting `..` traversal, null bytes, and absolute paths
 
 ### API security (VERIFIED)
 
@@ -100,6 +102,15 @@ Security incidents affecting production systems should preserve evidence and use
 - Audit categories: auth, security, system, tool, agent, memory, approval
 - Audit outcomes: success, failure, denial
 - Agent runtime records task execution outcomes (completed, failed, blocked)
+
+### Orchestration (VERIFIED)
+
+- Durable bounded task execution with absolute deadlines and per-step timeouts
+- Retry with exponential backoff and jitter (bounded retries)
+- Cancellation propagation
+- Idempotency keys for mutating operations
+- State transition validation (queued → running → completed/failed/blocked/cancelled)
+- Dead-letter handling via failed state recording
 
 ### Known findings and status
 

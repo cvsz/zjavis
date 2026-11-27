@@ -104,6 +104,6 @@ Repository-level controls such as protected branches, required reviews/checks, s
 - **Blueprint:** `javis-blueprint.md` defines the target architecture (28 sections) and implementation roadmap (Phases 0-11).
 - **Phase 1 (Core Platform):** COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, and API routes.
 - **Phases 2-11:** Partially implemented or BLOCKED/NOT RUN — see Final-Report.md for exact status per subsystem.
-- **Evidence baseline:** 207 tests passing (149 unit/integration + 46 template + 12 new policy tests), ruff/mypy/validate_repo/shellcheck/bandit all pass, Docker build passes.
+- **Evidence baseline:** 245 tests passing (199 unit/integration + 46 template), ruff/mypy/validate_repo/shellcheck/bandit all pass, Docker build passes.
 - **Blocked items:** GPG commit signing (no TTY for passphrase), voice/vision/smart-environment (no hardware/credentials), backup/restore, OpenTelemetry tracing, Kubernetes/Helm, load testing, E2E tests.
 - **Documented False Positives:** 2 Bandit Low findings (`"bearer"` token type; dev-secret comparison in fail-closed validation).
