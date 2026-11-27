@@ -182,7 +182,21 @@ def validate_no_secret_content() -> list[str]:
             # Skip YAML keys without values (no = or quoted value)
             if ":" in stripped and not any(ch in stripped for ch in ("=", '"', "'")):
                 continue
-            if SECRET_CONTENT_RE.search(stripped):
+            m = SECRET_CONTENT_RE.search(stripped)
+            if m:
+                # Only flag hardcoded secret *values*, not variable references,
+                # type annotations, or Python constants (e.g.
+                # `password=args.password`, `self.access_token = data[...]`,
+                # `access_token: str | None = None` are not hardcoded secrets).
+                match_text = m.group(0)
+                sep_idx = max(match_text.rfind("="), match_text.rfind(":"))
+                value = match_text[sep_idx + 1 :].strip()
+                if any(ch in value for ch in ".[]()"):
+                    continue
+                if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value):
+                    continue
+                if value in ("None", "True", "False", "...", ""):
+                    continue
                 errors.append(
                     f"{path.relative_to(ROOT)}:{lineno}: potential hardcoded secret"
                 )

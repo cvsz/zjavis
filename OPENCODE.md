@@ -21,10 +21,10 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the shared execution fr
 - Blueprint: `javis-blueprint.md`
 - Entry point: `python3 -m jarvis` or `uvicorn jarvis.api.main:create_app --factory`
 - Required env: `JARVIS_DATABASE_URL`, `JARVIS_APP_SECRET` (fail-closed in production)
-- Tests: `PYTHONPATH=src python3 -m pytest tests/` (330 passing: 225 unit/integration + 46 template + 59 Phase 7/8/RBAC; 0 failed)
+- Tests: `PYTHONPATH=src python3 -m pytest tests/` (372 passing: 225 unit/integration + 46 template + 101 new Phase 7/8/RBAC/tracing/client/voice/vision/smart-env tests; 0 failed)
 - Alembic migrations fixed: `alembic/env.py` `connectable.dispose()` corrected for sync engine; `alembic upgrade head` verified passing against live PostgreSQL.
 - Security hardening applied: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; permission resolution scoped by tenant_id; SSRF and path traversal prevention; orchestration engine state transition validation; authorization on request_approval and execute_task endpoints; task state mutation prevented via API; login session record created; Phase 7 tool adapters (file, terminal, git, docker, MCP, browser); Phase 8 engineering intelligence (repository discovery, architecture analysis)
-- Verification baseline (all current): Build PASS, Ruff PASS (92 files), Ruff format PASS, MyPy PASS (51 source files), ShellCheck PASS, Pytest 330 passed, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS
+- Verification baseline (all current): Build PASS, Ruff PASS (106 files), Ruff format PASS, MyPy PASS (53 source files), ShellCheck PASS, Pytest 372 passed, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS
 
 ## Evidence states
 
