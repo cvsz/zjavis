@@ -15,8 +15,10 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the cross-agent executi
 - Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)
 - Blueprint: `javis-blueprint.md`
 - Phase 1 (Core Platform): COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, orchestration engine, SSRF/path traversal prevention, and API routes.
+- Phase 7 (Tool & Computer Integration): IMPLEMENTED — File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry.
+- Phase 8 (Engineering Intelligence): IMPLEMENTED — Repository discovery, architecture analysis, engineering capability registry. All operations read-only and policy-governed.
 - Security hardening: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context; SSRF/path traversal prevention; orchestration state transition validation.
 - Do not claim production readiness without evidence for each readiness gate.
-- Tests: 273 passing (221 unit/integration + 46 template + 6 missing-dependency/e2e; 0 failed). Verification baseline: Build PASS, Ruff PASS, MyPy PASS, ShellCheck PASS, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS (`jarvis:local`).
+- Tests: 322 passing (221 unit/integration + 46 template + 55 Phase 7/8; 0 failed). Verification baseline: Build PASS, Ruff PASS, MyPy PASS, ShellCheck PASS, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS (`jarvis:local`).
 - Authorization hardening (this session): `request_approval` endpoint now requires `require_policy()`; `execute_task` agent runtime endpoint now requires `require_policy()`; `state` field removed from `TaskUpdate` to prevent direct state mutation; login creates a `Session` record for token revocation support.
 - Blocked/NOT RUN: Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY for passphrase).

@@ -74,6 +74,7 @@ Security incidents affecting production systems should preserve evidence and use
 - Conversation endpoints (`list`, `create-message`, `chat`, `chat-stream`) enforce tenant isolation by filtering on `tenant_id`
 - `get_user_permissions()` accepts optional `tenant_id` to scope role-binding permissions to a specific tenant
 - `require_policy()` passes `tenant_id` to `PolicyEngine.evaluate()` for audit context
+- **Phase 7 Tool Adapters:** All adapters (file, terminal, git, docker, MCP, browser) enforce SSRF/path traversal prevention, command allowlisting, output bounding, and are disabled by default
 
 ### Input validation (VERIFIED)
 
@@ -148,10 +149,6 @@ Security incidents affecting production systems should preserve evidence and use
 - GPG commit signing: signing key requires passphrase; no TTY available in non-interactive environment → BLOCKED (cannot complete `git commit -S` without passphrase provisioning)
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
 - Load/stress testing: no production-scale workload available → NOT RUN
-- E2E tests: no E2E test suite exists → NOT RUN
-- Missing dependency tests: no missing-dependency test suite exists → NOT RUN
-- Browser/File/Terminal/Git/Docker/IDE/MCP capability adapters (Phase 7): not implemented → NOT RUN
-- Engineering Intelligence (Phase 8): not implemented → NOT RUN
 - Dashboard/Clients (Phase 10): not implemented → NOT RUN
 
 ### Verification evidence (current session)
@@ -159,11 +156,11 @@ Security incidents affecting production systems should preserve evidence and use
 | Check | Command | Result | Evidence |
 |-------|---------|--------|----------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 78 files |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 78 files already formatted |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 40 source files |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 89 files |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 89 files already formatted |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 51 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 273 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 322 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |

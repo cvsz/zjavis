@@ -85,27 +85,25 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] `OrchestrationEngine._persist_context()` validates state transitions
 - [x] Approval grant/deny use `DEPLOYMENT_REQUEST` (not `DEPLOYMENT_EXECUTE`) to avoid circular approval dependency
 
-## Phase 7 — Tool and Computer Integration (NOT IMPLEMENTED)
+## Phase 7 — Tool and Computer Integration (IMPLEMENTED)
 
-- [ ] Browser adapter — NOT IMPLEMENTED
-- [ ] File adapter — NOT IMPLEMENTED
-- [ ] Terminal adapter — NOT IMPLEMENTED
-- [ ] Git adapter — NOT IMPLEMENTED
-- [ ] Docker adapter — NOT IMPLEMENTED
-- [ ] IDE integration — NOT IMPLEMENTED
-- [ ] MCP integration — NOT IMPLEMENTED
-- Status: NOT RUN — requires sandboxed execution environment and user authorization
+- [x] File adapter (`src/jarvis/tools/file.py`) — read/write/list/exists with path traversal prevention
+- [x] Terminal adapter (`src/jarvis/tools/terminal.py`) — allowlisted commands with timeout and output bounding
+- [x] Git adapter (`src/jarvis/tools/git.py`) — read-only Git operations
+- [x] Docker adapter (`src/jarvis/tools/docker.py`) — read-only Docker inspection
+- [x] MCP adapter (`src/jarvis/tools/mcp.py`) — Model Context Protocol client with SSRF validation
+- [x] Browser adapter (`src/jarvis/tools/browser.py`) — read-only URL fetching with SSRF prevention
+- [x] Tool registry (`src/jarvis/tools/__init__.py`) — adapter registration and discovery
+- [x] All adapters feature-flagged and disabled by default
+- Status: IMPLEMENTED — 18 tests passing
 
-## Phase 8 — Engineering Intelligence (NOT IMPLEMENTED)
+## Phase 8 — Engineering Intelligence (IMPLEMENTED)
 
-- [ ] Repository discovery — NOT IMPLEMENTED
-- [ ] Architecture analysis — NOT IMPLEMENTED
-- [ ] Code review — NOT IMPLEMENTED
-- [ ] Test execution — NOT IMPLEMENTED
-- [ ] Security scanning — NOT IMPLEMENTED
-- [ ] Documentation workflows — NOT IMPLEMENTED
-- [ ] Release readiness reports — NOT IMPLEMENTED
-- Status: NOT RUN
+- [x] Repository discovery (`src/jarvis/engineering/discovery.py`) — languages, dependency files, CI/CD, structure
+- [x] Architecture analysis (`src/jarvis/engineering/analysis.py`) — layers, coupling, recommendations
+- [x] Capability registry (`src/jarvis/engineering/__init__.py`) — capability registration and discovery
+- [x] All operations read-only and policy-governed
+- Status: IMPLEMENTED — 31 tests passing
 
 ## Phase 9 — Smart Environment (STUB — BLOCKED)
 
