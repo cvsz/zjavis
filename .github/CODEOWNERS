@@ -1,6 +1,10 @@
 # Replace or extend ownership rules for generated repositories.
 * @cvsz
 
+# Independent reviewer for pull request review (per independent review policy)
+/src/ @cvsz @policedbc
+/tests/ @cvsz @policedbc
+
 /.github/ @cvsz
 /SECURITY.md @cvsz
 /AGENTS.md @cvsz
