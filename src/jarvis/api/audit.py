@@ -55,10 +55,10 @@ async def list_audit_events(
             id=str(e.id),
             tenant_id=str(e.tenant_id),
             actor_id=str(e.actor_id) if e.actor_id else None,
-            event_type=e.event_type,  # type: ignore[arg-type]
-            event_category=e.event_category,  # type: ignore[arg-type]
-            outcome=e.outcome,  # type: ignore[arg-type]
-            details=e.details,  # type: ignore[arg-type]
+            event_type=e.event_type,
+            event_category=e.event_category,
+            outcome=e.outcome,
+            details=e.details,
             occurred_at=str(e.occurred_at),
         )
         for e in events

@@ -74,12 +74,12 @@ async def create_agent(
     return AgentResponse(
         id=str(agent.id),
         tenant_id=str(agent.tenant_id),
-        name=agent.name,  # type: ignore[arg-type]
-        version=agent.version,  # type: ignore[arg-type]
-        description=agent.description,  # type: ignore[arg-type]
-        is_active=agent.is_active,  # type: ignore[arg-type]
-        max_runtime_seconds=agent.max_runtime_seconds,  # type: ignore[arg-type]
-        max_tool_calls=agent.max_tool_calls,  # type: ignore[arg-type]
+        name=agent.name,
+        version=agent.version,
+        description=agent.description,
+        is_active=agent.is_active,
+        max_runtime_seconds=agent.max_runtime_seconds,
+        max_tool_calls=agent.max_tool_calls,
     )
 
 
@@ -102,12 +102,12 @@ async def list_agents(
         AgentResponse(
             id=str(a.id),
             tenant_id=str(a.tenant_id),
-            name=a.name,  # type: ignore[arg-type]
-            version=a.version,  # type: ignore[arg-type]
-            description=a.description,  # type: ignore[arg-type]
-            is_active=a.is_active,  # type: ignore[arg-type]
-            max_runtime_seconds=a.max_runtime_seconds,  # type: ignore[arg-type]
-            max_tool_calls=a.max_tool_calls,  # type: ignore[arg-type]
+            name=a.name,
+            version=a.version,
+            description=a.description,
+            is_active=a.is_active,
+            max_runtime_seconds=a.max_runtime_seconds,
+            max_tool_calls=a.max_tool_calls,
         )
         for a in agents
     ]
@@ -130,12 +130,12 @@ async def get_agent(
     return AgentResponse(
         id=str(agent.id),
         tenant_id=str(agent.tenant_id),
-        name=agent.name,  # type: ignore[arg-type]
-        version=agent.version,  # type: ignore[arg-type]
-        description=agent.description,  # type: ignore[arg-type]
-        is_active=agent.is_active,  # type: ignore[arg-type]
-        max_runtime_seconds=agent.max_runtime_seconds,  # type: ignore[arg-type]
-        max_tool_calls=agent.max_tool_calls,  # type: ignore[arg-type]
+        name=agent.name,
+        version=agent.version,
+        description=agent.description,
+        is_active=agent.is_active,
+        max_runtime_seconds=agent.max_runtime_seconds,
+        max_tool_calls=agent.max_tool_calls,
     )
 
 
@@ -156,17 +156,17 @@ async def update_agent(
         raise NotFoundError(f"Agent not found: {agent_id}")
 
     if request.name is not None:
-        agent.name = request.name  # type: ignore[assignment]
+        agent.name = request.name
     if request.version is not None:
-        agent.version = request.version  # type: ignore[assignment]
+        agent.version = request.version
     if request.description is not None:
-        agent.description = request.description  # type: ignore[assignment]
+        agent.description = request.description
     if request.is_active is not None:
-        agent.is_active = request.is_active  # type: ignore[assignment]
+        agent.is_active = request.is_active
     if request.max_runtime_seconds is not None:
-        agent.max_runtime_seconds = request.max_runtime_seconds  # type: ignore[assignment]
+        agent.max_runtime_seconds = request.max_runtime_seconds
     if request.max_tool_calls is not None:
-        agent.max_tool_calls = request.max_tool_calls  # type: ignore[assignment]
+        agent.max_tool_calls = request.max_tool_calls
 
     await session.commit()
     await session.refresh(agent)
@@ -174,12 +174,12 @@ async def update_agent(
     return AgentResponse(
         id=str(agent.id),
         tenant_id=str(agent.tenant_id),
-        name=agent.name,  # type: ignore[arg-type]
-        version=agent.version,  # type: ignore[arg-type]
-        description=agent.description,  # type: ignore[arg-type]
-        is_active=agent.is_active,  # type: ignore[arg-type]
-        max_runtime_seconds=agent.max_runtime_seconds,  # type: ignore[arg-type]
-        max_tool_calls=agent.max_tool_calls,  # type: ignore[arg-type]
+        name=agent.name,
+        version=agent.version,
+        description=agent.description,
+        is_active=agent.is_active,
+        max_runtime_seconds=agent.max_runtime_seconds,
+        max_tool_calls=agent.max_tool_calls,
     )
 
 

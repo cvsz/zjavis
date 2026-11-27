@@ -78,14 +78,14 @@ async def create_task(
         tenant_id=str(task.tenant_id),
         user_id=str(task.user_id),
         agent_id=str(task.agent_id) if task.agent_id else None,
-        task_type=task.task_type,  # type: ignore[arg-type]
-        risk_classification=task.risk_classification,  # type: ignore[arg-type]
-        state=task.state,  # type: ignore[arg-type]
-        idempotency_key=task.idempotency_key,  # type: ignore[arg-type]
+        task_type=task.task_type,
+        risk_classification=task.risk_classification,
+        state=task.state,
+        idempotency_key=task.idempotency_key,
         started_at=str(task.started_at) if task.started_at else None,
         completed_at=str(task.completed_at) if task.completed_at else None,
-        retry_count=task.retry_count,  # type: ignore[arg-type]
-        error_message=task.error_message,  # type: ignore[arg-type]
+        retry_count=task.retry_count,
+        error_message=task.error_message,
     )
 
 
@@ -113,14 +113,14 @@ async def list_tasks(
             tenant_id=str(t.tenant_id),
             user_id=str(t.user_id),
             agent_id=str(t.agent_id) if t.agent_id else None,
-            task_type=t.task_type,  # type: ignore[arg-type]
-            risk_classification=t.risk_classification,  # type: ignore[arg-type]
-            state=t.state,  # type: ignore[arg-type]
-            idempotency_key=t.idempotency_key,  # type: ignore[arg-type]
+            task_type=t.task_type,
+            risk_classification=t.risk_classification,
+            state=t.state,
+            idempotency_key=t.idempotency_key,
             started_at=str(t.started_at) if t.started_at else None,
             completed_at=str(t.completed_at) if t.completed_at else None,
-            retry_count=t.retry_count,  # type: ignore[arg-type]
-            error_message=t.error_message,  # type: ignore[arg-type]
+            retry_count=t.retry_count,
+            error_message=t.error_message,
         )
         for t in tasks
     ]
@@ -145,14 +145,14 @@ async def get_task(
         tenant_id=str(task.tenant_id),
         user_id=str(task.user_id),
         agent_id=str(task.agent_id) if task.agent_id else None,
-        task_type=task.task_type,  # type: ignore[arg-type]
-        risk_classification=task.risk_classification,  # type: ignore[arg-type]
-        state=task.state,  # type: ignore[arg-type]
-        idempotency_key=task.idempotency_key,  # type: ignore[arg-type]
+        task_type=task.task_type,
+        risk_classification=task.risk_classification,
+        state=task.state,
+        idempotency_key=task.idempotency_key,
         started_at=str(task.started_at) if task.started_at else None,
         completed_at=str(task.completed_at) if task.completed_at else None,
-        retry_count=task.retry_count,  # type: ignore[arg-type]
-        error_message=task.error_message,  # type: ignore[arg-type]
+        retry_count=task.retry_count,
+        error_message=task.error_message,
     )
 
 
@@ -173,15 +173,15 @@ async def update_task(
         raise NotFoundError(f"Task not found: {task_id}")
 
     if request.task_type is not None:
-        task.task_type = request.task_type  # type: ignore[assignment]
+        task.task_type = request.task_type
     if request.risk_classification is not None:
-        task.risk_classification = request.risk_classification  # type: ignore[assignment]
+        task.risk_classification = request.risk_classification
     if request.agent_id is not None:
-        task.agent_id = request.agent_id  # type: ignore[assignment]
+        task.agent_id = request.agent_id
     if request.state is not None:
-        task.state = request.state  # type: ignore[assignment]
+        task.state = request.state
     if request.idempotency_key is not None:
-        task.idempotency_key = request.idempotency_key  # type: ignore[assignment]
+        task.idempotency_key = request.idempotency_key
 
     await session.commit()
     await session.refresh(task)
@@ -191,14 +191,14 @@ async def update_task(
         tenant_id=str(task.tenant_id),
         user_id=str(task.user_id),
         agent_id=str(task.agent_id) if task.agent_id else None,
-        task_type=task.task_type,  # type: ignore[arg-type]
-        risk_classification=task.risk_classification,  # type: ignore[arg-type]
-        state=task.state,  # type: ignore[arg-type]
-        idempotency_key=task.idempotency_key,  # type: ignore[arg-type]
+        task_type=task.task_type,
+        risk_classification=task.risk_classification,
+        state=task.state,
+        idempotency_key=task.idempotency_key,
         started_at=str(task.started_at) if task.started_at else None,
         completed_at=str(task.completed_at) if task.completed_at else None,
-        retry_count=task.retry_count,  # type: ignore[arg-type]
-        error_message=task.error_message,  # type: ignore[arg-type]
+        retry_count=task.retry_count,
+        error_message=task.error_message,
     )
 
 

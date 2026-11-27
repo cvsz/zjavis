@@ -140,7 +140,7 @@ class ShellSyntaxTests(unittest.TestCase):
 class YAMLSyntaxTests(unittest.TestCase):
     def test_valid_yaml_passes(self):
         try:
-            import yaml  # type: ignore  # noqa: F401
+            import yaml  # noqa: F401
         except ImportError:
             self.skipTest("PyYAML not installed")
         with tempfile.TemporaryDirectory() as tmp:
@@ -162,7 +162,7 @@ class YAMLSyntaxTests(unittest.TestCase):
 
     def test_invalid_yaml_fails(self):
         try:
-            import yaml  # type: ignore  # noqa: F401
+            import yaml  # noqa: F401
         except ImportError:
             self.skipTest("PyYAML not installed")
         with tempfile.TemporaryDirectory() as tmp:

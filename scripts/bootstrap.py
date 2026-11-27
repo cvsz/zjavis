@@ -37,7 +37,7 @@ def safe_file(root: Path, relative: str) -> Path:
 
 def build_changes(
     root: Path, name: str, owner: str, codeowner: str, description: str
-) -> dict:
+) -> dict[str, str]:
     if not NAME_RE.fullmatch(name) or name in {".", ".."}:
         raise ValueError(
             "Invalid project name; use letters, digits, dot, hyphen or underscore"

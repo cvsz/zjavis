@@ -34,7 +34,7 @@ COMPONENTS_DIR := components.d
 PLUGINS_DIR := plugins.d
 
 # Python files to check
-PY_FILES := $(shell find $(SCRIPTS_DIR) $(TESTS_DIR) -name '*.py' -type f 2>/dev/null | sort)
+PY_FILES := $(shell find $(SCRIPTS_DIR) $(TESTS_DIR) src/jarvis -name '*.py' -type f 2>/dev/null | sort)
 SH_FILES := $(shell find $(SCRIPTS_DIR) $(GITHUB_SCRIPTS_DIR) -name '*.sh' -type f 2>/dev/null | sort)
 YML_FILES := $(shell find $(GITHUB_DIR) -name '*.yml' -o -name '*.yaml' 2>/dev/null | sort)
 MD_FILES := $(shell find . -name '*.md' -type f ! -path './.git/*' 2>/dev/null | sort)

@@ -74,10 +74,10 @@ async def get_me(
     user = await get_current_user(session, authorization)
     return UserResponse(
         id=str(user.id),
-        username=user.username,  # type: ignore[arg-type]
-        email=user.email,  # type: ignore[arg-type]
-        is_active=user.is_active,  # type: ignore[arg-type]
-        is_superuser=user.is_superuser,  # type: ignore[arg-type]
+        username=user.username,
+        email=user.email,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
     )
 
 

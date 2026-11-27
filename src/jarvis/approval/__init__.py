@@ -102,8 +102,8 @@ class ApprovalService:
                 f"Approval is not pending (current state: {approval.state})",
                 code="invalid_approval_state",
             )
-        approval.state = "granted"  # type: ignore[assignment]
-        approval.approved_by = approved_by  # type: ignore[assignment]
+        approval.state = "granted"
+        approval.approved_by = approved_by
         await self.session.commit()
         await self.session.refresh(approval)
         logger.info(
@@ -133,8 +133,8 @@ class ApprovalService:
                 f"Approval is not pending (current state: {approval.state})",
                 code="invalid_approval_state",
             )
-        approval.state = "denied"  # type: ignore[assignment]
-        approval.approved_by = approved_by  # type: ignore[assignment]
+        approval.state = "denied"
+        approval.approved_by = approved_by
         await self.session.commit()
         await self.session.refresh(approval)
         logger.info(
@@ -156,12 +156,12 @@ class ApprovalService:
         result = await self.session.execute(
             select(Approval).where(
                 Approval.state == "pending",
-                Approval.expires_at < now,  # type: ignore[arg-type]
+                Approval.expires_at < now,
             )
         )
         expired = result.scalars().all()
         for approval in expired:
-            approval.state = "expired"  # type: ignore[assignment]
+            approval.state = "expired"
         if expired:
             await self.session.commit()
         logger.info("Expired %d pending approvals", len(expired))
@@ -181,7 +181,7 @@ class ApprovalService:
             select(Approval).where(
                 Approval.task_id == task_id,
                 Approval.state == "granted",
-                Approval.expires_at > now,  # type: ignore[arg-type]
+                Approval.expires_at > now,
             )
         )
         return result.scalar_one_or_none() is not None
