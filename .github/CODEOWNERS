@@ -5,7 +5,7 @@
 /src/ @cvsz @policedbc
 /tests/ @cvsz @policedbc
 
-/.github/ @cvsz
+/.github/ @cvsz @policedbc
 /SECURITY.md @cvsz
 /AGENTS.md @cvsz
 /CLAUDE.md @cvsz
