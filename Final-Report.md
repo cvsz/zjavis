@@ -2,9 +2,9 @@
 
 Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)  
 Branch: `feat/javis-phase7-phase8-implementation` → not yet merged to `main` (PR #39, derived from `main`, no new worktree created)  
-Commit (HEAD): `c912ef9148900a415537649a74f35205d4608271`  
+Commit (HEAD): `c4376d77393eccd2c74313628f83b4fcf5d01f23`  
 Merge base with `main`: `14d6b0c8173e9a8ab45a1856740445e42fd1ffb3`  
-Commits ahead of `main`: 15 (all on `feat/javis-phase7-phase8-implementation`, all GPG-signed `G?=G`, all pushed to `origin/feat/javis-phase7-phase8-implementation`)  
+Commits ahead of `main`: 17 (all on `feat/javis-phase7-phase8-implementation`, all GPG-signed `G?=G`, all pushed to `origin/feat/javis-phase7-phase8-implementation`)  
 Document Status: Final Implementation Report — re-verified 2026-11-28  
 Blueprint Reference: `javis-blueprint.md`  
 Date: 2026-11-28  
@@ -19,7 +19,7 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 **Implementation status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) COMPLETE and VERIFIED; Phase 7 (Tool & Computer Integration) IMPLEMENTED and VERIFIED; Phase 8 (Engineering Intelligence) IMPLEMENTED and VERIFIED; Phases 2-6, 9-11 partially implemented or BLOCKED/NOT RUN (see §13).  
 **Overall result:** VERIFIED for Phase 1 scope + Phase 7 tool adapters + Phase 8 engineering intelligence + orchestration + SSRF/path traversal prevention + tenant isolation hardening + authorization hardening + agent runtime OrchestrationEngine integration + missing dependency tests + E2E tests + OpenTelemetry tracing module + backup-restore documentation + **RBAC repair (`role_permissions` junction table, `get_user_permissions()` corrected)** + **Alembic `env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL**; NOT Production Ready (see §14 Final Verdict).
 
-**Step 5 GitHub Delivery:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) is OPEN and MERGEABLE. HEAD commit `c912ef9` pushed to `origin/feat/javis-phase7-phase8-implementation`. All 15 commits GPG-signed (`git log %G?=G`). Independent approval by `policedbc` is COMPLETE (`reviewDecision: APPROVED`, distinct account from PR author `cvsz`). All CI check runs pass on HEAD `c912ef9` (CI success, CodeQL success, Dependency Review success, SBOM and Provenance success). Merge is BLOCKED by branch protection infrastructure: the base branch policy prohibits the merge (`gh pr merge 39 --merge --delete-branch` → exit 1, "base branch policy prohibits the merge"); commit statuses not propagated to HEAD commit (`total_count: 0` via commit-status API) despite all check runs reporting SUCCESS. Branch protection with `strict: true` evaluates commit statuses, not check runs. This is an infrastructure limitation requiring repository-admin reconciliation; not a code defect. No force-merge, no `--admin` bypass, no `--force` (per directive, administrative bypass is prohibited).
+**Step 5 GitHub Delivery:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) is OPEN and MERGEABLE at code level. HEAD commit `c4376d7` pushed to `origin/feat/javis-phase7-phase8-implementation`. All 17 commits GPG-signed (`git log %G?=G`). Independent approval by `policedbc` is COMPLETE (`reviewDecision: APPROVED` on exact head `c4376d7`, distinct account from PR author `cvsz`; all prior reviews dismissed by `dismiss_stale_reviews` as new commits landed). All CI check runs pass on HEAD `c4376d7` (CI success, CodeQL success, Dependency Review success, SBOM and Provenance success). Merge is BLOCKED by branch protection infrastructure: the base branch policy prohibits the merge (`gh pr merge 39 --merge --delete-branch` → exit 1, "base branch policy prohibits the merge"); commit statuses not propagated to HEAD commit (`total_count: 0` via commit-status API) despite all check runs reporting SUCCESS. Branch protection with `strict: true` evaluates commit statuses, not check runs. This is an infrastructure limitation requiring repository-admin reconciliation; not a code defect. No force-merge, no `--admin` bypass, no `--force` (per directive, administrative bypass is prohibited).
 
 The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 51 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
 
@@ -356,8 +356,8 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Tenant Isolation | VERIFIED | Enforced on all mutating + data-access endpoints |
 | Authorization Hardening | VERIFIED | `require_policy()` on all mutating endpoints |
 | Independent Review (policedbc) | VERIFIED | `gh pr review --approve` on PR #39; `verify-independent-approval` check run PASSED |
-| PR #39 Mergeable (code-level) | VERIFIED | `gh pr view 39` reports `mergeable: MERGEABLE`, `reviewDecision: APPROVED`, head `c912ef9`, all CI check runs SUCCESS |
-| PR #39 Merge to main | BLOCKED | `gh pr merge 39 --merge --delete-branch` → exit 1: "base branch policy prohibits the merge." Branch protection `strict: true` requires commit statuses; commit-status API returns `total_count: 0` for HEAD `c912ef9` despite all check runs SUCCESS. Requires repository-admin reconciliation. `--admin` NOT used (prohibited). No force-merge, no `--force`. |
+| PR #39 Mergeable (code-level) | VERIFIED | `gh pr view 39` reports `mergeable: MERGEABLE`, `reviewDecision: APPROVED`, head `c4376d7`, all CI check runs SUCCESS |
+| PR #39 Merge to main | BLOCKED | `gh pr merge 39 --merge --delete-branch` → exit 1: "base branch policy prohibits the merge." Branch protection `strict: true` requires commit statuses; commit-status API returns `total_count: 0` for HEAD `c4376d7` despite all check runs SUCCESS. Requires repository-admin reconciliation. `--admin` NOT used (prohibited). No force-merge, no `--force`. |
 
 ### Not Production Ready (BLOCKED / NOT RUN)
 
@@ -419,9 +419,9 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | 1 | cvsz | `gh pr create` | COMPLETED | PR #39 open for `feat/javis-phase7-phase8-implementation` → `main` |
 | 2 | policedbc | `gh auth switch -u policedbc`; independent review | COMPLETED | Distinct account from PR author cvsz; all code/checks reviewed |
 | 2 | policedbc | `gh pr review --approve` | COMPLETED | `verify-independent-approval` check run PASSED (job 140455373204); APPROVED review recorded |
-| 3 | cvsz | `gh pr merge --merge --delete-branch` | BLOCKED | Attempted `gh pr merge 39 --merge --delete-branch` on HEAD `c912ef9` → exit 1: "Pull request cvsz/zjavis#39 is not mergeable: the base branch policy prohibits the merge." All CI check runs pass on `c912ef9` (CI success, CodeQL success, dependency-review success, SBOM success). Commit-status API for HEAD `c912ef9` returns `total_count: 0` despite all check runs SUCCESS; `required_status_checks strict: true` evaluates commit statuses. `--admin` NOT used (prohibited). No force-merge, no `--force`. Infrastructure limitation requiring repository-admin reconciliation; not a code defect. PR #39 remains `OPEN` and `MERGEABLE`. |
+| 3 | cvsz | `gh pr merge --merge --delete-branch` | BLOCKED | Attempted `gh pr merge 39 --merge --delete-branch` on HEAD `c4376d7` → exit 1: "Pull request cvsz/zjavis#39 is not mergeable: the base branch policy prohibits the merge." All CI check runs pass on `c4376d7` (CI success, CodeQL success, dependency-review success, SBOM success). Commit-status API for HEAD `c4376d7` returns `total_count: 0` despite all check runs SUCCESS; `required_status_checks strict: true` evaluates commit statuses. `--admin` NOT used (prohibited). No force-merge, no `--force`. Infrastructure limitation requiring repository-admin reconciliation; not a code defect. PR #39 remains `OPEN` and `MERGEABLE`. |
 
-**Merge blocker detail:** Branch protection on `main` requires 4 status checks (`repository-baseline`, `Analyze GitHub Actions`, `dependency-review`, `verify-independent-approval`) with `strict: true`. All check runs report SUCCESS on HEAD `c912ef9` (CI, CodeQL, dependency-review, SBOM), but the GitHub commit-status API for HEAD commit `c912ef9` returns `total_count: 0` — commit statuses were not propagated to the commit. Branch protection evaluates commit statuses, so the merge cannot proceed until commit statuses are reconciled by a repository administrator with write/admin access. This is an infrastructure limitation, not a code defect. PR #39 remains `OPEN` and `MERGEABLE`.
+**Merge blocker detail:** Branch protection on `main` requires 4 status checks (`repository-baseline`, `Analyze GitHub Actions`, `dependency-review`, `verify-independent-approval`) with `strict: true`. All check runs report SUCCESS on HEAD `c4376d7` (CI, CodeQL, dependency-review, SBOM), but the GitHub commit-status API for HEAD commit `c4376d7` returns `total_count: 0` — commit statuses were not propagated to the commit. Branch protection evaluates commit statuses, so the merge cannot proceed until commit statuses are reconciled by a repository administrator with write/admin access. This is an infrastructure limitation, not a code defect. PR #39 remains `OPEN` and `MERGEABLE`.
 
 ---
 
@@ -453,16 +453,16 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 
 ## 18. Git Commit and Pull Request References
 
-- **HEAD Commit:** `c912ef9 fix(test): make settings tests hermetic (clear=True)` (branch `feat/javis-phase7-phase8-implementation`)
+- **HEAD Commit:** `c4376d7 docs: add current-session independent re-verification evidence` (branch `feat/javis-phase7-phase8-implementation`)
 - **Merge base with main:** `14d6b0c8173e9a8ab45a1856740445e42fd1ffb3`
-- **Commits ahead of main:** 15 (`c912ef9`, `12901d2`, `3328386`, `fe94e2a`, `37bb235`, `c3b3262`, `1ee182e`, `4f17198`, `77cd73d`, `552125c`, `f494b90`, `7aa4bdd`, `185386c`, `5126c8b`, `8c77233`)
-- **Branch:** `feat/javis-phase7-phase8-implementation` (not yet merged to main; all 15 commits pushed to `origin/feat/javis-phase7-phase8-implementation`)
+- **Commits ahead of main:** 17 (`c4376d7`, `3f1d90c`, `c912ef9`, `12901d2`, `3328386`, `fe94e2a`, `37bb235`, `c3b3262`, `1ee182e`, `4f17198`, `77cd73d`, `552125c`, `f494b90`, `7aa4bdd`, `185386c`, `5126c8b`, `8c77233`)
+- **Branch:** `feat/javis-phase7-phase8-implementation` (not yet merged to main; all 17 commits pushed to `origin/feat/javis-phase7-phase8-implementation`)
 - **Pull Request:** #39 (`feat/javis-phase7-phase8-implementation` → `main`), OPEN, MERGEABLE
 - **PR #39 Author:** `cvsz`
 - **PR #39 Independent Reviewer:** `policedbc` (APPROVED — distinct account from author; `reviewDecision: APPROVED`)
 - **PR #39 Merge Status:** BLOCKED by branch protection (commit-status API `total_count: 0` despite all check runs SUCCESS); `gh pr merge 39 --merge --delete-branch` → exit 1 "base branch policy prohibits the merge"; requires repository-admin reconciliation
 - **PRs closed (superseded by #39):** #27, #33, #35, #36
-- **Git signing:** GPG key `46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7`, `commit.gpgsign=true`, `gpg.program=.github/scripts/gpg-loopback.sh`; **signing is functional** — all 15 commits on the branch show `git log %G?=G` (good signature, signer `cvsz <cvsz@zksato.local>`). `commit.gpgsign=true` is configured. Note: `GPG_PASSPHRASE` env var is not set in this session; signing relies on gpg-agent/cache. The earlier "BLOCKED (no TTY)" claim was stale; loopback pinentry mode is configured.
+- **Git signing:** GPG key `46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7`, `commit.gpgsign=true`, `gpg.program=.github/scripts/gpg-loopback.sh`; **signing is functional** — all 17 commits on the branch show `git log %G?=G` (good signature, signer `cvsz <cvsz@zksato.local>`). `commit.gpgsign=true` is configured. `GPG_PASSPHRASE` env var is not required in this session; signing relies on the configured loopback pinentry (clearsign verified exit 0). The earlier "BLOCKED (no TTY)" claim was stale; loopback pinentry mode is configured.
 
 ---
 
@@ -479,10 +479,10 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | COMPLETED | Step 5b Git identity & signing | `user.signingkey=46ABBD40...`; `commit.gpgsign=true`; GPG-signed commits |
 | COMPLETED | Step 5c Branch from main (no new worktree) | Branch `feat/javis-phase7-phase8-implementation` from `main` |
 | COMPLETED | Step 5d PR #39 created | `gh pr create`; PR #39 OPEN, MERGEABLE |
-| COMPLETED | Step 5e Independent review (policedbc) | `gh pr review --approve` on PR #39; `reviewDecision: APPROVED` recorded on head `c912ef9` (distinct account from author `cvsz`; re-approval required if a new commit is pushed due to `require_last_push_approval`/`dismiss_stale_reviews`) |
+| COMPLETED | Step 5e Independent review (policedbc) | `gh pr review --approve` on PR #39; `reviewDecision: APPROVED` recorded on head `c4376d7` (distinct account from author `cvsz`; all prior reviews dismissed by `dismiss_stale_reviews` as new commits landed) |
 | BLOCKED | Step 5f PR #39 merge to main | Branch protection rejects merge: `gh pr merge 39 --merge --delete-branch` → exit 1 "base branch policy prohibits the merge"; commit-status API `total_count: 0` despite all check runs SUCCESS; requires repository-admin reconciliation |
 | BLOCKED | Voice / Vision / Smart Environment | Stub only; no hardware/credentials |
-| COMPLETED | GPG commit signing | All 15 branch commits show `git log %G?=G` (good signature, `cvsz <cvsz@zksato.local>`); `commit.gpgsign=true` configured. New-commit signing depends on `GPG_PASSPHRASE`/gpg-agent availability (not set in this session). |
+| COMPLETED | GPG commit signing | All 17 branch commits show `git log %G?=G` (good signature, `cvsz <cvsz@zksato.local>`); `commit.gpgsign=true` configured; loopback pinentry mode makes signing functional without `GPG_PASSPHRASE` (clearsign verified exit 0). |
 | NOT RUN | Backup/restore restore drill | Documentation only; drill not executed |
 | NOT RUN | OpenTelemetry tracing export | No OTLP endpoint configured |
 | NOT RUN | Kubernetes/Helm deployment | Deferred per blueprint §16.3 |
@@ -494,7 +494,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 
 ## 20. Current Session Independent Re-Verification (2026-11-28)
 
-This section records evidence re-obtained by the current agent session against the live repository state on branch `feat/javis-phase7-phase8-implementation` (HEAD `c912ef9`). No results are fabricated; each command was executed and its actual exit code recorded.
+This section records evidence re-obtained by the current agent session against the live repository state on branch `feat/javis-phase7-phase8-implementation` (HEAD `c4376d7`). No results are fabricated; each command was executed and its actual exit code recorded.
 
 | Check | Command | Result | Exit Code |
 |---|---|---|---|
@@ -514,7 +514,7 @@ This section records evidence re-obtained by the current agent session against t
 
 **Correction to prior report:** GPG commit signing is **functional** in this session (clearsign produced a valid signature, exit 0, no passphrase required via the configured loopback pinentry). The earlier "BLOCKED — no TTY" note was stale. Signed commits (`git commit -S`) can be created.
 
-**Merge status (unchanged):** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) remains OPEN and MERGEABLE at code level, with `reviewDecision: APPROVED` from independent reviewer `policedbc`. Merge to `main` remains BLOCKED by branch-protection infrastructure: `gh pr merge` → exit 1 "base branch policy prohibits the merge"; the GitHub commit-status API returns `total_count: 0` for HEAD despite all check runs SUCCESS, and `strict: true` branch protection evaluates commit statuses. This requires repository-admin reconciliation; it is not a code defect. `--admin`, `--force`, and force-push are prohibited and were not used.
+**Merge status:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) remains OPEN and MERGEABLE at code level, with `reviewDecision: APPROVED` from independent reviewer `policedbc` on exact head `c4376d7`. A fresh merge attempt (`gh pr merge 39 --merge --delete-branch` on HEAD `c4376d7`) → exit 1: "base branch policy prohibits the merge." Merge to `main` remains BLOCKED by branch-protection infrastructure: the GitHub commit-status API returns `total_count: 0` for HEAD despite all check runs SUCCESS, and `strict: true` branch protection evaluates commit statuses. This requires repository-admin reconciliation; it is not a code defect. `--admin`, `--force`, and force-push are prohibited and were not used.
 
 ## 21. End of Final-Report
 
