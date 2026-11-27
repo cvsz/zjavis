@@ -236,14 +236,24 @@ dockerlint: ## Lint Dockerfile with hadolint
 # TESTING
 # =============================================================================
 .PHONY: test
-test: ## Run Python unit tests
-	@printf '$(BLUE)==> Running unit tests...$(RESET)\n'
-	@$(UNITTEST) discover -s $(TESTS_DIR) -v
+test: ## Run Python unit and integration tests with pytest
+	@printf '$(BLUE)==> Running unit and integration tests with pytest...$(RESET)\n'
+	@$(PYTEST) $(TESTS_DIR)
+
+.PHONY: test-unit
+test-unit: ## Run unit tests only (no external services required)
+	@printf '$(BLUE)==> Running unit tests with pytest...$(RESET)\n'
+	@$(PYTEST) tests/unit
+
+.PHONY: test-integration
+test-integration: ## Run integration tests (requires PostgreSQL)
+	@printf '$(BLUE)==> Running integration tests with pytest...$(RESET)\n'
+	@$(PYTEST) tests/integration
 
 .PHONY: test-verbose
-test-verbose: ## Run Python unit tests with maximum verbosity
-	@printf '$(BLUE)==> Running unit tests (verbose)...$(RESET)\n'
-	@$(UNITTEST) discover -s $(TESTS_DIR) -v 2>&1 | head -200
+test-verbose: ## Run Python unit and integration tests with maximum verbosity
+	@printf '$(BLUE)==> Running tests (verbose) with pytest...$(RESET)\n'
+	@$(PYTEST) $(TESTS_DIR) -v 2>&1 | head -200
 
 .PHONY: test-coverage
 test-coverage: ## Run tests with coverage (requires pytest-cov)

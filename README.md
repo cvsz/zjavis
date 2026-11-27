@@ -23,7 +23,7 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build NOT RUN (image available but not built in this session) |
 | Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, state transition validation, idempotency keys |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation, content hash, provenance |
@@ -51,7 +51,7 @@ and memories.
 **Blueprint:** `javis-blueprint.md`  
 **Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)  
 **Version:** 0.1.0  
-**Status:** PARTIALLY VERIFIED — Phase 1 complete and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+**Status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) complete and VERIFIED; Orchestration Engine, SSRF/path traversal prevention, and tenant isolation hardening implemented and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
 
 ---
 
@@ -394,4 +394,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Governance
 
-This repository follows the [AGENTS.md](AGENTS.md) repository agent contract and the [ZEAZ-INTRODUCTION.md](ZEAZ-INTRODUCTION.md) cross-agent execution framework. See [GOVERNANCE.md](GOVERNANCE.md) for governance policies.
+This repository follows the [AGENTS.md](AGENTS.md) repository agent contract and the [ZEAZ-INTRODUCTION.md](ZEAZ-INTRODUCTION.md) cross-agent execution framework. Governance and release policies are documented in [SECURITY.md](SECURITY.md) and [ROADMAP.md](ROADMAP.md). (`GOVERNANCE.md` does not exist in this repository; no broken references are introduced.)

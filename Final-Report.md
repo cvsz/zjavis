@@ -1,7 +1,7 @@
 # Final-Report — JARVIS Platform Implementation
 
 Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)  
-Branch: `feat/javis-policy-enforcement-and-docs` (no new worktree created; all work in original repo structure)  
+Branch: `main` (local)  
 Document Status: Final Implementation Report  
 Blueprint Reference: `javis-blueprint.md`  
 Date: 2026-11-27  
@@ -13,46 +13,37 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 **Project:** JARVIS — Personal AI Operating System  
 **Repository:** https://github.com/cvsz/zjavis  
-**Implementation status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) complete and VERIFIED; Orchestration Engine and security hardening added  
+**Implementation status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) complete and VERIFIED; Orchestration Engine, SSRF/path traversal prevention, and tenant isolation hardening implemented and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN  
 **Overall result:** VERIFIED for Phase 1 scope + orchestration + SSRF/path traversal prevention + tenant isolation hardening; Phases 2-11 partially implemented or BLOCKED/NOT RUN
 
-The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All 245 tests pass (199 unit/integration + 46 template), ruff/mypy/validate_repo/shellcheck/bandit checks pass, and Docker build succeeds. Critical security bugs (tenant isolation, CORS wildcard, auth header) have been fixed and execution-time policy enforcement has been added to all mutating API endpoints.
+The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All 245 tests pass (199 unit/integration + 46 template), ruff/mypy/validate_repo/shellcheck/bandit checks pass. Critical security bugs (tenant isolation FK violations, CORS wildcard credentialed, auth header token transmission) have been fixed and execution-time policy enforcement has been added to all mutating API endpoints. SSRF prevention and path traversal prevention have been implemented and tested. A durable bounded task orchestration engine has been implemented and tested.
 
-**New capabilities added in this session:**
-- **Task Orchestration Engine** (`src/jarvis/orchestration/__init__.py`): Durable bounded task execution with absolute deadlines, per-step timeouts, retry with exponential backoff + jitter (using `secrets` for security-safe randomness), cancellation propagation, idempotency keys, state transition validation, and dead-letter handling via failed-state recording.
-- **SSRF Prevention** (`src/jarvis/core/security.py`): `validate_ssrf_safe_url()` rejects `http`/`https` URLs targeting private/reserved IPv4 addresses (RFC 1918, RFC 5737, RFC 6598, RFC 3927) and non-http(s) schemes; `is_private_ip()` host-name-level heuristic.
-- **Path Traversal Prevention** (`src/jarvis/core/security.py`): `validate_safe_path()` resolves and confines user-supplied paths within a trusted base directory, rejecting `..` traversal, null bytes, and absolute paths.
-- **Tenant Isolation Hardening:** All approval endpoints (list/get/grant/deny) and conversation endpoints (list/create-message/chat/chat-stream) now filter by `tenant_id`. `get_user_permissions()` scopes role-binding permissions by optional `tenant_id`. `require_policy()` resolves tenant context via `get_or_create_user_tenant()` and passes `tenant_id` to `PolicyEngine.evaluate()`.
-- **Approval workflow fix:** Grant/deny endpoints use `DEPLOYMENT_REQUEST` permission (not `DEPLOYMENT_EXECUTE`) to eliminate the circular approval dependency where granting approval required an approval.
-- **Agent Runtime wiring:** API endpoint now passes `enabled=settings.agent_runtime_enabled` so the runtime actually functions when enabled.
-- **Orchestration Engine robustness:** `_persist_context()` validates state transitions against `_ALLOWED_TRANSITIONS`; `_load_task()` uses direct SQLAlchemy `select` import instead of `__import__`.
-
-**Status is NOT "100% Complete" or "Production Ready"** — several blueprint phases remain unimplemented or BLOCKED (voice, vision, smart environment are feature-flagged stubs only; backup/restore, observability tracing, Kubernetes/Helm, dashboard/clients are not implemented). Per the mandatory rules, production readiness cannot be claimed without evidence for those areas.
+**This system is NOT claimed as "100% Complete" or "Production Ready"** — several blueprint phases remain unimplemented or BLOCKED (voice, vision, smart environment are feature-flagged stubs only; backup/restore, observability tracing, Kubernetes/Helm, dashboard/clients are not implemented). Per the mandatory rules, production readiness cannot be claimed without evidence for those areas.
 
 ---
 
 ## 2. Findings and Fixes
 
-### 2.1 Critical/High Severity Fixes (previously documented)
+### 2.1 Critical/High Severity Fixes
 
 | # | Severity | File | Finding | Fix | Status |
 |---|----------|------|---------|-----|--------|
-| 1 | High | `src/jarvis/core/config.py` | `extra="forbid"` on Settings rejected `GPG_PASSPHRASE` from `.env`, blocking ALL application startup and ALL tests | Changed `extra="forbid"` to `extra="ignore"` | FIXED |
-| 2 | High | `src/jarvis/api/agents.py` | `tenant_id=user.id` — FK violation on `tenants.id` | Added `get_or_create_user_tenant()`; all resource creation uses valid tenant ID | FIXED |
+| 1 | High | `src/jarvis/core/config.py` | `extra="forbid"` on Settings rejected non-JARVIS env vars, breaking application startup | Changed `extra="forbid"` to `extra="ignore"` | FIXED |
+| 2 | High | `src/jarvis/api/agents.py` | `tenant_id=user.id` — FK violation on `tenants.id` (UUID type mismatch) | Added `get_or_create_user_tenant()`; all resource creation uses valid tenant ID | FIXED |
 | 3 | High | `src/jarvis/api/memory.py` | `tenant_id=str(user.id)` — FK violation, cross-tenant data leakage risk | Fixed to use `get_or_create_user_tenant()` | FIXED |
 | 4 | High | `src/jarvis/api/audit.py` | `tenant_id=UUID(str(user.id))` — FK violation | Fixed to use `get_or_create_user_tenant()` | FIXED |
 | 5 | High | `src/jarvis/api/conversations.py` | `tenant_id=user.id` — FK violation | Fixed to use `get_or_create_user_tenant()` | FIXED |
 | 6 | High | `src/jarvis/api/tasks.py` | `tenant_id=user.id` — FK violation | Fixed to use `get_or_create_user_tenant()` | FIXED |
 | 7 | High | `src/jarvis/api/approvals.py` | `Approval.requested_by == str(user.id)` — UUID column compared to string | Fixed to compare UUID column to `user.id` (UUID type) | FIXED |
-| 8 | High | `src/jarvis/api/auth.py` | `authorization` passed as query parameter — tokens in query strings are logged and exposed | Changed to `Header(alias="Authorization")` for header-based transmission | FIXED |
+| 8 | High | `src/jarvis/api/auth.py` | `authorization` passed as query parameter — tokens in query strings are logged and exposed | Changed to `Header(alias="Authorization")` for header-based Bearer transmission | FIXED |
 | 9 | High | `src/jarvis/api/main.py` | CORS `allow_origins=["*"]` with `allow_credentials=True` — credentialed wildcard CORS violates CORS spec | Changed `allow_credentials=False` with wildcard origins | FIXED |
+| 10 | High | `src/jarvis/core/security.py` | No SSRF protection — tool/browser adapters could reach private/reserved IPs (169.254.169.254 metadata service, 127.0.0.1, 10.x, 172.16.x, 192.168.x) | Added `validate_ssrf_safe_url()`, `is_private_ip()`; blocks private/reserved IPv4 and non-http(s) schemes | IMPLEMENTED |
+| 11 | High | `src/jarvis/core/security.py` | No path traversal protection — file adapter targets could escape base directory | Added `validate_safe_path()` with `os.path.realpath()` confinement, null-byte rejection, absolute path rejection | IMPLEMENTED |
 
-### 2.2 New Security Improvements (this session)
+### 2.2 Medium Severity Fixes
 
 | # | Severity | File | Finding | Fix | Status |
 |---|----------|------|---------|-----|--------|
-| 10 | High | `src/jarvis/core/security.py` | No SSRF protection — tool/browser adapters could reach private/reserved IPs (169.254.169.254 metadata service, 127.0.0.1, 10.x, 172.16.x, 192.168.x) | Added `validate_ssrf_safe_url()`, `is_private_ip()`; blocks private/reserved IPv4 and non-http(s) schemes | IMPLEMENTED |
-| 11 | High | `src/jarvis/core/security.py` | No path traversal protection — file adapter targets could escape base directory | Added `validate_safe_path()` with `os.path.realpath()` confinement, null-byte rejection, absolute path rejection | IMPLEMENTED |
 | 12 | Medium | `src/jarvis/orchestration/__init__.py` | No durable bounded task execution engine — tasks could run unbounded, no retry, no cancellation | Added `OrchestrationEngine` with deadlines, exponential backoff + jitter (`secrets`-based), cancellation, idempotency, state transition validation | IMPLEMENTED |
 | 13 | Medium | `src/jarvis/auth/__init__.py` | API endpoints authenticated but did not enforce execution-time authorization policy | Added `require_policy()` FastAPI dependency using PolicyEngine; applied to all mutating endpoints | IMPLEMENTED |
 | 14 | Medium | `src/jarvis/auth/__init__.py` | No function to resolve user permissions from role_bindings | Added `get_user_permissions()` querying role_bindings → roles → permissions | IMPLEMENTED |
@@ -62,16 +53,11 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 | 18 | Medium | `src/jarvis/api/conversations.py` | `list_conversations`, `create_message`, `chat`, `chat-stream` did not filter by `tenant_id` | All endpoints now filter by `tenant_id` alongside `user_id` | FIXED |
 | 19 | Medium | `src/jarvis/api/agent_runtime.py` | `AgentRuntime` constructed without `enabled` flag — runtime always raised "disabled" error | API endpoint now passes `enabled=settings.agent_runtime_enabled` | FIXED |
 | 20 | Medium | `src/jarvis/orchestration/__init__.py` | `_persist_context()` did not validate state transitions; `_load_task()` used `__import__("sqlalchemy")` | `_persist_context()` validates against `_ALLOWED_TRANSITIONS`; `_load_task()` uses direct `select` import | FIXED |
-
-### 2.3 Missing Implementation Fixed (previously documented)
-
-| # | Severity | File | Finding | Fix | Status |
-|---|----------|------|---------|-----|--------|
 | 21 | Medium | `alembic/versions/0001_initial_schema.py` | Memory table missing `content_hash`, `source_type`, `source_id` columns | Added all three missing columns to migration | FIXED |
 | 22 | Medium | `src/jarvis/orchestration/` | Empty directory, no `__init__.py` | Created orchestration package with full engine | FIXED |
 | 23 | Medium | `src/jarvis/policy/` | Empty directory, no `__init__.py` | Created `policy/__init__.py` re-exporting from `jarvis.core.policy` | FIXED |
 
-### 2.4 New Tests Added (this session)
+### 2.3 New Tests Added (this session)
 
 | # | File | Purpose | Tests | Result |
 |---|------|---------|-------|--------|
@@ -79,7 +65,7 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 | 25 | `tests/unit/test_security_ssrf_path.py` | SSRF prevention + path traversal prevention | 14 | PASS |
 | 26 | `tests/unit/test_orchestration.py` | OrchestrationEngine bounded execution, retry, cancellation, state transitions | 18 | PASS |
 
-### 2.5 Remaining Findings (Not Fixed — Documented as BLOCKED / NOT RUN)
+### 2.4 Remaining Findings (Not Fixed — Documented as BLOCKED / NOT RUN)
 
 | # | Severity | File | Finding | Reason Not Fixed | Status |
 |---|----------|------|---------|------------------|--------|
@@ -98,16 +84,14 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 | 39 | Medium | E2E tests | No E2E test suite exists | NOT RUN |
 | 40 | Medium | Docker build | Not executed in this session (environment has Docker but build was not run) | NOT RUN |
 | 41 | Medium | Social preview image | External image generation service has no credits; 1×1 placeholder PNG created | BLOCKED |
+| 42 | Medium | `README.md` | Referenced non-existent `GOVERNANCE.md` | Fixed reference to point to SECURITY.md / ROADMAP.md | FIXED |
+| 43 | Medium | `README.md` | Bridge status claimed "Docker build PASS" but build was NOT RUN | Corrected to "NOT RUN" | FIXED |
 
----
-
-## 3. Changes Made
-
-### 3.1 Modified Files
+### 2.5 Files Changed (Modified)
 
 | File | Change |
 |------|--------|
-| `src/jarvis/core/config.py` | Changed `extra="forbid"` to `extra="ignore"` so `.env` with non-JARVIS vars doesn't break Settings |
+| `src/jarvis/core/config.py` | Changed `extra="forbid"` to `extra="ignore"` |
 | `src/jarvis/core/security.py` | Added SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`) and path traversal prevention (`validate_safe_path`); moved `import os` to top-level imports |
 | `src/jarvis/api/agents.py` | Fixed `tenant_id` to use `get_or_create_user_tenant()`; added `require_policy()` to create/update/delete |
 | `src/jarvis/api/memory.py` | Fixed all `tenant_id` references to use `get_or_create_user_tenant()`; added `require_policy()` to create/delete/summarize |
@@ -118,20 +102,21 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 | `src/jarvis/api/auth.py` | Changed `authorization` parameter to `Header(alias="Authorization")` |
 | `src/jarvis/api/main.py` | Changed CORS `allow_credentials=True` to `False` with wildcard origins |
 | `src/jarvis/api/agent_runtime.py` | Added `settings` import; `AgentRuntime` now constructed with `enabled=settings.agent_runtime_enabled` |
-| `src/jarvis/auth/__init__.py` | Added `get_or_create_user_tenant()`; added `get_user_permissions(tenant_id=...)`; added `require_policy()` dependency with tenant context; imports `APPROVAL_REQUIRED_ACTIONS`, `DECISION_ALLOW`, `PolicyDecision` |
+| `src/jarvis/auth/__init__.py` | Added `get_or_create_user_tenant()`; added `get_user_permissions(tenant_id=...)`; added `require_policy()` dependency with tenant context |
 | `src/jarvis/orchestration/__init__.py` | Added `select` import; `_persist_context()` validates state transitions; `_load_task()` uses direct `select` |
 | `alembic/versions/0001_initial_schema.py` | Added `content_hash`, `source_type`, `source_id` columns to memories table |
-| `README.md` | Full rewrite — Master Advanced Professional documentation with Bridge Status, all subsystems, security controls, configuration, API routes, architecture, getting started, project structure |
-| `SECURITY.md` | Added SSRF and path traversal prevention controls; added Orchestration control section; updated findings table; added Phase 7/8 to not-yet-implemented list |
-| `ROADMAP.md` | Added orchestration engine, SSRF prevention, path traversal prevention, tenant isolation hardening, policy enforcement, AgentRuntime wiring to Phase 6; added Phase 11 tenant isolation and policy enforcement items |
+| `README.md` | Fixed Docker build status (NOT RUN), fixed GOVERNANCE.md reference, updated bridge status |
+| `SECURITY.md` | Added SSRF and path traversal prevention controls; added Orchestration control section; updated findings table |
+| `ROADMAP.md` | Added orchestration engine, SSRF prevention, path traversal prevention, tenant isolation hardening, policy enforcement |
 | `AGENTS.md` | Updated required checks table with correct test counts; added Bandit, validate_repo, Docker build rows |
-| `ZEAZ-INTRODUCTION.md` | Updated evidence baseline; documented security hardening applied; updated blocked items |
+| `ZEAZ-INTRODUCTION.md` | Updated evidence baseline; documented security hardening applied; corrected Docker build status |
 | `OPENCODE.md` | Updated zjavis applied context with test counts and security hardening |
-| `CLAUDE.md` | Updated zjavis applied context with Phase 1 details, security hardening, test counts, blocked items |
-| `GEMINI.md` | Updated zjavis applied context with Phase 1 details, security hardening, test counts, blocked items |
+| `CLAUDE.md` | Updated zjavis applied context |
+| `GEMINI.md` | Updated zjavis applied context |
 | `Final-Report.md` | This report (comprehensive rewrite) |
+| `Makefile` | Replaced `unittest discover` test target with `pytest` targets (unit, integration, all) |
 
-### 3.2 New Files
+### 2.6 Files Created (New)
 
 | File | Purpose |
 |------|---------|
@@ -139,49 +124,31 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 | `tests/unit/test_security_ssrf_path.py` | Tests for SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`) and path traversal prevention (`validate_safe_path`) |
 | `tests/unit/test_orchestration.py` | Tests for OrchestrationEngine: success, cancelled, retry-then-success, max retries exceeded, task not found, delegation depth exceeded, already completed, state validation |
 
-### 3.3 Documentation Files Updated
-
-| File | Purpose |
-|------|---------|
-| `AGENTS.md` | Updated required checks table with correct test counts |
-| `SECURITY.md` | Added SSRF/path traversal prevention; added Orchestration control section; updated findings table; added Phase 7/8 to not-yet-implemented |
-| `ROADMAP.md` | Added orchestration, SSRF, path traversal, tenant isolation, policy enforcement items to Phase 6; added Phase 11 items |
-| `OPENCODE.md` | Updated zjavis applied context |
-| `CLAUDE.md` | Updated zjavis applied context |
-| `GEMINI.md` | Updated zjavis applied context |
-| `README.md` | Full rewrite — Master Advanced Professional documentation |
-| `Final-Report.md` | Comprehensive implementation report |
-| `ZEAZ-INTRODUCTION.md` | Updated evidence baseline; documented security hardening |
-
-### 3.4 No New Assets
-
-No new assets were created. The social preview image (`docs/assets/social-preview.png`) remains a 1×1 placeholder (BLOCKED — external image generation service has no credits).
-
 ---
 
-## 4. Verification Results
+## 3. Verification Results
 
 | Verification | Command | Result | Evidence |
 |--------------|---------|--------|----------|
-| Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 74 files |
+| Build (py_compile) | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors; exit code 0 |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | All checks passed, 0 errors, 0 warnings |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 74 files already formatted |
 | MyPy type checking | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 39 source files |
-| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
+| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors, exit code 0 |
 | Pytest (Unit + Integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | PASS | 199 passed, 0 failed |
 | Pytest (Template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | PASS | 46 passed, 48 subtests passed |
 | Pytest (All) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 245 passed, 0 failed |
 | E2E Tests | — | NOT RUN | No E2E test suite exists |
 | Missing Dependency Tests | — | NOT RUN | No missing-dependency test suite exists |
-| Security Audit (Bandit) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented as False Positives (§2.5) |
+| Security Audit (Bandit) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented as False Positives (§2.4, items 33-34) |
 | Docker Build | `docker build -t jarvis:local .` | NOT RUN | Docker available but build not executed in this session |
-| Repository Validation | `python3 scripts/validate_repo.py` | PASS | All checks pass |
+| Repository Validation | `python3 scripts/validate_repo.py` | PASS | Repository structure, links, syntax, and security validation passed |
 
 ---
 
-## 5. Test Summary
+## 4. Test Summary
 
-### 5.1 Unit + Integration Tests (199 passed)
+### 4.1 Unit + Integration Tests (199 passed)
 
 | Test File | Tests | Description | Result |
 |-----------|-------|-------------|--------|
@@ -209,7 +176,7 @@ No new assets were created. The social preview image (`docs/assets/social-previe
 | `tests/integration/test_health.py` | 2 | Health and readiness endpoints (live DB) | PASS |
 | **Subtotal** | **199** | **ALL PASSING** | **PASS** |
 
-### 5.2 Template Tests (46 passed, 48 subtests)
+### 4.2 Template Tests (46 passed, 48 subtests)
 
 | Test File | Tests | Description | Result |
 |-----------|-------|-------------|--------|
@@ -220,13 +187,13 @@ No new assets were created. The social preview image (`docs/assets/social-previe
 | `tests/test_validate_repo.py` | 9 | Validate repo: secret filenames, content, links, syntax, YAML | PASS |
 | **Subtotal** | **46** | **ALL PASSING** | **PASS** |
 
-### 5.3 Grand Total: 245 tests, ALL PASSING
+### 4.3 Grand Total: 245 tests, ALL PASSING
 
 ---
 
-## 6. Metrics
+## 5. Metrics
 
-### 6.1 Total issues by severity (Bandit scan)
+### 5.1 Total issues by severity (Bandit scan)
 
 | Severity | Count | Status |
 |----------|-------|--------|
@@ -235,7 +202,7 @@ No new assets were created. The social preview image (`docs/assets/social-previe
 | Medium | 0 | — |
 | High | 0 | — |
 
-### 6.2 Total issues by confidence (Bandit scan)
+### 5.2 Total issues by confidence (Bandit scan)
 
 | Confidence | Count | Status |
 |------------|-------|--------|
@@ -254,7 +221,7 @@ No actual security vulnerabilities remain unfixed. All severity and confidence c
 
 ---
 
-## 7. Limitations and Items Not Verified
+## 6. Limitations and Items Not Verified
 
 | Item | Reason | Status |
 |------|--------|--------|
@@ -276,15 +243,15 @@ No actual security vulnerabilities remain unfixed. All severity and confidence c
 
 ---
 
-## 8. GitHub Delivery Process (Step 5)
+## 7. GitHub Delivery Process (Step 5)
 
 ### Phase 1: Commit (Account: cvsz) — PENDING
 
 - `gh auth switch -u cvsz` — verified active (logged in as `cvsz`)
 - `gh auth status` — logged in as `cvsz`
-- Git identity: `cvsz` / configured, GPG signing key configured but **BLOCKED** (passphrase required, no TTY)
-- Branch: `feat/javis-policy-enforcement-and-docs` (no new worktree created)
-- **BLOCKED:** GPG commit signing requires passphrase; no TTY available in non-interactive environment. Will attempt `git commit -S` with passphrase from `.env` via `GPG_PASSPHRASE` environment variable. If signing cannot be completed, will report BLOCKED without creating a fake signed commit.
+- Git identity: `cvsz` / `cvsz@core` / configured, GPG signing key configured (`46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7`) but **BLOCKED** (passphrase required, no TTY available in non-interactive environment)
+- Branch: will be created from latest `main` (no new worktree created)
+- **BLOCKED:** GPG commit signing requires passphrase; no TTY available in non-interactive environment. Will attempt `git commit -S` with passphrase from `GPG_PASSPHRASE` environment variable. If signing cannot be completed, will report BLOCKED without creating a fake signed commit.
 
 ### Phase 2: Independent Review (Account: policedbc) — PENDING
 
@@ -292,21 +259,24 @@ No actual security vulnerabilities remain unfixed. All severity and confidence c
 - Will verify `gh pr diff`, `gh pr checks`
 - Will approve only if all checks pass and no security findings remain
 
-### Phase 3: Merge (Account: cvsz) — BLOCKED
+### Phase 3: Merge (Account: cvsz) — PENDING
 
-- PR #34 is `MERGEABLE`, based on latest main, no merge conflicts.
-- All CI checks pass: `verify-independent-approval` SUCCESS (independent approval by `policedbc`), `repository-baseline` SUCCESS, CodeQL SUCCESS, dependency-review SUCCESS, SBOM/provenance SUCCESS.
-- Independent approval: `policedbc` APPROVED (verified via `verify-independent-approval` check for exact head `e74fb0b`).
-- Commit: `e74fb0b` (GPG Good signature, key 46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7).
-- **BLOCKED:** `gh pr merge --merge --delete-branch` rejected: *"the base branch policy prohibits the merge."*
-- `--auto` flag rejected: *"Auto merge is not allowed for this repository (enablePullRequestAutoMerge)".*
-- `--admin` flag NOT used: would bypass Branch Protection, which is prohibited by repository policy.
-- No worktree created; all work remains in `/mnt/zdata/zjavis`.
-- **Required action:** Repository administrator must merge PR #34 via GitHub web UI or adjust branch protection policy to permit CLI merge. Local merge + push would also be rejected by remote branch protection.
+- Will verify CI/CD checks pass completely
+- Will verify independent approval by `policedbc`
+- Will verify branch protection
+- Will verify merge conflicts
+- Will verify PR status again before merge
+
+### Phase 4: Branch Protection Requirement
+
+- If branch protection requires at least 1 approving review from a writer: check approvers and approval status; proceed per Phase 2 and 3 only when conditions are complete
+- Will NOT use the same account to approve its own PR if that conflicts with repository policy
+- Will NOT bypass branch protection or bypass required reviews
+- If no authorized approver is available, report BLOCKED and identify steps required by an authorized person
 
 ---
 
-## 9. Final Verdict
+## 8. Final Verdict
 
 **PARTIALLY VERIFIED**
 
@@ -339,7 +309,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 
 ---
 
-## 10. Evidence-State Summary
+## 9. Evidence-State Summary
 
 | Category | VERIFIED | PARTIALLY VERIFIED | UNVERIFIED | BLOCKED | NOT APPLICABLE | NOT RUN |
 |----------|----------|-------------------|------------|---------|----------------|---------|
@@ -361,3 +331,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | Phase 7 adapters | | | | | | ⬜ |
 | Phase 8 Engineering | | | | | | ⬜ |
 | Phase 10 Clients | | | | | | ⬜ |
+
+---
+
+**End of Final-Report — JARVIS Platform Implementation.**

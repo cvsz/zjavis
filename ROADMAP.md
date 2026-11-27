@@ -130,7 +130,8 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 
 ## Phase 11 — Production Hardening (PARTIAL)
 
-- [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
+- [x] Security remediation (9 high-severity findings from prior audit fixed: tenant_id FK violations, auth header, CORS, config extra="forbid"; 2 documented Bandit False Positives remain)
+- [ ] Remaining open High findings: backup/restore, Kubernetes/Helm deployment, Dashboard/Clients, GPG commit signing (tracked in Phase 11 items below)
 - [x] Tenant isolation hardening on approval and conversation endpoints
 - [x] Execution-time policy enforcement with tenant-scoped permissions on all mutating endpoints
 - [ ] Load and stress tests — NOT RUN (no production-scale workload)

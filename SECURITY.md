@@ -121,7 +121,7 @@ Security incidents affecting production systems should preserve evidence and use
 | Severity | Count | Status | Details |
 |----------|-------|--------|---------|
 | Critical | 0 | — | None |
-| High | 0 | RESOLVED | All 9 high-severity findings from prior audit fixed (tenant_id FK violations, auth header, CORS, config extra="forbid") |
+| High | 3 | OPEN | Backup/restore not implemented (blueprint §18); Kubernetes/Helm deployment unverified (deferred per §16.3); Dashboard/Clients not implemented (Phase 10) |
 | Medium | 0 | — | None |
 | Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string (standard OAuth 2.0); dev-secret comparison in fail-closed validation |
 
@@ -130,14 +130,15 @@ Security incidents affecting production systems should preserve evidence and use
 - Voice interface (STT/TTS): requires audio hardware + provider credentials → BLOCKED
 - Vision interface: requires GPU hardware + vision model credentials → BLOCKED
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
-- Backup/restore: not implemented → NOT RUN
-- OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
-- GPG commit signing: signing key requires passphrase, no TTY available → BLOCKED
-- Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
-- Load/stress testing: no production-scale workload → NOT RUN
-- E2E tests: no E2E test suite → NOT RUN
-- Browser/File/Terminal/Git/Docker/IDE/MCP capability adapters (Phase 7): not implemented → NOT RUN
-- Engineering Intelligence (Phase 8): not implemented → NOT RUN
+- Backup/restore: not implemented → NOT RUN (HIGH — production-readiness blocker per blueprint §18)
+- OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN (MEDIUM)
+- GPG commit signing: signing key requires passphrase, no TTY available → BLOCKED (HIGH)
+- Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN (HIGH)
+- Load/stress testing: no production-scale workload → NOT RUN (MEDIUM)
+- E2E tests: no E2E test suite → NOT RUN (MEDIUM)
+- Browser/File/Terminal/Git/Docker/IDE/MCP capability adapters (Phase 7): not implemented → NOT RUN (MEDIUM)
+- Engineering Intelligence (Phase 8): not implemented → NOT RUN (MEDIUM)
+- Dashboard / Clients (Phase 10): not implemented → NOT RUN (HIGH)
 
 ## Supply chain security
 
