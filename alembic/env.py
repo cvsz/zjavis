@@ -84,12 +84,11 @@ async def run_migrations_online() -> None:
     if isinstance(connectable, AsyncEngine):
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)
+        await connectable.dispose()
     else:
         with connectable.connect() as connection:
             do_run_migrations(connection)
-
-    if hasattr(connectable, "dispose"):
-        await connectable.dispose()
+        connectable.dispose()
 
 
 if context.is_offline_mode():

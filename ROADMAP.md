@@ -8,6 +8,7 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] Authentication integration (PBKDF2-HMAC-SHA256, HMAC-SHA256 JWT, Bearer header)
 - [x] API foundation (FastAPI, global error handler, rate limiting, security headers, CORS default-deny)
 - [x] PostgreSQL schema (14 core entities: organizations, users, tenants, roles, permissions, role_bindings, sessions, conversations, messages, memories, agents, tasks, approvals, audit_events)
+- [x] Alembic migrations: `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; `alembic upgrade head` verified against live PostgreSQL
 - [x] Tenant boundaries (all data-access endpoints scope by tenant_id)
 - [x] Policy engine (ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE, default-deny)
 - [x] Approval service (pending -> granted/denied/expired lifecycle)

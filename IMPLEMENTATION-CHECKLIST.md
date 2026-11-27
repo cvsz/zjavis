@@ -128,7 +128,7 @@ This section records the current state of the zjavis implementation per `javis-b
 | Authentication & Authorization | Phase 1 | COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation; session record on login; **RBAC fixed — `get_user_permissions()` now joins via `role_permissions` junction table, default role self-provisioned** |
 | Policy Engine | Phase 1 | COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging / Metrics / Tracing | Phase 1 | COMPLETE / PARTIAL | Structured JSON logging with `SecretFilter`; Prometheus `/metrics`; OpenTelemetry tracing module (no export configured) |
-| Data Layer (PostgreSQL + Alembic) | Phase 1 | COMPLETE / VERIFIED | 14 SQLAlchemy models; initial migration `0001_initial_schema` |
+| Data Layer (PostgreSQL + Alembic) | Phase 1 | COMPLETE / VERIFIED | 14 SQLAlchemy models; migrations `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic upgrade head` verified against live PostgreSQL; `alembic/env.py` `connectable.dispose()` sync engine fix applied |
 | Model Gateway | Phase 2 | IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge | Phase 3 | IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
 | Orchestration Engine | Phase 6 | IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |

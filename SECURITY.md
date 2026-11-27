@@ -166,6 +166,7 @@ Security incidents affecting production systems should preserve evidence and use
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |
+| Alembic migrations | `PYTHONPATH=src alembic upgrade head` | PASS | Migrations `0001_initial_schema` + `0002_add_role_permissions` applied; `alembic/env.py` `connectable.dispose()` sync engine bug fixed; verified against live PostgreSQL |
 
 ## Supply chain security
 

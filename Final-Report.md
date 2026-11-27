@@ -17,7 +17,7 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 **Project:** JARVIS — Personal AI Operating System  
 **Repository:** https://github.com/cvsz/zjavis  
 **Implementation status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) COMPLETE and VERIFIED; Phase 7 (Tool & Computer Integration) IMPLEMENTED and VERIFIED; Phase 8 (Engineering Intelligence) IMPLEMENTED and VERIFIED; Phases 2-6, 9-11 partially implemented or BLOCKED/NOT RUN (see §13).  
-**Overall result:** VERIFIED for Phase 1 scope + Phase 7 tool adapters + Phase 8 engineering intelligence + orchestration + SSRF/path traversal prevention + tenant isolation hardening + authorization hardening + agent runtime OrchestrationEngine integration + missing dependency tests + E2E tests + OpenTelemetry tracing module + backup-restore documentation + **RBAC repair (`role_permissions` junction table, `get_user_permissions()` corrected)**; NOT Production Ready (see §14 Final Verdict).
+**Overall result:** VERIFIED for Phase 1 scope + Phase 7 tool adapters + Phase 8 engineering intelligence + orchestration + SSRF/path traversal prevention + tenant isolation hardening + authorization hardening + agent runtime OrchestrationEngine integration + missing dependency tests + E2E tests + OpenTelemetry tracing module + backup-restore documentation + **RBAC repair (`role_permissions` junction table, `get_user_permissions()` corrected)** + **Alembic `env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL**; NOT Production Ready (see §14 Final Verdict).
 
 **Step 5 GitHub Delivery:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) is OPEN and MERGEABLE. Independent approval by `policedbc` is COMPLETE (`verify-independent-approval` check run PASSED). Merge is BLOCKED by branch protection infrastructure: commit statuses not propagated to HEAD commit (`total_count: 0`) despite all check runs reporting SUCCESS. This is an infrastructure limitation requiring repository-admin reconciliation; not a code defect. No force-merge, no bypass, no admin flag used.
 
@@ -54,9 +54,10 @@ The following findings were collected during deep inspection of the source code,
 | F19 | Medium | Phase 10 Dashboard/Clients | Not implemented | No frontend codebase | NOT RUN | NOT RUN |
 | F20 | Medium | Social preview image | 1×1 placeholder; external image generation has no credits | External service no credits | Replace `docs/assets/social-preview.png` before public release | BLOCKED |
 | F21 | High | `src/jarvis/auth/__init__.py` + `src/jarvis/db/models.py` | RBAC broken: `get_user_permissions()` joined `role_bindings.role_id` directly against `permissions.id` (two unrelated tables) — resolved to empty permission set for every user; no `role_permissions` junction table existed | Missing junction table + incorrect join | Added `role_permissions` junction table (migration `0002_add_role_permissions`); corrected join to `role_bindings → role_permissions → permissions`; default permissions/role/role-binding self-provisioned idempotently; high-risk actions still require approval | FIXED |
+| F22 | Medium | `alembic/env.py` | `connectable.dispose()` awaited on sync engine returning `None`, raising `TypeError: 'NoneType' object can't be awaited` and blocking all Alembic migrations | Incorrect `await` on sync engine `.dispose()` | Changed to `connectable.dispose()` (no await) for sync engine; `alembic upgrade head` verified passing against live PostgreSQL | FIXED |
 
-**Total findings:** 21  
-**Fixed:** 9 (F1-F8, F21)  
+**Total findings:** 22  
+**Fixed:** 10 (F1-F8, F21-F22)  
 **Documented False Positives:** 2 (F9, F10)  
 **BLOCKED:** 5 (F11-F13, F16, F20)  
 **NOT RUN:** 5 (F14, F15, F17, F18, F19)
@@ -131,6 +132,7 @@ All features below are implemented, tested, and verified. All adapters are featu
 | 5 | `TaskUpdate` exposed `state` — direct state mutation | `src/jarvis/api/tasks.py` | Removed `state` from `TaskUpdate` | State transitions enforced exclusively by OrchestrationEngine |
 | 6 | Login created no `Session` record | `src/jarvis/api/auth.py` | Login now persists `Session` row | Token tracking and revocation support |
 | 7 | RBAC broken: `get_user_permissions()` returned empty permission set — join compared `role_bindings.role_id` to `permissions.id` (unrelated tables) | `src/jarvis/auth/__init__.py` + `src/jarvis/db/models.py` | Added `role_permissions` junction table (migration `0002_add_role_permissions`); corrected join; default role/permissions self-provisioned | 4 new RBAC tests pass against real database |
+| 8 | Alembic migrations blocked by `TypeError: 'NoneType' object can't be awaited` | `alembic/env.py` | `connectable.dispose()` no longer awaited on sync engine; `alembic upgrade head` verified passing against live PostgreSQL | `alembic upgrade head` runs cleanly; migrations applied to live PostgreSQL |
 
 ---
 
@@ -165,6 +167,7 @@ All features below are implemented, tested, and verified. All adapters are featu
 | 9 | State machine integrity | Task `state` not mutable via API | `src/jarvis/api/tasks.py` |
 | 10 | Session tracking | Login creates `Session` record for revocation | `src/jarvis/api/auth.py` |
 | 11 | RBAC repair | `role_permissions` junction table; corrected `get_user_permissions()` join; default role self-provisioned | `src/jarvis/auth/__init__.py`, `src/jarvis/db/models.py`, `alembic/versions/0002_add_role_permissions.py` |
+| 12 | Alembic migrations | `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL | `alembic/env.py` |
 
 ---
 
@@ -217,6 +220,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | validate_repo | PASS | `python3 scripts/validate_repo.py` — structure, links, syntax, security validation passed |
 | Docker Build | PASS | `docker build -t jarvis:local .` — image `jarvis:local` built successfully |
 | Runtime Validation | PASS | `GET /health` HTTP 200; `/ready` 200 with DB up; `/ready` 503 fail-closed when DB unavailable |
+| Alembic migrations | PASS | `PYTHONPATH=src alembic upgrade head` — migrations `0001_initial_schema` + `0002_add_role_permissions` applied; `connectable.dispose()` sync engine bug fixed; verified against live PostgreSQL |
 
 ---
 
@@ -264,6 +268,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | validate_repo | 0 | 0 | 0 | PASS |
 | Docker Build | 0 | 0 | 0 | PASS |
 | Runtime Validation | 0 | 0 | 0 | PASS |
+| Alembic migrations | 0 | 0 | 0 | Migrations `0001_initial_schema` + `0002_add_role_permissions` applied; `connectable.dispose()` fix verified |
 
 **Open findings (BLOCKED / NOT RUN — not counted as resolved):** see §12 and §13.
 
@@ -271,7 +276,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 
 ## 12. Findings — Resolved vs. Open
 
-### Resolved Findings (8 bugs + 6 security fixes)
+### Resolved Findings (9 bugs + 6 security fixes)
 
 | # | Severity | File / Area | Finding | Fix | Status |
 |---|----------|-------------|---------|-----|--------|
@@ -287,6 +292,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | A4 | MEDIUM | `src/jarvis/api/auth.py` | No session record | Session record created | FIXED |
 | A5 | MEDIUM | `src/jarvis/ai/agent_runtime.py` | No tenant isolation | Tenant/user isolation enforced | FIXED |
 | A6 | LOW | `src/jarvis/tools/terminal.py` | `enabled=True` default | Default changed to `enabled=False` | FIXED |
+| 13 | MEDIUM | `alembic/env.py` | `connectable.dispose()` awaited on sync engine blocking migrations | `connectable.dispose()` corrected (no await); migrations verified passing against live PostgreSQL | FIXED |
 
 ### Open Findings (BLOCKED / NOT RUN — not counted as resolved)
 
@@ -314,6 +320,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Smart environment / IoT | Requires device hardware + credentials | BLOCKED |
 | Backup/restore restore drill | Not performed; documentation only | NOT RUN |
 | OpenTelemetry tracing export | No OTLP endpoint configured; module no-op | NOT RUN |
+| Alembic migrations | `connectable.dispose()` sync engine bug fixed; `alembic upgrade head` verified passing against live PostgreSQL | VERIFIED (resolved) |
 | GPG commit signing | Signing key requires passphrase; no TTY | BLOCKED |
 | Kubernetes/Helm deployment | Deferred per blueprint §16.3 | NOT RUN |
 | Load/stress testing | No production-scale workload | NOT RUN |
@@ -340,6 +347,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | validate_repo | VERIFIED | PASS |
 | Docker build | VERIFIED | `jarvis:local` built |
 | Runtime validation | VERIFIED | `/health` 200, `/ready` 200/503 fail-closed, `/metrics` 200 |
+| Alembic migrations | VERIFIED | `alembic upgrade head` PASS; `connectable.dispose()` fix applied |
 | Phase 1 Core Platform | VERIFIED | All modules, tests, checks pass |
 | Phase 7 Tool Adapters | VERIFIED | 6 adapters + registry, all tested |
 | Phase 8 Engineering Intelligence | VERIFIED | Discovery, analysis, registry, all tested |
@@ -378,6 +386,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | validate_repo | ✅ | | | | | |
 | Docker build | ✅ | | | | | |
 | Runtime validation | ✅ | | | | | |
+| Alembic migrations | ✅ | | | | | |
 | Missing dependency tests | ✅ | | | | | |
 | E2E tests | ✅ | | | | | |
 | Phase 1 Core Platform | ✅ | | | | | |
@@ -421,6 +430,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 - `src/jarvis/auth/__init__.py` — Fixed `get_user_permissions()` join; added `_ensure_default_permissions_and_role()` self-provisioning; imported `Permission`, `Role`, `RolePermission`
 - `src/jarvis/db/models.py` — Added `RolePermission` junction model; `role_permissions` relationships on `Role`/`Permission`
 - `alembic/versions/0002_add_role_permissions.py` — New migration: `role_permissions` table
+- `alembic/env.py` — Fixed `connectable.dispose()` sync engine bug; `alembic upgrade head` verified passing against live PostgreSQL
 - `tests/unit/test_rbac.py` — New: 4 RBAC tests (default permissions, tenant scoping, table existence, association persistence)
 - `OPENCODE.md` — Updated test/file counts (330 tests, 92 files); added RBAC repair note
 - `SECURITY.md` — Updated Pytest count (330 passed)
@@ -461,8 +471,8 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 |--------|------|----------|
 | COMPLETED | Source code implementation (all modules, all subsystems) | Source in `src/jarvis/`; 330 tests pass; ruff/mypy/shellcheck/validate_repo pass |
 | COMPLETED | Step 1 code analysis & findings | §2 Findings (21 findings: 9 fixed, 2 documented FP, 5 blocked, 5 not run) |
-| COMPLETED | Step 2 development & upgrades | Phase 7 tool adapters, Phase 8 engineering intelligence, authorization hardening, tenant isolation, **RBAC repair** |
-| COMPLETED | Step 3 verification & testing | Build PASS; Ruff PASS; MyPy PASS; ShellCheck PASS; Pytest 330 passed/0 failed; Bandit 2 Low (FP); validate_repo PASS; Docker build PASS; Runtime validation PASS |
+| COMPLETED | Step 2 development & upgrades | Phase 7 tool adapters, Phase 8 engineering intelligence, authorization hardening, tenant isolation, **RBAC repair**, **Alembic `env.py` sync engine fix** |
+| COMPLETED | Step 3 verification & testing | Build PASS; Ruff PASS; MyPy PASS; ShellCheck PASS; Pytest 330 passed/0 failed; Bandit 2 Low (FP); validate_repo PASS; Docker build PASS; Runtime validation PASS; Alembic migrations PASS |
 | COMPLETED | Step 4 documentation | README.md, AGENTS.md, OPENCODE.md, CLAUDE.md, GEMINI.md, SECURITY.md, ZEAZ-INTRODUCTION.md, ROADMAP.md, IMPLEMENTATION-CHECKLIST.md, Final-Report.md all updated |
 | COMPLETED | Step 5a Git auth (cvsz) | `gh auth switch -u cvsz`; `gh auth status` active |
 | COMPLETED | Step 5b Git identity & signing | `user.signingkey=46ABBD40...`; `commit.gpgsign=true`; GPG-signed commits |
