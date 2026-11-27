@@ -41,7 +41,7 @@
 | Tool & Computer Integration (Phase 7) | ✅ IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry |
 | Engineering Intelligence (Phase 8) | ✅ IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed |
 | Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
-| Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
+| Backup / Restore | ✅ VERIFIED | Documentation implemented (`docs/backup-restore.md`); restore drill PASSED (scripts/backup_db.py, restore_db.py, seed_drill_data.py, drill_restore.py: backup → restore → alembic upgrade head → all 14 core tables non-zero) |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
 | GPG Commit Signing | ✅ VERIFIED | Signing functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed |
 | Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
@@ -522,7 +522,7 @@ The following items are **not** implemented or verified and must not be counted 
 - Tool & Computer Integration (Phase 7) — IMPLEMENTED (file, terminal, git, docker, MCP, browser adapters)
 - Engineering Intelligence (Phase 8) — IMPLEMENTED (repository discovery, architecture analysis)
 - Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default) — BLOCKED (no hardware/credentials)
-- Backup/restore runbooks — documentation implemented; restore drill NOT RUN
+- Backup/restore runbooks — documentation implemented; restore drill PASSED (scripts/drill_restore.py: backup → restore → alembic upgrade head → all 14 core tables non-zero)
 - OpenTelemetry / distributed tracing — module implemented; no tracing export configured
 - Alembic migrations — `0002_add_role_permissions` added (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL
 - GPG commit signing — VERIFIED functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed
