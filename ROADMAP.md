@@ -65,10 +65,13 @@ Progress against `javis-blueprint.md` section 21 (Implementation Roadmap):
 | Phase 5 | Vision | STUB | `src/jarvis/ai/vision.py` | Feature-flagged (`JARVIS_VISION_ENABLED=false`); requires GPU + vision model credentials |
 | Phase 6 | Agent Runtime | COMPLETE | `src/jarvis/ai/agent_runtime.py`, `src/jarvis/approval/`, `src/jarvis/audit/` | Approval-gated execution, audit trail |
 | Phase 6 (ext.) | Orchestration Engine | COMPLETE | `src/jarvis/orchestration/executor.py` | Timeout, retry+backoff+jitter, CancellationToken, idempotency, dead-letter |
+| Phase 6 (ext.) | Policy Engine Enforcement | COMPLETE | `src/jarvis/api/main.py` | Execution-time PolicyEngine decisions on all mutating API routes |
+| Phase 6 (ext.) | Idempotency | COMPLETE | `src/jarvis/api/tasks.py` | Idempotency key conflict detection on task creation |
+| Phase 6 (ext.) | Streaming Resilience | COMPLETE | `src/jarvis/api/conversations.py` | SSE stream DB commit failure handling |
 | Phase 7 | Tool & Computer Integration | NOT RUN | — | Browser, terminal, file, Git, Docker, MCP adapters not implemented |
 | Phase 8 | Engineering Intelligence | NOT RUN | — | Repository analysis, coding, review, testing not implemented |
 | Phase 9 | Smart Environment | STUB | `src/jarvis/ai/smart_environment.py` | Feature-flagged (`JARVIS_SMART_ENVIRONMENT_ENABLED=false`); requires IoT hardware + credentials |
 | Phase 10 | Dashboard & Clients | NOT RUN | — | Web/desktop/mobile clients not implemented |
 | Phase 11 | Production Hardening | PARTIAL | Security controls, observability metrics | Backup/restore, tracing, load testing, E2E not implemented |
 
-GitHub delivery (Step 5 of master plan): PR #33 (orchestration engine) BLOCKED by branch protection; PR #31 (CODEOWNERS) BLOCKED by merge conflicts; PR #27 (tenant isolation) Changes Requested.
+GitHub delivery (Step 5 of master plan): PR #33 (orchestration engine + policy enforcement) BLOCKED by branch protection (base branch policy prohibits merge despite all required checks passing and independent approval). PR #31 (CODEOWNERS) BLOCKED by merge conflicts. PR #27 (tenant isolation) Changes Requested.

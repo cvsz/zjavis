@@ -5,7 +5,9 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from jarvis.api.main import _permission_for_path, _risk_level_for_path
 from jarvis.api.tasks import TaskCreate, TaskUpdate
+from jarvis.core.security import Permission
 
 
 class TestTaskCreate:
@@ -77,3 +79,68 @@ class TestTaskUpdate:
         req = TaskUpdate()
         assert req.task_type is None
         assert req.state is None
+
+
+class TestPermissionPathMapping:
+    """Tests for _permission_for_path — maps API paths to required permissions."""
+
+    def test_conversation_post_requires_write(self) -> None:
+        assert (
+            _permission_for_path("/api/v1/conversations", "POST")
+            == Permission.REPOSITORY_WRITE
+        )
+
+    def test_conversation_get_requires_read(self) -> None:
+        assert (
+            _permission_for_path("/api/v1/conversations", "GET")
+            == Permission.REPOSITORY_READ
+        )
+
+    def test_memory_post_requires_write(self) -> None:
+        assert (
+            _permission_for_path("/api/v1/memory", "POST")
+            == Permission.REPOSITORY_WRITE
+        )
+
+    def test_memory_delete_requires_write(self) -> None:
+        assert (
+            _permission_for_path("/api/v1/memory", "DELETE")
+            == Permission.REPOSITORY_WRITE
+        )
+
+    def test_task_post_requires_write(self) -> None:
+        assert _permission_for_path("/api/v1/tasks", "POST") == Permission.REPOSITORY_WRITE
+
+    def test_task_get_requires_read(self) -> None:
+        assert _permission_for_path("/api/v1/tasks", "GET") == Permission.REPOSITORY_READ
+
+    def test_agent_runtime_requires_write(self) -> None:
+        assert (
+            _permission_for_path("/api/v1/agent-runtime/execute", "POST")
+            == Permission.REPOSITORY_WRITE
+        )
+
+    def test_audit_requires_read(self) -> None:
+        assert _permission_for_path("/api/v1/audit/events", "GET") == Permission.REPOSITORY_READ
+
+    def test_unknown_path_defaults_read(self) -> None:
+        assert _permission_for_path("/api/v1/unknown", "GET") == Permission.REPOSITORY_READ
+
+
+class TestRiskLevelClassification:
+    """Tests for _risk_level_for_path — classifies path risk levels."""
+
+    def test_tasks_is_medium_risk(self) -> None:
+        assert _risk_level_for_path("/api/v1/tasks") == "medium"
+
+    def test_agent_runtime_is_medium_risk(self) -> None:
+        assert _risk_level_for_path("/api/v1/agent-runtime/execute") == "medium"
+
+    def test_smart_environment_is_medium_risk(self) -> None:
+        assert _risk_level_for_path("/api/v1/smart-environment/devices") == "medium"
+
+    def test_conversation_is_low_risk(self) -> None:
+        assert _risk_level_for_path("/api/v1/conversations") == "low"
+
+    def test_unknown_path_is_low_risk(self) -> None:
+        assert _risk_level_for_path("/api/v1/unknown") == "low"

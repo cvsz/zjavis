@@ -21,12 +21,15 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 205 tests passing (159 unit + 6 integration + 46 template + orchestration) |
-| Model Gateway (Phase 2) | ✅ COMPLETE | Local provider, OpenAI-compatible, Ollama adapters; routing, budget, usage accounting |
-| Voice Intelligence (Phase 4) | ⚠️ STUB | Feature-flagged, disabled by default; LocalVoiceProvider returns error without audio hardware/credentials |
-| Vision Intelligence (Phase 5) | ⚠️ STUB | Feature-flagged, disabled by default; LocalVisionProvider returns error without GPU/model credentials |
+| Core Platform (Phase 1) | ✅ COMPLETE | 173 pytest + 46 template = 219 tests pass; ruff/mypy/shellcheck/validate_repo PASS |
+| Model Gateway (Phase 2) | ✅ COMPLETE | Local/OpenAI/Ollama adapters; routing, budget, usage accounting |
+| Policy Engine Enforcement | ✅ COMPLETE | Execution-time PolicyEngine decisions on all mutating API routes (POST/PUT/DELETE/PATCH) |
 | Agent Runtime (Phase 6) | ✅ COMPLETE | Approval-gated task execution, audit event recording, task lifecycle management |
 | Orchestration Engine | ✅ COMPLETE | Bounded execution: timeout, retry+exponential backoff+jitter, CancellationToken, idempotency, dead-letter (10 unit tests) |
+| Idempotency | ✅ COMPLETE | Idempotency key conflict detection on task creation (409 Conflict) |
+| Streaming Resilience | ✅ COMPLETE | SSE stream DB commit failure handling in chat/stream endpoint |
+| Voice Intelligence (Phase 4) | ⚠️ STUB | Feature-flagged, disabled by default; requires audio hardware + STT/TTS credentials |
+| Vision Intelligence (Phase 5) | ⚠️ STUB | Feature-flagged, disabled by default; requires GPU + vision model credentials |
 | Smart Environment (Phase 9) | ⚠️ STUB | Feature-flagged, disabled by default; requires IoT hardware + device credentials |
 | Observability | ✅ PARTIAL | Prometheus metrics endpoint (/metrics); no distributed tracing |
 | Backup / Restore | ❌ NOT IMPLEMENTED | Runbooks not implemented |
@@ -57,6 +60,7 @@ and memories.
 | Configuration | `src/jarvis/core/config.py` | Type-safe settings with `JARVIS_`-prefixed env vars, production fail-closed secret validation |
 | Security | `src/jarvis/core/security.py` | PBKDF2-HMAC-SHA256 (210k iterations), HMAC-SHA256 JWT (stdlib only), secret redaction |
 | Policy Engine | `src/jarvis/core/policy.py` | ALLOW / DENY / REQUIRE_APPROVAL / REQUIRE_REAUTHENTICATION / OUT_OF_SCOPE decisions |
+| Policy Enforcement | `src/jarvis/api/main.py` | Execution-time PolicyEngine middleware on all mutating API routes (POST/PUT/DELETE/PATCH) |
 | Logging | `src/jarvis/core/logging.py` | Structured JSON logging with secret redaction filter |
 | Metrics | `src/jarvis/core/metrics.py` | Prometheus counters, gauges, histograms for requests, models, agents, tools, approvals |
 | Exceptions | `src/jarvis/core/exceptions.py` | Typed exception hierarchy (AuthN, AuthZ, NotFound, Conflict, Validation, Policy, Provider, Tool, Task, Agent, Memory) |
@@ -189,32 +193,32 @@ make ci
 
 ### API Endpoints
 
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `GET /health` | GET | Liveness probe | No |
-| `GET /ready` | GET | Readiness probe (DB check) | No |
-| `GET /metrics` | GET | Prometheus text-format metrics | No |
-| `POST /api/v1/auth/login` | POST | Authenticate, return access/refresh tokens | No |
-| `GET /api/v1/auth/me` | GET | Current user profile | Yes (Bearer) |
-| `POST /api/v1/auth/superuser-check` | POST | Verify superuser access | Yes (Bearer) |
-| `POST /api/v1/conversations` | POST | Create conversation | Yes |
-| `GET /api/v1/conversations` | GET | List conversations | Yes |
-| `POST /api/v1/conversations/{id}/messages` | POST | Add message | Yes |
-| `POST /api/v1/conversations/{id}/chat` | POST | Send message, get AI response | Yes |
-| `POST /api/v1/conversations/{id}/chat/stream` | POST | Streaming AI response | Yes |
-| `POST /api/v1/memory` | POST | Create memory item | Yes |
-| `GET /api/v1/memory` | GET | List memories | Yes |
-| `GET /api/v1/memory/{id}` | GET | Get memory by ID | Yes |
-| `DELETE /api/v1/memory/{id}` | DELETE | Soft-delete memory | Yes |
-| `POST /api/v1/approvals` | POST | Request approval | Yes |
-| `GET /api/v1/approvals` | GET | List approvals | Yes |
-| `POST /api/v1/approvals/{id}/grant` | POST | Grant approval | Yes |
-| `POST /api/v1/approvals/{id}/deny` | POST | Deny approval | Yes |
-| `POST /api/v1/agents` | POST | Create agent | Yes |
-| `GET /api/v1/agents` | GET | List agents | Yes |
-| `POST /api/v1/tasks` | POST | Create task | Yes |
-| `GET /api/v1/tasks` | GET | List tasks | Yes |
-| `GET /api/v1/audit/events` | GET | List audit events | Yes |
+| Endpoint | Method | Description | Auth Required | Policy Enforced |
+|----------|--------|-------------|---------------|-----------------|
+| `GET /health` | GET | Liveness probe | No | No |
+| `GET /ready` | GET | Readiness probe (DB check) | No | No |
+| `GET /metrics` | GET | Prometheus text-format metrics | No | No |
+| `POST /api/v1/auth/login` | POST | Authenticate, return access/refresh tokens | No | No |
+| `GET /api/v1/auth/me` | GET | Current user profile | Yes (Bearer) | No |
+| `POST /api/v1/auth/superuser-check` | POST | Verify superuser access | Yes (Bearer) | Yes |
+| `POST /api/v1/conversations` | POST | Create conversation | Yes | Yes |
+| `GET /api/v1/conversations` | GET | List conversations | Yes | No |
+| `POST /api/v1/conversations/{id}/messages` | POST | Add message | Yes | Yes |
+| `POST /api/v1/conversations/{id}/chat` | POST | Send message, get AI response | Yes | Yes |
+| `POST /api/v1/conversations/{id}/chat/stream` | POST | Streaming AI response | Yes | Yes |
+| `POST /api/v1/memory` | POST | Create memory item | Yes | Yes |
+| `GET /api/v1/memory` | GET | List memories | Yes | No |
+| `GET /api/v1/memory/{id}` | GET | Get memory by ID | Yes | No |
+| `DELETE /api/v1/memory/{id}` | DELETE | Soft-delete memory | Yes | Yes |
+| `POST /api/v1/approvals` | POST | Request approval | Yes | Yes |
+| `GET /api/v1/approvals` | GET | List approvals | Yes | No |
+| `POST /api/v1/approvals/{id}/grant` | POST | Grant approval | Yes | Yes |
+| `POST /api/v1/approvals/{id}/deny` | POST | Deny approval | Yes | Yes |
+| `POST /api/v1/agents` | POST | Create agent | Yes | Yes |
+| `GET /api/v1/agents` | GET | List agents | Yes | No |
+| `POST /api/v1/tasks` | POST | Create task | Yes | Yes |
+| `GET /api/v1/tasks` | GET | List tasks | Yes | No |
+| `GET /api/v1/audit/events` | GET | List audit events | Yes | No |
 
 ---
 
@@ -275,6 +279,8 @@ Report security vulnerabilities through [GitHub Security Advisories](https://git
 | `JARVIS_VISION_ENABLED` | bool | `false` | No | Vision interface |
 | `JARVIS_AGENT_RUNTIME_ENABLED` | bool | `true` | No | Agent runtime |
 | `JARVIS_SMART_ENVIRONMENT_ENABLED` | bool | `false` | No | Smart environment |
+
+**Security enforcement:** All mutating API routes (POST/PUT/DELETE/PATCH) are evaluated at execution time by the `PolicyEngine`. Actions requiring approval (medium/high risk, `database.mutate`, `deployment.execute`) return `403 Forbidden` until explicitly granted. Task creation rejects duplicate `idempotency_key` values with `409 Conflict`.
 
 Copy `.env.example` to `.env` and customize for local development. Never commit real credentials.
 

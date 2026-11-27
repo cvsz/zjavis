@@ -62,10 +62,12 @@ The following controls are implemented in `cvsz/zjavis` and verified by testing 
 | Authentication | Token transmission | `Authorization: Bearer` header only; no query-string tokens, `src/jarvis/api/auth.py` | VERIFIED |
 | Authorization | Permission model | Capability-based `Permission` class + `require_permission()`, `src/jarvis/core/security.py` | VERIFIED |
 | Authorization | Policy engine | `PolicyEngine` with ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny, `src/jarvis/core/policy.py` | VERIFIED |
+| Authorization | Execution-time policy enforcement | PolicyEngine middleware on all mutating API routes (POST/PUT/DELETE/PATCH), `src/jarvis/api/main.py` | VERIFIED |
 | Authorization | Tenant isolation | All data-access endpoints scope by `tenant_id` (never `user.id`), `src/jarvis/api/*` | VERIFIED |
 | Authorization | Approval gate | Medium/high-risk and `database.mutate`/`deployment.execute` require explicit approval, `src/jarvis/approval/` | VERIFIED |
 | Input validation | SQL injection prevention | SQLAlchemy ORM with parameterized queries only | VERIFIED |
 | Input validation | XSS / prompt injection | `sanitize_message_content()` blocks `<script>`, `javascript:`, `on*` handlers, `ignore previous instructions`, `system: you are`, `src/jarvis/api/conversations.py` | VERIFIED |
+| Input validation | Idempotency key conflict | Duplicate idempotency key rejected with 409 Conflict, `src/jarvis/api/tasks.py` | VERIFIED |
 | Secrets management | No hardcoded secrets | `.env` gitignored; `.env.example` placeholders only; `validate_repo.py` secret-content scan | VERIFIED |
 | Secrets in logs | Secret redaction | `SecretFilter` redacts secret-like keys (password, token, secret, api_key, authorization, credential, private_key, session, cookie) from log records, `src/jarvis/core/logging.py` | VERIFIED |
 | Production config | Fail-closed secret | `JARVIS_APP_SECRET` must be set when `JARVIS_APP_ENV=production`; default rejected, `src/jarvis/core/config.py` | VERIFIED |
@@ -74,6 +76,7 @@ The following controls are implemented in `cvsz/zjavis` and verified by testing 
 | API security | Security headers | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'self'`, `src/jarvis/api/main.py` | VERIFIED |
 | Audit | Tamper-evident events | `AuditEvent` records with tenant/actor/category/outcome; no secrets recorded, `src/jarvis/audit/` | VERIFIED |
 | Cryptography | CSPRNG for jitter | `secrets.SystemRandom().uniform()` in orchestration backoff (Bandit B311 remediated), `src/jarvis/orchestration/executor.py` | VERIFIED |
+| Streaming resilience | DB commit failure handling | SSE stream continues and reports done even if DB commit fails, `src/jarvis/api/conversations.py` | VERIFIED |
 
 ### Bandit Scan Results (latest)
 

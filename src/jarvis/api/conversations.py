@@ -352,26 +352,40 @@ async def chat_stream(
             yield f"data: {json.dumps({'error': str(exc), 'done': True})}\n\n"
             return
 
-        # Save assistant message after streaming
-        assistant_message = Message(
-            conversation_id=conversation_id,
-            role="assistant",
-            content=full_response,
-        )
-        session.add(assistant_message)
-        await session.commit()
-        await session.refresh(assistant_message)
+        # Save assistant message after streaming.
+        # Wrapped in try/except so a DB failure does not leave the client
+        # hanging on an unclosed stream; the client still receives done: True.
+        assistant_message = None
+        try:
+            assistant_message = Message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=full_response,
+            )
+            session.add(assistant_message)
+            await session.commit()
+            await session.refresh(assistant_message)
+        except Exception as db_exc:  # noqa: BLE001 - report and continue
+            logger.error(
+                "Failed to save assistant message",
+                extra={
+                    "conversation_id": str(conversation_id),
+                    "error": str(db_exc),
+                },
+            )
 
         logger.info(
             "Streaming conversation complete",
             extra={
                 "conversation_id": str(conversation_id),
                 "user_message_id": str(user_message.id),
-                "assistant_message_id": str(assistant_message.id),
+                "assistant_message_id": str(assistant_message.id)
+                if assistant_message is not None
+                else None,
             },
         )
 
-        yield f"data: {json.dumps({'content': '', 'done': True, 'message_id': str(assistant_message.id)})}\n\n"
+        yield f"data: {json.dumps({'content': '', 'done': True, 'message_id': str(assistant_message.id) if assistant_message is not None else None})}\n\n"
 
     return StreamingResponse(
         stream_generator(),

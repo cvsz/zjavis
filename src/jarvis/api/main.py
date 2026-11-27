@@ -2,16 +2,23 @@
 
 Creates the JARVIS API application with lifespan management, health
 endpoints, authentication routes, and global error handling.
+
+Execution-time policy enforcement is applied to mutating operations
+(POST/PUT/DELETE/PATCH) via the PolicyEngine, ensuring every action is
+authorized at request time per javis-blueprint.md section 15.3.
 """
 
 from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
+from typing import Any
+from uuid import UUID
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from sqlalchemy import select
 
 from jarvis.api.agent_runtime import router as agent_runtime_router
 from jarvis.api.agents import router as agents_router
@@ -35,6 +42,14 @@ from jarvis.core.exceptions import (
 )
 from jarvis.core.logging import get_logger, setup_logging
 from jarvis.core.metrics import record_request
+from jarvis.core.policy import (
+    DECISION_REQUIRE_APPROVAL,
+    PolicyEngine,
+)
+from jarvis.core.security import Permission, decode_access_token
+from jarvis.db import get_session
+from jarvis.db.models import Permission as DbPermission
+from jarvis.db.models import RoleBinding, User
 
 logger = get_logger(__name__)
 
@@ -44,6 +59,19 @@ APP_VERSION = "0.1.0"
 _RATE_LIMIT_STORE: dict[str, list[float]] = {}
 _RATE_LIMIT_MAX_REQUESTS = 60
 _RATE_LIMIT_WINDOW_SECONDS = 60
+
+# Mutating paths that require execution-time policy evaluation.
+_POLICY_PROTECTED_METHODS = frozenset({"POST", "PUT", "DELETE", "PATCH"})
+
+# Path prefixes exempt from policy engine (health, metrics, auth, docs).
+_POLICY_EXEMPT_PREFIXES = (
+    "/health",
+    "/ready",
+    "/metrics",
+    "/api/v1/auth",
+    "/docs",
+    "/openapi.json",
+)
 
 
 def _client_key(request: Request) -> str:
@@ -67,6 +95,108 @@ def _check_rate_limit(key: str) -> bool:
     recent.append(now)
     _RATE_LIMIT_STORE[key] = recent
     return True
+
+
+async def _get_user_permissions(
+    session: Any, authorization: str | None
+) -> set[str]:
+    """Load capability permissions for the authenticated user.
+
+    Reads role_bindings -> roles -> permissions through the database,
+    returning the set of permission strings the user holds. Returns an
+    empty set if no roles are assigned or the token is invalid.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return set()
+    token = authorization.split(" ", 1)[1]
+
+    try:
+        payload = decode_access_token(token)
+    except AuthenticationError:
+        return set()
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        return set()
+
+    try:
+        user_id = UUID(user_id_str)
+    except ValueError:
+        return set()
+
+    # Verify user exists and is active.
+    user_result = await session.execute(
+        select(User).where(User.id == user_id, User.is_active == True)
+    )
+    user = user_result.scalar_one_or_none()
+    if user is None:
+        return set()
+
+    # Load permission names via role_bindings for the user's tenants.
+    perm_result = await session.execute(
+        select(DbPermission.name)
+        .join(RoleBinding, RoleBinding.role_id == DbPermission.id)
+        .where(RoleBinding.user_id == user_id)
+    )
+    return {row[0] for row in perm_result.all()}
+
+
+def _permission_for_path(path: str, method: str) -> str:
+    """Map an API path and method to the required capability permission."""
+    # Conversation endpoints
+    if path.startswith("/api/v1/conversations"):
+        if method == "POST":
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Memory endpoints
+    if path.startswith("/api/v1/memory"):
+        if method in ("POST", "DELETE"):
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Approval endpoints
+    if path.startswith("/api/v1/approvals"):
+        if method == "POST" and ("/grant" in path or "/deny" in path):
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Agent endpoints
+    if path.startswith("/api/v1/agents"):
+        if method in ("POST", "PUT", "DELETE"):
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Task endpoints
+    if path.startswith("/api/v1/tasks"):
+        if method in ("POST", "PUT", "DELETE"):
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Voice/Vision/Smart-environment (mutating)
+    if path.startswith(
+        ("/api/v1/voice", "/api/v1/vision", "/api/v1/smart-environment")
+    ):
+        if method == "POST":
+            return str(Permission.REPOSITORY_WRITE)
+        return str(Permission.REPOSITORY_READ)
+    # Agent runtime execution
+    if path.startswith("/api/v1/agent-runtime"):
+        return str(Permission.REPOSITORY_WRITE)
+    # Audit is read-only
+    if path.startswith("/api/v1/audit"):
+        return str(Permission.REPOSITORY_READ)
+    return str(Permission.REPOSITORY_READ)
+
+
+def _risk_level_for_path(path: str) -> str:
+    """Classify risk level for a path.
+
+    Mutating operations on tasks, agent runtime, and smart environment
+    are classified as medium risk, requiring approval per policy.
+    """
+    high_risk = (
+        "/api/v1/tasks",
+        "/api/v1/agent-runtime",
+        "/api/v1/smart-environment",
+    )
+    if any(path.startswith(p) for p in high_risk):
+        return "medium"
+    return "low"
 
 
 def create_app() -> FastAPI:
@@ -96,7 +226,9 @@ def create_app() -> FastAPI:
 
     # Global error handler for JarvisError -> consistent JSON responses.
     @app.exception_handler(JarvisError)
-    async def jarvis_error_handler(request: Request, exc: JarvisError) -> JSONResponse:
+    async def jarvis_error_handler(
+        request: Request, exc: JarvisError
+    ) -> JSONResponse:
         status_code = status.HTTP_400_BAD_REQUEST
         if isinstance(exc, AuthenticationError):
             status_code = status.HTTP_401_UNAUTHORIZED
@@ -115,13 +247,15 @@ def create_app() -> FastAPI:
             },
         )
 
-    # Security headers + rate limiting middleware.
+    # Security headers + rate limiting + policy enforcement middleware.
     @app.middleware("http")
     async def security_and_metrics_middleware(
-        request: Request, call_next: Callable[[Request], Awaitable[JSONResponse]]
+        request: Request,
+        call_next: Callable[[Request], Awaitable[JSONResponse]],
     ) -> JSONResponse:
-        # Rate limiting (applies to all endpoints except health/metrics)
         path = request.url.path
+
+        # Rate limiting (applies to all endpoints except health/metrics)
         if path not in ("/health", "/ready", "/metrics"):
             key = _client_key(request)
             if not _check_rate_limit(key):
@@ -136,6 +270,51 @@ def create_app() -> FastAPI:
                         "Retry-After": str(_RATE_LIMIT_WINDOW_SECONDS),
                     },
                 )
+
+        # Execution-time policy enforcement for mutating operations.
+        if (
+            request.method in _POLICY_PROTECTED_METHODS
+            and not path.startswith(_POLICY_EXEMPT_PREFIXES)
+        ):
+            policy_engine = PolicyEngine()
+            async for session in get_session():
+                authorization = request.headers.get("authorization")
+                user_permissions = await _get_user_permissions(
+                    session, authorization
+                )
+                # Map path + method to a required permission.
+                required_permission = _permission_for_path(path, request.method)
+                decision = policy_engine.evaluate(
+                    actor_permissions=user_permissions,
+                    required_permission=required_permission,
+                    action=f"{request.method} {path}",
+                    risk_level=_risk_level_for_path(path),
+                )
+                if decision.decision == DECISION_REQUIRE_APPROVAL:
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={
+                            "error": "approval_required",
+                            "message": decision.reason,
+                            "details": {
+                                "required_permission": decision.required_permission,
+                                "requires_approval": True,
+                            },
+                        },
+                    )
+                if decision.denied:
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={
+                            "error": "forbidden",
+                            "message": decision.reason,
+                            "details": {
+                                "required_permission": decision.required_permission,
+                                "requires_approval": decision.requires_approval,
+                            },
+                        },
+                    )
+                break  # session closed after policy check
 
         start = time.time()
         try:

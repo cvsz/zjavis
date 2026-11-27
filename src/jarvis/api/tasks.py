@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
 from jarvis.auth import get_or_create_user_tenant
-from jarvis.core.exceptions import NotFoundError
+from jarvis.core.exceptions import ConflictError, NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
 from jarvis.db.models import Task
@@ -63,6 +63,23 @@ async def create_task(
     """Create a new task."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
+
+    # Idempotency: reject duplicate idempotency keys for the same user/tenant.
+    if request.idempotency_key:
+        existing = await session.execute(
+            select(Task).where(
+                Task.idempotency_key == request.idempotency_key,
+                Task.tenant_id == tenant.id,
+                Task.user_id == user.id,
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise ConflictError(
+                f"Task with idempotency key already exists: {request.idempotency_key}",
+                code="idempotency_conflict",
+                details={"idempotency_key": request.idempotency_key},
+            )
+
     task = Task(
         tenant_id=tenant.id,
         user_id=user.id,
