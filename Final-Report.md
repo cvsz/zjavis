@@ -22,6 +22,8 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 **Step 5 GitHub Delivery:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) MERGED via merge commit `4ba6f84d6fb6a66b6133498bf73a3ccd84c45821`; merged by `cvsz` at 2026-11-27T18:15:58Z; `reviewDecision: APPROVED` from independent reviewer `policedbc` (distinct account from author `cvsz`); source branch deleted after merge. All 17 commits GPG-signed (`git log %G?=G`). All CI check runs pass on `main` HEAD `4ba6f84`. PR #40 (`fix/final-report-post-merge` → `main`) OPEN, MERGEABLE, `reviewDecision: APPROVED` (independent review by `policedbc`), all 4 required branch-protection checks passing (`repository-baseline`, `Analyze GitHub Actions`, `dependency-review`, `verify-independent-approval`); merge BLOCKED by branch-protection infrastructure: commit-status API returns `total_count: 0` for head commit `ea0e6d1ea810e7c998594e2696be2dd37d10988b` despite all check runs SUCCESS; `strict: true` branch protection evaluates commit statuses, not check runs. `gh pr merge 40 --merge --delete-branch` → exit 1 "base branch policy prohibits the merge." `--admin`, `--force`, and force-push NOT used (prohibited). PR #31 (`fix/codeowners-independent-reviewer` → `main`) OPEN, APPROVED, CONFLICTING (stale, based on pre-merge main — not mergeable).
 
+**This session (branch `codex/enterprise-production-hardening`):** Fixed F20 (social preview image) — created `scripts/generate_social_preview.py` (Pillow-only, no external credits) and generated real `docs/assets/social-preview.png` (1200×630 RGB PNG, replacing the 1×1 placeholder). All 330 tests pass; ruff/mypy/validate_repo/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings).
+
 The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 51 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
 
 Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision, and Smart Environment are feature-flagged stubs (BLOCKED, no hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients are NOT RUN. GPG commit signing is VERIFIED functional via loopback pinentry.
@@ -53,14 +55,14 @@ The following findings were collected during deep inspection of the source code,
 | F17 | High | Kubernetes/Helm | Deferred per blueprint §16.3 | Not justified for first usable deployment | Revisit when multi-node scheduling needed | NOT RUN |
 | F18 | Medium | Load/stress testing | No production-scale workload available | No load tooling configured | NOT RUN | NOT RUN |
 | F19 | Medium | Phase 10 Dashboard/Clients | Not implemented | No frontend codebase | NOT RUN | NOT RUN |
-| F20 | Medium | Social preview image | 1×1 placeholder; external image generation has no credits | External service no credits | Replace `docs/assets/social-preview.png` before public release | BLOCKED |
+| F20 | Medium | Social preview image | 1×1 placeholder; README claimed real 1200×630 OpenGraph PNG | No image generation script existed; placeholder did not match documentation | Created `scripts/generate_social_preview.py` (Pillow-only, no external credits); generated real `docs/assets/social-preview.png` (1200×630 RGB PNG); README claim now matches actual artifact | FIXED |
 | F21 | High | `src/jarvis/auth/__init__.py` + `src/jarvis/db/models.py` | RBAC broken: `get_user_permissions()` joined `role_bindings.role_id` directly against `permissions.id` (two unrelated tables) — resolved to empty permission set for every user; no `role_permissions` junction table existed | Missing junction table + incorrect join | Added `role_permissions` junction table (migration `0002_add_role_permissions`); corrected join to `role_bindings → role_permissions → permissions`; default permissions/role/role-binding self-provisioned idempotently; high-risk actions still require approval | FIXED |
 | F22 | Medium | `alembic/env.py` | `connectable.dispose()` awaited on sync engine returning `None`, raising `TypeError: 'NoneType' object can't be awaited` and blocking all Alembic migrations | Incorrect `await` on sync engine `.dispose()` | Changed to `connectable.dispose()` (no await) for sync engine; `alembic upgrade head` verified passing against live PostgreSQL | FIXED |
 
 **Total findings:** 22  
-**Fixed:** 11 (F1-F8, F16, F21-F22)  
+**Fixed:** 12 (F1-F8, F16, F20-F22)  
 **Documented False Positives:** 2 (F9, F10)  
-**BLOCKED:** 4 (F11-F13, F20)  
+**BLOCKED:** 3 (F11-F13)  
 **NOT RUN:** 5 (F14, F15, F17, F18, F19)
 
 ---
@@ -209,8 +211,8 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Verification | Result | Evidence |
 |--------------|--------|----------|
 | Build | PASS | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` — all files compile without syntax errors |
-| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 92 files |
-| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 92 files already formatted |
+| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 93 files |
+| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 93 files already formatted |
 | ShellCheck | PASS | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` — no errors |
 | Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 51 source files |
 | Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 330 passed, 0 failed (48 subtests) |
@@ -262,7 +264,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 |----------------|--------------|-----------------|-------------|-------|
 | Build | 0 | 0 | 0 | All files compile |
 | Ruff lint | 0 | 0 | 0 | 0 errors, 0 warnings |
-| Ruff format | 0 | 0 | 0 | 92 files formatted |
+| Ruff format | 0 | 0 | 0 | 93 files formatted |
 | ShellCheck | 0 | 0 | 0 | No errors |
 | Type Checking (MyPy) | 0 | 0 | 0 | 0 issues in 51 files |
 | Pytest (all) | 0 | 0 | 0 | 330 passed, 0 failed |
@@ -309,7 +311,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | 17 | HIGH | `deploy/k8s`, `deploy/helm` | K8s/Helm not implemented | Deferred per blueprint §16.3 | NOT RUN |
 | 18 | MEDIUM | Load/stress testing | No production workload | NOT RUN | NOT RUN |
 | 19 | MEDIUM | Phase 10 clients | Not implemented | No frontend | NOT RUN |
-| 20 | MEDIUM | `docs/assets/social-preview.png` | 1×1 placeholder | No image generation credits | BLOCKED |
+| 20 | MEDIUM | `docs/assets/social-preview.png` | 1×1 placeholder | Generated real 1200×630 RGB PNG via `scripts/generate_social_preview.py` (Pillow-only, no external credits) | FIXED |
 
 ---
 
