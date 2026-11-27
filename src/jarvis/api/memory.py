@@ -19,7 +19,7 @@ from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.core.security import Permission
 from jarvis.db import get_session
-from jarvis.db.models import Memory, Message
+from jarvis.db.models import Conversation, Memory, Message
 
 logger = get_logger(__name__)
 
@@ -201,6 +201,17 @@ async def summarize_conversation(
     """Summarize a conversation into a memory item."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
+    # Enforce tenant isolation: verify the conversation belongs to the
+    # authenticated user's tenant before accessing its messages.
+    conv_result = await session.execute(
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.user_id == user.id,
+            Conversation.tenant_id == tenant.id,
+        )
+    )
+    if conv_result.scalar_one_or_none() is None:
+        raise NotFoundError(f"Conversation not found: {conversation_id}")
     result = await session.execute(
         select(Message)
         .where(Message.conversation_id == conversation_id)
