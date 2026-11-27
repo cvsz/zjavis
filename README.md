@@ -4,6 +4,8 @@
 
 ![JARVIS Social Preview](docs/assets/social-preview.png)
 
+> **Note:** The social preview image above is a **1×1 placeholder**. Real social preview generation is **BLOCKED** — the external image generation service has no credits available. Replace `docs/assets/social-preview.png` with a real 1200×630 banner before any public release.
+
 **Local-first · Multimodal · Multi-agent · Secure · Observable · Production-oriented**
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/cvsz/zjavis/ci.yml?branch=main&label=CI)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
@@ -21,15 +23,31 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 149 unit + 6 integration tests passing |
-| Model Gateway (Phase 2) | ✅ COMPLETE | Local provider, OpenAI-compatible, Ollama adapters |
-| Voice Intelligence (Phase 4) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Vision Intelligence (Phase 5) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Agent Runtime (Phase 6) | ✅ COMPLETE | Approval-gated task execution |
-| Smart Environment (Phase 9) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Observability | ✅ PARTIAL | Prometheus metrics endpoint |
-| Backup / Restore | ❌ NOT IMPLEMENTED | Runbooks not implemented |
-| Kubernetes / Helm | ✅ AVAILABLE | Manifests and chart provided |
+| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 273 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Authentication & Authorization | ✅ COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation |
+| Policy Engine | ✅ COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
+| Logging | ✅ COMPLETE / VERIFIED | Structured JSON logging with `SecretFilter` redaction |
+| Metrics / Observability | ✅ PARTIAL | Prometheus `/metrics` endpoint; OpenTelemetry tracing module implemented (no-op when opentelemetry not installed) |
+| Data Layer (PostgreSQL + Alembic) | ✅ COMPLETE / VERIFIED | 14 SQLAlchemy models; initial migration `0001_initial_schema` |
+| Model Gateway (Phase 2) | ✅ IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
+| Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
+| Orchestration Engine | ✅ IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
+| Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; delegates to OrchestrationEngine |
+| SSRF Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
+| Path Traversal Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_safe_path()` confines paths within base directory using `os.path.realpath()` |
+| Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
+| Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
+| Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
+| Tool & Computer Integration (Phase 7) | ❌ NOT RUN | Browser/File/Terminal/Git/Docker/IDE/MCP adapters not implemented |
+| Engineering Intelligence (Phase 8) | ❌ NOT RUN | Repository discovery, code review, security scanning, etc. not implemented |
+| Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
+| Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
+| Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
+| GPG Commit Signing | ⚠️ BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
+| Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
+| E2E Tests | ✅ IMPLEMENTED | `tests/e2e/test_e2e_flow.py` — auth flow, health/metrics, security headers (PASS) |
+| Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
+| Social Preview Image | ⚠️ BLOCKED | 1×1 placeholder; external image generation service has no credits |
 
 ---
 
@@ -38,12 +56,30 @@
 JARVIS is a personal AI operating system providing governance-first AI capabilities:
 local-first AI model gateway, secure authentication and authorization, policy engine
 with execution-time policy decisions, approval workflows, tamper-evident audit logging,
+durable bounded task orchestration, SSRF and path traversal prevention,
 and PostgreSQL-backed persistence for conversations, tasks, agents, tasks, approvals,
 and memories.
 
 **Repository:** `cvsz/zjavis`  
 **Blueprint:** `javis-blueprint.md`  
-**Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async)
+**Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)  
+**Version:** 0.1.0  
+**Status:** PARTIALLY VERIFIED — Phase 1 complete and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+
+---
+
+## Project Identity
+
+| Attribute | Value |
+|-----------|-------|
+| Repository | `cvsz/zjavis` (root: `/mnt/zdata/zjavis`) |
+| Blueprint | `javis-blueprint.md` |
+| Architecture | Modular monolith control plane |
+| Language / Framework | Python 3.14 / FastAPI / SQLAlchemy async |
+| Database | PostgreSQL 16+ (SQLAlchemy async, Alembic migrations) |
+| Cache / Transient | Redis 7+ (optional) |
+| Version | 0.1.0 |
+| License | MIT |
 
 ---
 
@@ -55,18 +91,21 @@ and memories.
 |-----------|--------|-------------|
 | Configuration | `src/jarvis/core/config.py` | Type-safe settings with `JARVIS_`-prefixed env vars, production fail-closed secret validation |
 | Security | `src/jarvis/core/security.py` | PBKDF2-HMAC-SHA256 (210k iterations), HMAC-SHA256 JWT (stdlib only), secret redaction |
-| Policy Engine | `src/jarvis/core/policy.py` | ALLOW / DENY / REQUIRE_APPROVAL / REQUIRE_REAUTHENTICATION / OUT_OF_SCOPE decisions |
-| Logging | `src/jarvis/core/logging.py` | Structured JSON logging with secret redaction filter |
+| Policy Engine | `src/jarvis/core/policy.py` | ALLOW / DENY / REQUIRE_APPROVAL / REQUIRE_REAUTHENTICATION / OUT_OF_SCOPE decisions; default-deny |
+| Logging | `src/jarvis/core/logging.py` | Structured JSON logging with `SecretFilter` redaction |
 | Metrics | `src/jarvis/core/metrics.py` | Prometheus counters, gauges, histograms for requests, models, agents, tools, approvals |
+| Tracing | `src/jarvis/core/tracing.py` | OpenTelemetry tracing module; no-op when opentelemetry not installed |
 | Exceptions | `src/jarvis/core/exceptions.py` | Typed exception hierarchy (AuthN, AuthZ, NotFound, Conflict, Validation, Policy, Provider, Tool, Task, Agent, Memory) |
 
 ### Identity & Access Management
 
 | Component | Module | Description |
 |-----------|--------|-------------|
-| Authentication | `src/jarvis/auth/` | Login, token issuance, current-user lookup, superuser checks |
-| Authorization | `src/jarvis/core/security.py` | Capability-based permissions (`Permission` class) |
-| Policy | `src/jarvis/core/policy.py` | Execution-time policy decisions with default-deny |
+| Authentication | `src/jarvis/auth/` | Login, token issuance, current-user lookup, superuser checks, policy enforcement dependency, session record creation |
+| Authorization | `src/jarvis/core/security.py` + `policy.py` | Capability-based permissions (`Permission` class); execution-time policy decisions |
+| Policy enforcement | `src/jarvis/auth/__init__.py` | `require_policy()` dependency on all mutating API endpoints; tenant-scoped permissions |
+| Tenant isolation | `src/jarvis/auth/__init__.py` | `get_user_permissions()` scopes by tenant_id; all data-access endpoints filter by tenant |
+| Session tracking | `src/jarvis/api/auth.py` | Login creates a `Session` row (token hash, expiry, tenant) for revocation and audit support |
 
 ### Data Layer
 
@@ -78,20 +117,20 @@ and memories.
 
 ### API Routes
 
-| Group | Prefix | Endpoints |
-|-------|--------|-----------|
-| Auth | `/api/v1/auth` | `POST /login`, `GET /me`, `POST /superuser-check` |
-| Conversations | `/api/v1/conversations` | `POST`, `GET`, `POST /{id}/messages`, `POST /{id}/chat`, `POST /{id}/chat/stream` |
-| Memory | `/api/v1/memory` | `POST`, `GET`, `GET /{id}`, `DELETE /{id}`, `POST /{id}/summarize`, `GET /{id}/search` |
-| Approvals | `/api/v1/approvals` | `POST`, `GET`, `GET /{id}`, `POST /{id}/grant`, `POST /{id}/deny` |
-| Agents | `/api/v1/agents` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` |
-| Tasks | `/api/v1/tasks` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` |
-| Audit | `/api/v1/audit` | `GET /events` |
-| Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` |
-| Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged) |
-| Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged) |
-| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) |
-| Smart Environment | `/api/v1/smart-environment` | `GET /devices`, `GET /devices/{id}/state`, `POST /devices/{id}/state` (feature-flagged) |
+| Group | Prefix | Endpoints | Auth |
+|-------|--------|-----------|------|
+| Auth | `/api/v1/auth` | `POST /login`, `GET /me`, `POST /superuser-check` | Login: No; others: Yes |
+| Conversations | `/api/v1/conversations` | `POST`, `GET`, `POST /{id}/messages`, `POST /{id}/chat`, `POST /{id}/chat/stream` | Yes + policy + tenant isolation |
+| Memory | `/api/v1/memory` | `POST`, `GET`, `GET /{id}`, `DELETE /{id}`, `POST /{id}/summarize`, `GET /{id}/search` | Yes + policy + tenant isolation |
+| Approvals | `/api/v1/approvals` | `POST`, `GET`, `GET /{id}`, `POST /{id}/grant`, `POST /{id}/deny` | Yes + policy + tenant isolation (`request_approval` requires `DEPLOYMENT_REQUEST`) |
+| Agents | `/api/v1/agents` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy + tenant isolation |
+| Tasks | `/api/v1/tasks` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy + tenant isolation (`state` not directly mutable via API) |
+| Audit | `/api/v1/audit` | `GET /events` | Yes + tenant isolation |
+| Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` | No |
+| Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged, disabled) | Yes |
+| Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged, disabled) | Yes |
+| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`) |
+| Smart Environment | `/api/v1/smart-environment` | `GET /devices`, `GET /devices/{id}/state`, `POST /devices/{id}/state` (feature-flagged, disabled) | Yes |
 
 ### AI Model Gateway (Phase 2)
 
@@ -101,11 +140,34 @@ and memories.
 | Provider Adapters | `src/jarvis/ai/provider.py` | Local (deterministic echo), OpenAI-compatible API, Ollama |
 | Context Assembly | `src/jarvis/ai/context.py` | Token-budgeted context assembly, budget usage estimation |
 
+### Task Orchestration
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Orchestration Engine | `src/jarvis/orchestration/__init__.py` | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, idempotency keys, state transition validation, dead-letter handling |
+| SSRF Prevention | `src/jarvis/core/security.py` | `validate_ssrf_safe_url()`, `is_private_ip()` — blocks private/reserved IPv4 addresses and unsafe schemes |
+| Path Traversal Prevention | `src/jarvis/core/security.py` | `validate_safe_path()` — prevents directory escape via `..` traversal and null bytes |
+
 ### Agent Runtime (Phase 6)
 
 | Component | Module | Description |
 |-----------|--------|-------------|
 | Runtime | `src/jarvis/ai/agent_runtime.py` | Approval-gated task execution, audit event recording, task lifecycle management |
+| API Endpoint | `src/jarvis/api/agent_runtime.py` | `POST /execute` with `require_policy()` (`REPOSITORY_WRITE`), gated by `agent_runtime_enabled` flag |
+
+### Approval Service
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Service | `src/jarvis/approval/__init__.py` | Pending → granted/denied/expired lifecycle; `is_approved()` check |
+| API | `src/jarvis/api/approvals.py` | Request/list/get/grant/deny with tenant isolation via tasks join |
+
+### Audit Service
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Service | `src/jarvis/audit/__init__.py` | Tamper-evident audit events with tenant_id, actor_id, event_type, category, outcome, details |
+| API | `src/jarvis/api/audit.py` | `GET /events` with tenant isolation |
 
 ---
 
@@ -114,7 +176,7 @@ and memories.
 ### Logical Layers
 
 ```
-L0 Experience:       HTTP API (FastAPI) + WebSocket-ready
+L0 Experience:       HTTP API (FastAPI)
 L1 Identity:         JWT authentication, PBKDF2-HMAC-SHA256, RBAC permissions
 L2 Gateway:          FastAPI route layer, health probes (/health, /ready)
 L3 Intelligence:     Model gateway (provider abstraction, local/OpenAI/Ollama adapters)
@@ -124,7 +186,7 @@ L6 Knowledge:        Memory model with tenant isolation and provenance
 L7 Data:             PostgreSQL (SQLAlchemy async, Alembic migrations)
 L8 Events:           Audit event model (tamper-evident)
 L9 Governance:       Policy engine, Approval service
-L10 Operations:      Health/readiness probes, structured logging, secret redaction, Prometheus metrics
+L10 Operations:      Health/readiness probes, structured logging, secret redaction, Prometheus metrics, OpenTelemetry tracing
 L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-flagged)
 ```
 
@@ -132,17 +194,89 @@ L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-fl
 
 ```
 RECEIVED → AUTHENTICATED → CLASSIFIED → CONTEXT_ASSEMBLED → PLANNED → POLICY_EVALUATED
-                                                  ↓
-                                           DENIED → REJECTED
-                                                  ↓
-                                           APPROVAL → WAITING_APPROVAL
-                                                  ↓
-                                           READY → EXECUTING → VERIFYING
-                                                  ↓                                           DENIED
-                                           COMPLETED ← FAILED → RECOVERY
+                                                       ↓
+                                                DENIED → REJECTED
+                                                       ↓
+                                                APPROVAL → WAITING_APPROVAL
+                                                       ↓
+                                            READY → EXECUTING → VERIFYING
+                                                       ↓                                           DENIED
+                                            COMPLETED ← FAILED → RECOVERY
 ```
 
 Every state transition is validated and persisted. State changes are safe under retries and concurrent workers.
+
+---
+
+## Security Controls
+
+| Domain | Control | Status |
+|--------|---------|--------|
+| Authentication | PBKDF2-HMAC-SHA256 (210k iterations) | VERIFIED |
+| Authentication | HMAC-SHA256 JWT tokens (stdlib only) | VERIFIED |
+| Authentication | Header-based token transmission (`Authorization: Bearer`) | VERIFIED |
+| Authentication | Session record on login (token hash, expiry, tenant) | VERIFIED |
+| Authorization | `require_policy()` + PolicyEngine default-deny | VERIFIED |
+| Authorization | Tenant isolation | VERIFIED |
+| Authorization | Tenant-scoped `require_policy()` on all mutating endpoints | VERIFIED |
+| Authorization | `request_approval` requires `DEPLOYMENT_REQUEST` | VERIFIED |
+| Authorization | `execute_task` requires `REPOSITORY_WRITE` | VERIFIED |
+| Authorization | Task `state` not mutable via API (orchestration state machine only) | VERIFIED |
+| Input Validation | SQLAlchemy ORM parameterized queries | VERIFIED |
+| Input Validation | `sanitize_message_content()` blocks XSS/prompt injection | VERIFIED |
+| Input Validation | `validate_ssrf_safe_url()` blocks private/reserved IPs and unsafe schemes | VERIFIED |
+| Input Validation | `validate_safe_path()` blocks path traversal and null bytes | VERIFIED |
+| Secrets Management | No hardcoded secrets; `.env` gitignored | VERIFIED |
+| API Security | CORS default-deny (`allow_credentials=False`) | VERIFIED |
+| API Security | Rate limiting (60 req/min per client IP) | VERIFIED |
+| API Security | Security headers (nosniff, DENY, no-referrer, CSP) | VERIFIED |
+| Configuration | Production fail-closed (`JARVIS_APP_SECRET` required in production) | VERIFIED |
+| Audit | Tamper-evident audit events | VERIFIED |
+| Observability | OpenTelemetry tracing module (no-op when not installed) | IMPLEMENTED |
+
+Report security vulnerabilities through [GitHub private vulnerability reporting](SECURITY.md) or the private channel documented in [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Type | Default | Required | Description |
+|----------|------|---------|----------|-------------|
+| `JARVIS_APP_ENV` | string | `development` | No | Deployment environment |
+| `JARVIS_LOG_LEVEL` | string | `info` | No | Log level |
+| `JARVIS_HOST` | string | `127.0.0.1` | No | Bind host |
+| `JARVIS_PORT` | int | `8000` | No | Bind port |
+| `JARVIS_DEBUG` | bool | `false` | No | Debug mode |
+| `JARVIS_WORKERS` | int | `1` | No | Number of worker processes |
+| `JARVIS_DATABASE_URL` | string | `postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis` | No | PostgreSQL connection URL |
+| `JARVIS_DATABASE_ECHO` | bool | `false` | No | SQL statement logging |
+| `JARVIS_DATABASE_POOL_SIZE` | int | `10` | No | Connection pool size |
+| `JARVIS_DATABASE_MAX_OVERFLOW` | int | `20` | No | Max overflow connections |
+| `JARVIS_APP_SECRET` | string | `dev-secret-change-me-in-production` | **Yes** | Secret key (fail-closed in production) |
+| `JARVIS_ACCESS_TOKEN_EXPIRE_MINUTES` | int | `30` | No | Token expiration |
+| `JARVIS_ALGORITHM` | string | `HS256` | No | JWT signing algorithm |
+| `JARVIS_MODEL_GATEWAY_ENABLED` | bool | `true` | No | Enable model gateway |
+| `JARVIS_CLOUD_FALLBACK_ENABLED` | bool | `false` | No | Cloud model fallback (disabled by default) |
+| `JARVIS_DEFAULT_PROVIDER` | string | `local` | No | Default model provider |
+| `JARVIS_DEFAULT_MODEL` | string | `local-model` | No | Default model name |
+| `JARVIS_MAX_TOKENS` | int | `4096` | No | Max tokens per request |
+| `JARVIS_REQUEST_TIMEOUT_SECONDS` | int | `120` | No | Request timeout |
+| `JARVIS_OPENAI_API_KEY` | string | `null` | No | OpenAI API key |
+| `JARVIS_OPENAI_BASE_URL` | string | `null` | No | OpenAI-compatible base URL |
+| `JARVIS_OLLAMA_BASE_URL` | string | `null` | No | Ollama base URL |
+| `JARVIS_MODEL_GATEWAY_BUDGET_ENABLED` | bool | `false` | No | Enable budget enforcement |
+| `JARVIS_MODEL_GATEWAY_BUDGET_LIMIT` | int | `100000` | No | Token budget per window |
+| `JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS` | int | `86400` | No | Budget reset window in seconds |
+| `JARVIS_TRACING_ENABLED` | bool | `false` | No | Enable OpenTelemetry distributed tracing |
+| `JARVIS_OTLP_ENDPOINT` | string | `null` | No | OTLP trace exporter endpoint |
+| `JARVIS_VOICE_ENABLED` | bool | `false` | No | Voice interface |
+| `JARVIS_VISION_ENABLED` | bool | `false` | No | Vision interface |
+| `JARVIS_AGENT_RUNTIME_ENABLED` | bool | `true` | No | Agent runtime |
+| `JARVIS_SMART_ENVIRONMENT_ENABLED` | bool | `false` | No | Smart environment |
+
+Copy `.env.example` to `.env` and customize for local development. Never commit real credentials.
 
 ---
 
@@ -186,97 +320,6 @@ PYTHONPATH=src pytest tests/
 make ci
 ```
 
-### API Endpoints
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `GET /health` | GET | Liveness probe | No |
-| `GET /ready` | GET | Readiness probe (DB check) | No |
-| `GET /metrics` | GET | Prometheus text-format metrics | No |
-| `POST /api/v1/auth/login` | POST | Authenticate, return access/refresh tokens | No |
-| `GET /api/v1/auth/me` | GET | Current user profile | Yes (Bearer) |
-| `POST /api/v1/auth/superuser-check` | POST | Verify superuser access | Yes (Bearer) |
-| `POST /api/v1/conversations` | POST | Create conversation | Yes |
-| `GET /api/v1/conversations` | GET | List conversations | Yes |
-| `POST /api/v1/conversations/{id}/messages` | POST | Add message | Yes |
-| `POST /api/v1/conversations/{id}/chat` | POST | Send message, get AI response | Yes |
-| `POST /api/v1/conversations/{id}/chat/stream` | POST | Streaming AI response | Yes |
-| `POST /api/v1/memory` | POST | Create memory item | Yes |
-| `GET /api/v1/memory` | GET | List memories | Yes |
-| `GET /api/v1/memory/{id}` | GET | Get memory by ID | Yes |
-| `DELETE /api/v1/memory/{id}` | DELETE | Soft-delete memory | Yes |
-| `POST /api/v1/approvals` | POST | Request approval | Yes |
-| `GET /api/v1/approvals` | GET | List approvals | Yes |
-| `POST /api/v1/approvals/{id}/grant` | POST | Grant approval | Yes |
-| `POST /api/v1/approvals/{id}/deny` | POST | Deny approval | Yes |
-| `POST /api/v1/agents` | POST | Create agent | Yes |
-| `GET /api/v1/agents` | GET | List agents | Yes |
-| `POST /api/v1/tasks` | POST | Create task | Yes |
-| `GET /api/v1/tasks` | GET | List tasks | Yes |
-| `GET /api/v1/audit/events` | GET | List audit events | Yes |
-
----
-
-## Security
-
-### Controls
-
-- **Password hashing:** PBKDF2-HMAC-SHA256 with 210,000 iterations (OWASP recommended minimum)
-- **JWT tokens:** HMAC-SHA256 signed using Python standard library only (no third-party JWT dependencies with known vulnerabilities)
-- **Authorization:** Capability-based permissions with execution-time policy decisions (default-deny)
-- **Input validation:** SQLAlchemy ORM parameterized queries (no SQL injection); message content sanitization blocks XSS and prompt injection patterns
-- **CORS:** Default-deny configuration; `allow_credentials=False` when wildcard origins are used
-- **Security headers:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'self'`
-- **Rate limiting:** 60 requests per minute per client IP
-- **Secret redaction:** Secret-like values redacted from logs via `SecretFilter`
-- **Secrets management:** No hardcoded secrets; `.env` is gitignored; `.env.example` contains placeholders only
-- **Tenant isolation:** All data-access endpoints scope resources by tenant ID
-- **Production fail-closed:** `JARVIS_APP_SECRET` must be set when `JARVIS_APP_ENV=production`
-
-### Reporting Vulnerabilities
-
-Report security vulnerabilities through [GitHub Security Advisories](https://github.com/cvsz/zjavis/security/advisories) or the private channel documented in [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
-
----
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Type | Default | Required | Description |
-|----------|------|---------|----------|-------------|
-| `JARVIS_APP_ENV` | string | `development` | No | Deployment environment |
-| `JARVIS_LOG_LEVEL` | string | `info` | No | Log level |
-| `JARVIS_HOST` | string | `127.0.0.1` | No | Bind host |
-| `JARVIS_PORT` | int | `8000` | No | Bind port |
-| `JARVIS_DEBUG` | bool | `false` | No | Debug mode |
-| `JARVIS_WORKERS` | int | `1` | No | Number of worker processes |
-| `JARVIS_DATABASE_URL` | string | `postgresql+psycopg://jarvis:jarvis@localhost:5432/jarvis` | No | PostgreSQL connection URL |
-| `JARVIS_DATABASE_ECHO` | bool | `false` | No | SQL statement logging |
-| `JARVIS_DATABASE_POOL_SIZE` | int | `10` | No | Connection pool size |
-| `JARVIS_DATABASE_MAX_OVERFLOW` | int | `20` | No | Max overflow connections |
-| `JARVIS_APP_SECRET` | string | `dev-secret-change-me-in-production` | **Yes** | Secret key (fail-closed in production) |
-| `JARVIS_ACCESS_TOKEN_EXPIRE_MINUTES` | int | `30` | No | Token expiration |
-| `JARVIS_ALGORITHM` | string | `HS256` | No | JWT signing algorithm |
-| `JARVIS_MODEL_GATEWAY_ENABLED` | bool | `true` | No | Enable model gateway |
-| `JARVIS_CLOUD_FALLBACK_ENABLED` | bool | `false` | No | Cloud model fallback (disabled by default) |
-| `JARVIS_DEFAULT_PROVIDER` | string | `local` | No | Default model provider |
-| `JARVIS_DEFAULT_MODEL` | string | `local-model` | No | Default model name |
-| `JARVIS_MAX_TOKENS` | int | `4096` | No | Max tokens per request |
-| `JARVIS_REQUEST_TIMEOUT_SECONDS` | int | `120` | No | Request timeout |
-| `JARVIS_OPENAI_API_KEY` | string | `null` | No | OpenAI API key |
-| `JARVIS_OPENAI_BASE_URL` | string | `null` | No | OpenAI-compatible base URL |
-| `JARVIS_OLLAMA_BASE_URL` | string | `null` | No | Ollama base URL |
-| `JARVIS_MODEL_GATEWAY_BUDGET_ENABLED` | bool | `false` | No | Enable budget enforcement |
-| `JARVIS_MODEL_GATEWAY_BUDGET_LIMIT` | int | `100000` | No | Token budget per window |
-| `JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS` | int | `86400` | No | Budget reset window |
-| `JARVIS_VOICE_ENABLED` | bool | `false` | No | Voice interface |
-| `JARVIS_VISION_ENABLED` | bool | `false` | No | Vision interface |
-| `JARVIS_AGENT_RUNTIME_ENABLED` | bool | `true` | No | Agent runtime |
-| `JARVIS_SMART_ENVIRONMENT_ENABLED` | bool | `false` | No | Smart environment |
-
-Copy `.env.example` to `.env` and customize for local development. Never commit real credentials.
-
 ---
 
 ## Development
@@ -314,6 +357,9 @@ PYTHONPATH=src pytest tests/unit
 
 # Integration tests (requires PostgreSQL)
 PYTHONPATH=src pytest tests/integration
+
+# End-to-end tests (no external services required)
+PYTHONPATH=src pytest tests/e2e
 
 # All tests
 PYTHONPATH=src pytest tests/
@@ -361,29 +407,88 @@ zjavis/
 ├── alembic/                 # Database migrations
 ├── deploy/                  # Kubernetes manifests and Helm chart
 ├── docs/                    # Architecture, ADRs, API, operations documentation
+│   └── backup-restore.md    # Backup, restore, and disaster recovery procedures
 ├── scripts/                 # Validation, bootstrap, GitHub admin scripts
 ├── src/jarvis/              # Application source code
 │   ├── __main__.py          # Application entry point
+│   ├── __init__.py          # Package metadata (__version__ = "0.1.0")
 │   ├── api/                 # FastAPI route handlers
-│   ├── auth/                # Authentication module
-│   ├── core/                # Configuration, security, policy, logging, metrics, exceptions
+│   │   ├── main.py          # Application factory, CORS, security headers, rate limiting
+│   │   ├── auth.py          # Authentication routes (login, me, superuser-check)
+│   │   ├── conversations.py # Conversation + message CRUD, chat, chat-stream
+│   │   ├── memory.py        # Memory CRUD, search, summarize
+│   │   ├── approvals.py     # Approval request lifecycle
+│   │   ├── audit.py         # Audit event retrieval
+│   │   ├── agents.py        # Agent CRUD
+│   │   ├── tasks.py         # Task CRUD (state not directly mutable)
+│   │   ├── agent_runtime.py # Agent task execution (gated)
+│   │   ├── voice.py         # STT/TTS endpoints (feature-flagged)
+│   │   ├── vision.py        # Image describe/analyze (feature-flagged)
+│   │   └── smart_environment.py # IoT device endpoints (feature-flagged)
+│   ├── auth/                # Authentication + policy enforcement
+│   ├── core/                # Configuration, security, policy, logging, metrics, tracing, exceptions
 │   ├── ai/                  # Model gateway, providers, context, memory, agent runtime, voice, vision, smart environment
 │   ├── approval/            # Approval service
 │   ├── audit/               # Audit service
 │   ├── db/                  # Database models and session
-│   ├── orchestration/       # Task orchestration layer
+│   ├── orchestration/       # Durable task orchestration (retry, cancellation, state transitions)
 │   └── policy/              # Policy enforcement package
 ├── tests/                   # Test suite
 │   ├── unit/                # Unit tests (no external services)
-│   └── integration/         # Integration tests (requires PostgreSQL)
+│   ├── integration/         # Integration tests (requires PostgreSQL)
+│   └── e2e/                 # End-to-end tests (no external services required)
 ├── .env.example             # Environment variable template
 ├── Dockerfile               # Production container image (non-root user)
 ├── docker-compose.yml       # Local development stack
 ├── javis-blueprint.md       # Complete architecture blueprint
 ├── requirements.txt         # Production dependencies
 ├── requirements-dev.txt     # Development dependencies
+├── AGENTS.md                # Repository agent contract
+├── SECURITY.md              # Security policy
+├── ROADMAP.md               # Implementation roadmap
+├── ZEAZ-INTRODUCTION.md     # Engineering execution framework
+├── OPENCODE.md              # OpenCode operating instructions
+├── CLAUDE.md                # Claude Code operating instructions
+├── GEMINI.md                # Gemini CLI operating instructions
 └── Final-Report.md          # Implementation report
 ```
+
+---
+
+## Evidence States
+
+This project uses the canonical evidence-state definitions from [ZEAZ-INTRODUCTION.md](ZEAZ-INTRODUCTION.md):
+
+| State | Meaning |
+|-------|---------|
+| `VERIFIED` | Direct, current, environment-appropriate evidence fully supports the exact claim and all required acceptance criteria. |
+| `PARTIALLY VERIFIED` | Direct evidence supports only a proper subset of the claim or acceptance criteria; at least one required part remains unverified. Never equivalent to `VERIFIED`. |
+| `UNVERIFIED` | The claim is applicable, but sufficient direct evidence has not been obtained. |
+| `BLOCKED` | The claim is applicable and verification cannot currently be completed because a concrete external prerequisite or constraint prevents it. |
+| `NOT APPLICABLE` | The claim or gate does not apply to the scoped system/environment. |
+| `NOT RUN` | The check has not been executed. Never counted as `PASS`. |
+
+Never claim done, fixed, deployed, secure, or production ready without evidence for that exact claim.
+
+---
+
+## Limitations and Open Findings
+
+The following items are **not** implemented or verified and must not be counted as production-ready:
+
+- Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default) — BLOCKED (no hardware/credentials)
+- Backup/restore runbooks — documentation implemented; restore drill NOT RUN
+- OpenTelemetry / distributed tracing — module implemented; no tracing export configured
+- GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available)
+- Kubernetes/Helm deployment — NOT RUN (deferred per blueprint §16.3)
+- Load/stress testing — NOT RUN (no production-scale workload)
+- E2E tests — IMPLEMENTED (`tests/e2e/test_e2e_flow.py`, PASS)
+- Missing dependency tests — IMPLEMENTED (`tests/unit/test_missing_dependencies.py`, PASS)
+- Phase 7 capability adapters — NOT RUN (requires sandboxed execution environment)
+- Phase 8 Engineering Intelligence — NOT RUN
+- Phase 10 Dashboard/Clients — NOT RUN
+
+Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain.
 
 ---
 

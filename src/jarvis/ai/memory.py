@@ -106,7 +106,10 @@ class MemoryService:
         if existing_memory:
             logger.info(
                 "Duplicate memory detected, returning existing",
-                extra={"memory_id": str(existing_memory.id), "content_hash": content_hash},
+                extra={
+                    "memory_id": str(existing_memory.id),
+                    "content_hash": content_hash,
+                },
             )
             return existing_memory
 

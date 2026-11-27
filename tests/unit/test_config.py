@@ -72,11 +72,14 @@ def test_secret_key_has_dev_default() -> None:
 
 def test_secret_key_required_in_production() -> None:
     """Production environment rejects the default secret key."""
-    with patch.dict(
-        os.environ,
-        {"JARVIS_APP_ENV": "production"},
-        clear=False,
-    ), pytest.raises(ValueError):
+    with (
+        patch.dict(
+            os.environ,
+            {"JARVIS_APP_ENV": "production"},
+            clear=False,
+        ),
+        pytest.raises(ValueError),
+    ):
         Settings(_env_file=None)
 
 

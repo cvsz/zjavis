@@ -13,9 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
-from jarvis.auth import get_or_create_user_tenant
+from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
+from jarvis.core.security import Permission
 from jarvis.db import get_session
 from jarvis.db.models import Agent
 
@@ -56,6 +57,13 @@ class AgentResponse(BaseModel):
 async def create_agent(
     request: AgentCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.REPOSITORY_WRITE,
+            action="create agent",
+            risk_level="medium",
+        )
+    ),
     authorization: str | None = None,
 ) -> AgentResponse:
     """Create a new agent definition."""
@@ -148,6 +156,13 @@ async def update_agent(
     agent_id: UUID,
     request: AgentUpdate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.REPOSITORY_WRITE,
+            action="update agent",
+            risk_level="medium",
+        )
+    ),
     authorization: str | None = None,
 ) -> AgentResponse:
     """Update an agent definition."""
@@ -192,6 +207,13 @@ async def update_agent(
 async def delete_agent(
     agent_id: UUID,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.REPOSITORY_WRITE,
+            action="delete agent",
+            risk_level="high",
+        )
+    ),
     authorization: str | None = None,
 ) -> None:
     """Delete an agent definition."""

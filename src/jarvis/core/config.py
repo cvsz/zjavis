@@ -63,17 +63,19 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _validate_production_secret(self) -> Settings:
         """Fail closed in production if the default secret key is used."""
-        if self.app_env == "production" and self.app_secret == "dev-secret-change-me-in-production":
+        if (
+            self.app_env == "production"
+            and self.app_secret == "dev-secret-change-me-in-production"
+        ):
             raise ValueError(
                 "JARVIS_APP_SECRET must be set when JARVIS_APP_ENV=production"
             )
         return self
+
     access_token_expire_minutes: int = Field(
         default=30, description="Access token expiration in minutes"
     )
-    algorithm: str = Field(
-        default="HS256", description="JWT signing algorithm"
-    )
+    algorithm: str = Field(default="HS256", description="JWT signing algorithm")
 
     # --- AI / Model Gateway ------------------------------------------------
     model_gateway_enabled: bool = Field(
@@ -91,9 +93,7 @@ class Settings(BaseSettings):
         default="local-model",
         description="Default model name",
     )
-    max_tokens: int = Field(
-        default=4096, description="Default max tokens per request"
-    )
+    max_tokens: int = Field(default=4096, description="Default max tokens per request")
     request_timeout_seconds: int = Field(
         default=120, description="Default model request timeout in seconds"
     )
@@ -130,9 +130,7 @@ class Settings(BaseSettings):
     voice_enabled: bool = Field(
         default=False, description="Enable voice interface (requires hardware)"
     )
-    vision_enabled: bool = Field(
-        default=False, description="Enable vision interface"
-    )
+    vision_enabled: bool = Field(default=False, description="Enable vision interface")
     agent_runtime_enabled: bool = Field(
         default=True, description="Enable agent runtime"
     )

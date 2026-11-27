@@ -4,11 +4,15 @@ Per JARVIS blueprint, agent capabilities are gated behind the
 ``agent_runtime_enabled`` configuration flag. The runtime executes
 tasks using agents, checks approval gates for high-risk tasks, and
 records outcomes via audit events.
+
+All task state transitions are delegated to the ``OrchestrationEngine``
+state machine so that queued -> running -> completed/failed/blocked/
+cancelled transitions are validated, retries use exponential backoff
+with jitter, cancellation is honoured, and delegation depth is bounded.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -21,6 +25,7 @@ from jarvis.audit import CAT_AGENT, OUTCOME_FAILURE, OUTCOME_SUCCESS, AuditServi
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.db.models import Agent, Task
+from jarvis.orchestration import OrchestrationEngine, TaskContext
 
 logger = get_logger(__name__)
 
@@ -33,7 +38,7 @@ class AgentRuntime:
     - Checks approval gates for medium/high risk tasks
     - Generates AI responses via the model gateway
     - Records execution outcomes as audit events
-    - Updates task state throughout the lifecycle
+    - Delegates task state lifecycle to the OrchestrationEngine
     """
 
     def __init__(
@@ -56,18 +61,14 @@ class AgentRuntime:
         return UUID(str(value)) if value is not None else None
 
     async def _load_agent(self, agent_id: UUID) -> Agent:
-        result = await self.session.execute(
-            select(Agent).where(Agent.id == agent_id)
-        )
+        result = await self.session.execute(select(Agent).where(Agent.id == agent_id))
         agent = result.scalar_one_or_none()
         if agent is None:
             raise NotFoundError(f"Agent not found: {agent_id}")
         return agent
 
     async def _load_task(self, task_id: UUID) -> Task:
-        result = await self.session.execute(
-            select(Task).where(Task.id == task_id)
-        )
+        result = await self.session.execute(select(Task).where(Task.id == task_id))
         task = result.scalar_one_or_none()
         if task is None:
             raise NotFoundError(f"Task not found: {task_id}")
@@ -126,9 +127,7 @@ class AgentRuntime:
             if agent_id is not None:
                 agent = await self._load_agent(agent_id)
                 if not agent.is_active:
-                    raise PermissionError(
-                        f"Agent {agent.id} is not active"
-                    )
+                    raise PermissionError(f"Agent {agent.id} is not active")
 
         # Approval gate for risk tasks
         if await self._requires_approval(task) and not await self._is_approved(task):
@@ -139,86 +138,112 @@ class AgentRuntime:
                 actor_id=self._uuid(task.user_id),
                 details=f"Task {task_id} requires approval but none granted",
             )
-            raise PermissionError(
-                f"Task {task_id} requires approval before execution"
-            )
+            raise PermissionError(f"Task {task_id} requires approval before execution")
 
-        # Mark task as running
-        task.state = "running"
-        task.started_at = datetime.now(UTC)
-        await self.session.commit()
+        tenant_id = self._uuid(task.tenant_id)
+        user_id = self._uuid(task.user_id)
 
-        try:
-            # Build messages for the model gateway
+        # Build system prompt once (closure over agent info for the handler).
+        agent_name = agent.name if agent else "default"
+        system_prompt = (
+            f"You are an autonomous agent ({agent_name}). "
+            f"Execute the following task: {task.task_type!s}. "
+            f"Risk classification: {task.risk_classification!s}."
+        )
+        user_content = (
+            f"Task: {task.task_type!s}\nDetails: Execute using available tools."
+        )
+
+        engine = OrchestrationEngine(session=self.session)
+
+        async def _handler(ctx: TaskContext) -> str:
+            """Handler executed by the OrchestrationEngine once state is 'running'."""
             messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        f"You are an autonomous agent "
-                        f"({agent.name if agent else 'default'}). "
-                        f"Execute the following task: {task.task_type!s}. "
-                        f"Risk classification: {task.risk_classification!s}."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"Task: {task.task_type!s}\nDetails: Execute using available tools.",
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
             ]
-
-            # Call model gateway
             result = await gateway.complete(
                 task_type=str(task.task_type),
                 messages=messages,
             )
+            return str(result.get("response", ""))
 
-            # Mark task as completed
-            task.state = "completed"
-            task.completed_at = datetime.now(UTC)
-            task.error_message = None
-            await self.session.commit()
-
-            await self._record_audit(
-                event_type="task.execution.completed",
-                outcome=OUTCOME_SUCCESS,
-                tenant_id=self._uuid(task.tenant_id),
-                actor_id=self._uuid(task.user_id),
-                details=f"Task {task_id} completed successfully",
+        try:
+            result = await engine.execute(
+                task_id=task_id,
+                handler=_handler,
+                delegation_depth=0,
             )
 
-            logger.info(
-                "Task executed",
-                extra={
+            state = result["state"]
+            response = result.get("response", "")
+
+            if state == "completed":
+                await self._record_audit(
+                    event_type="task.execution.completed",
+                    outcome=OUTCOME_SUCCESS,
+                    tenant_id=tenant_id,
+                    actor_id=user_id,
+                    details=f"Task {task_id} completed successfully",
+                )
+                logger.info(
+                    "Task executed via orchestration engine",
+                    extra={
+                        "task_id": str(task_id),
+                        "state": state,
+                        "provider": result.get("provider"),
+                        "model": result.get("model"),
+                        "retries": result.get("retries"),
+                    },
+                )
+                return {
                     "task_id": str(task_id),
-                    "state": task.state,
+                    "state": state,
+                    "response": response,
                     "provider": result.get("provider"),
                     "model": result.get("model"),
-                },
-            )
+                    "usage": result.get("usage", {}),
+                    "retries": result.get("retries", 0),
+                }
 
+            if state == "failed":
+                error = result.get("error", "Unknown error")
+                await self._record_audit(
+                    event_type="task.execution.failed",
+                    outcome=OUTCOME_FAILURE,
+                    tenant_id=tenant_id,
+                    actor_id=user_id,
+                    details=f"Task {task_id} failed: {error}",
+                )
+                logger.error(
+                    "Task execution failed via orchestration engine",
+                    extra={"task_id": str(task_id), "error": error},
+                )
+                raise RuntimeError(error)
+
+            # cancelled or other terminal states
             return {
                 "task_id": str(task_id),
-                "state": task.state,
-                "response": result.get("response", ""),
+                "state": state,
+                "response": response,
                 "provider": result.get("provider"),
                 "model": result.get("model"),
                 "usage": result.get("usage", {}),
+                "retries": result.get("retries", 0),
             }
 
-        except Exception as exc:  # record failure then re-raise
-            task.state = "failed"
-            task.completed_at = datetime.now(UTC)
-            task.error_message = str(exc)
-            await self.session.commit()
-
+        except PermissionError:
+            raise
+        except RuntimeError:
+            raise
+        except Exception as exc:
             await self._record_audit(
                 event_type="task.execution.failed",
                 outcome=OUTCOME_FAILURE,
-                tenant_id=self._uuid(task.tenant_id),
-                actor_id=self._uuid(task.user_id),
+                tenant_id=tenant_id,
+                actor_id=user_id,
                 details=f"Task {task_id} failed: {exc}",
             )
-
             logger.error(
                 "Task execution failed",
                 extra={"task_id": str(task_id), "error": str(exc)},

@@ -43,9 +43,7 @@ class ApprovalService:
         Returns:
             The created :class:`Approval` record.
         """
-        expires_at = datetime.now(UTC) + timedelta(
-            minutes=expires_in_minutes
-        )
+        expires_at = datetime.now(UTC) + timedelta(minutes=expires_in_minutes)
         approval = Approval(
             task_id=task_id,
             requested_by=requested_by,
@@ -80,9 +78,7 @@ class ApprovalService:
             raise NotFoundError(f"Approval not found: {approval_id}")
         return approval
 
-    async def grant_approval(
-        self, approval_id: UUID, approved_by: UUID
-    ) -> Approval:
+    async def grant_approval(self, approval_id: UUID, approved_by: UUID) -> Approval:
         """Grant a pending approval.
 
         Args:
@@ -115,9 +111,7 @@ class ApprovalService:
         )
         return approval
 
-    async def deny_approval(
-        self, approval_id: UUID, approved_by: UUID
-    ) -> Approval:
+    async def deny_approval(self, approval_id: UUID, approved_by: UUID) -> Approval:
         """Deny a pending approval.
 
         Args:

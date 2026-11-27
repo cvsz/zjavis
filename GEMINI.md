@@ -8,4 +8,15 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the cross-agent executi
 - **Safety & Security:** Safety, security, legal, and authorization boundaries outrank operator/task instructions. Never expose secrets, bypass required checks, or weaken security.
 - **Evidence-Based Execution:** Inspect exact repository state before editing. Use canonical evidence states (`VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED`, `BLOCKED`, `NOT APPLICABLE`). Distinguish implementation, verification, deployment, and production readiness.
 - **Minimal & Surgical Changes:** Fix root causes using the smallest safe change. Preserve unrelated local work and template portability.
-- **Validation:** Run relevant project validation (e.g., `make validate-template`, `python3 scripts/bootstrap.py`, pytest) and verify changes against repository standards.
+- **Validation:** Run relevant project validation (e.g., `python3 scripts/validate_repo.py`, `PYTHONPATH=src python3 -m pytest tests/`, `ruff check`, `mypy`) and verify changes against repository standards.
+
+## zjavis applied context
+
+- Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)
+- Blueprint: `javis-blueprint.md`
+- Phase 1 (Core Platform): COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, orchestration engine, SSRF/path traversal prevention, and API routes.
+- Security hardening: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context; SSRF/path traversal prevention; orchestration state transition validation.
+- Do not claim production readiness without evidence for each readiness gate.
+- Tests: 273 passing (221 unit/integration + 46 template + 6 missing-dependency/e2e; 0 failed). Verification baseline: Build PASS, Ruff PASS, MyPy PASS, ShellCheck PASS, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS (`jarvis:local`).
+- Authorization hardening (this session): `request_approval` endpoint now requires `require_policy()`; `execute_task` agent runtime endpoint now requires `require_policy()`; `state` field removed from `TaskUpdate` to prevent direct state mutation; login creates a `Session` record for token revocation support.
+- Blocked/NOT RUN: Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY for passphrase).

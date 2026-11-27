@@ -14,9 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.memory import MemoryService
 from jarvis.api.auth import get_current_user
-from jarvis.auth import get_or_create_user_tenant
+from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
+from jarvis.core.security import Permission
 from jarvis.db import get_session
 from jarvis.db.models import Memory, Message
 
@@ -55,6 +56,13 @@ class MemoryResponse(BaseModel):
 async def create_memory(
     request: MemoryCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="create memory",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ) -> MemoryResponse:
     """Create a new memory item."""
@@ -159,6 +167,13 @@ async def get_memory(
 async def delete_memory(
     memory_id: UUID,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="delete memory",
+            risk_level="medium",
+        )
+    ),
     authorization: str | None = None,
 ) -> None:
     """Soft-delete a memory item."""
@@ -174,15 +189,22 @@ async def delete_memory(
 async def summarize_conversation(
     conversation_id: UUID,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="summarize conversation",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ) -> MemoryResponse:
     """Summarize a conversation into a memory item."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Message).where(
-            Message.conversation_id == conversation_id
-        ).order_by(Message.created_at.asc())
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.asc())
     )
     messages = result.scalars().all()
     if not messages:

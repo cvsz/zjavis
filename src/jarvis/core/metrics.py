@@ -104,9 +104,13 @@ def get_metrics() -> bytes:
     return generate_latest()
 
 
-def record_request(method: str, endpoint: str, status_code: int, duration: float) -> None:
+def record_request(
+    method: str, endpoint: str, status_code: int, duration: float
+) -> None:
     """Record an HTTP request metric."""
-    REQUEST_COUNT.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
+    REQUEST_COUNT.labels(
+        method=method, endpoint=endpoint, status_code=status_code
+    ).inc()
     REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(duration)
 
 
@@ -119,12 +123,18 @@ def record_model_request(
     output_tokens: int = 0,
 ) -> None:
     """Record a model gateway request metric."""
-    MODEL_REQUEST_COUNT.labels(provider=provider, model=model, task_type=task_type).inc()
+    MODEL_REQUEST_COUNT.labels(
+        provider=provider, model=model, task_type=task_type
+    ).inc()
     MODEL_REQUEST_LATENCY.labels(provider=provider, model=model).observe(duration)
     if input_tokens > 0:
-        MODEL_TOKEN_COUNT.labels(provider=provider, model=model, direction="input").inc(input_tokens)
+        MODEL_TOKEN_COUNT.labels(provider=provider, model=model, direction="input").inc(
+            input_tokens
+        )
     if output_tokens > 0:
-        MODEL_TOKEN_COUNT.labels(provider=provider, model=model, direction="output").inc(output_tokens)
+        MODEL_TOKEN_COUNT.labels(
+            provider=provider, model=model, direction="output"
+        ).inc(output_tokens)
 
 
 def record_agent_execution(
