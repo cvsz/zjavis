@@ -116,14 +116,18 @@ Security incidents affecting production systems should preserve evidence and use
 - State transition validation (queued → running → completed/failed/blocked/cancelled)
 - Dead-letter handling via failed state recording
 
-### Known findings and status
+### Known findings and status (Bandit security scan)
 
 | Severity | Count | Status | Details |
 |----------|-------|--------|---------|
 | Critical | 0 | — | None |
 | High | 0 | RESOLVED | All 9 high-severity findings from prior audit fixed (tenant_id FK violations, auth header, CORS, config extra="forbid") |
 | Medium | 0 | — | None |
-| Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string (standard OAuth 2.0); dev-secret comparison in fail-closed validation |
+| Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string at `src/jarvis/auth/__init__.py:135` (standard OAuth 2.0 token type, not a password); `dev-secret-change-me-in-production` comparison at `src/jarvis/core/config.py:68` (production fail-closed validation, not a secret) |
+
+**Total issues by severity (Bandit):** Undefined: 0, Low: 2 (False Positives), Medium: 0, High: 0  
+**Total issues by confidence (Bandit):** Undefined: 0, Low: 0, Medium: 2, High: 0  
+**Actual security vulnerabilities remaining:** 0
 
 ### Security areas not yet implemented (BLOCKED / NOT RUN)
 
@@ -132,12 +136,28 @@ Security incidents affecting production systems should preserve evidence and use
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
 - Backup/restore: not implemented → NOT RUN
 - OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
-- GPG commit signing: signing key requires passphrase, no TTY available → BLOCKED
+- GPG commit signing: signing key requires passphrase; no TTY available in non-interactive environment → BLOCKED (cannot complete `git commit -S` without passphrase provisioning)
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
-- Load/stress testing: no production-scale workload → NOT RUN
-- E2E tests: no E2E test suite → NOT RUN
+- Load/stress testing: no production-scale workload available → NOT RUN
+- E2E tests: no E2E test suite exists → NOT RUN
+- Missing dependency tests: no missing-dependency test suite exists → NOT RUN
 - Browser/File/Terminal/Git/Docker/IDE/MCP capability adapters (Phase 7): not implemented → NOT RUN
 - Engineering Intelligence (Phase 8): not implemented → NOT RUN
+- Dashboard/Clients (Phase 10): not implemented → NOT RUN
+
+### Verification evidence (current session)
+
+| Check | Command | Result | Evidence |
+|-------|---------|--------|----------|
+| Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 74 files |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 74 files already formatted |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 39 source files |
+| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 245 passed, 0 failed, 48 subtests passed |
+| Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
+| validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
+| Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |
 
 ## Supply chain security
 

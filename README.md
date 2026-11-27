@@ -24,7 +24,7 @@
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
 | Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
-| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, state transition validation, idempotency keys |
+| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, state transition validation, idempotency keys, dead-letter handling |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation, content hash, provenance |
 | Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions |
@@ -149,14 +149,14 @@ L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-fl
 
 ```
 RECEIVED → AUTHENTICATED → CLASSIFIED → CONTEXT_ASSEMBLED → PLANNED → POLICY_EVALUATED
-                                                    ↓
-                                             DENIED → REJECTED
-                                                    ↓
-                                             APPROVAL → WAITING_APPROVAL
-                                                    ↓
-                                             READY → EXECUTING → VERIFYING
-                                                    ↓                                           DENIED
-                                             COMPLETED ← FAILED → RECOVERY
+                                                     ↓
+                                              DENIED → REJECTED
+                                                     ↓
+                                              APPROVAL → WAITING_APPROVAL
+                                                     ↓
+                                              READY → EXECUTING → VERIFYING
+                                                     ↓                                           DENIED
+                                              COMPLETED ← FAILED → RECOVERY
 ```
 
 Every state transition is validated and persisted. State changes are safe under retries and concurrent workers.

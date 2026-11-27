@@ -133,16 +133,20 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
 - [x] Tenant isolation hardening on approval and conversation endpoints
 - [x] Execution-time policy enforcement with tenant-scoped permissions on all mutating endpoints
+- [x] SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`) — blocks private/reserved IPv4 and unsafe schemes
+- [x] Path traversal prevention (`validate_safe_path`) — confines paths within base directory, rejects `..`, null bytes, absolute paths
+- [x] Durable task orchestration engine (bounded execution, exponential backoff + jitter, cancellation, idempotency, state transition validation, dead-letter handling)
 - [ ] Load and stress tests — NOT RUN (no production-scale workload)
 - [ ] Concurrency tests — NOT RUN
 - [ ] Backup and restore — NOT RUN (no backup code implemented)
 - [ ] Disaster recovery — NOT RUN
-- [ ] Deployment and rollback — Docker Compose available; K8s/Helm deferred per blueprint §16.3
+- [x] Deployment — Docker Compose available; Docker image `jarvis:local` builds successfully (PASS); K8s/Helm deferred per blueprint §16.3
 - [x] Observability (Prometheus metrics endpoint) — PARTIAL (no distributed tracing)
 - [ ] Alerting — NOT IMPLEMENTED
 - [ ] Cross-platform validation — NOT RUN
 - [x] Independent review — CODEOWNERS configured (@policedbc for src/, tests/, .github/)
 - [ ] Release evidence — NOT RUN
+- [ ] GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available in non-interactive environment)
 
 ## Acceptance criteria (blueprint §22)
 

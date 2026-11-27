@@ -21,7 +21,7 @@ Use: `VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED`, `BLOCKED`, `NOT APPLICABLE`
 - **Security hardening:** tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context to PolicyEngine; `AgentRuntime` API passes `enabled=settings.agent_runtime_enabled`; `OrchestrationEngine` validates state transitions.
 - **Blocked/NOT RUN:** Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY).
 - **Do not claim Production Ready or 100% Complete** while Critical/High findings, failed tests, or unmet conditions remain.
-- **Tests:** 245 passing (199 unit/integration + 46 template), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives).
+- **Tests:** 245 passing (199 unit/integration + 46 template; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives), Docker build PASS (`jarvis:local` image built successfully).
 
 ## For GitHub repository-administration work
 
