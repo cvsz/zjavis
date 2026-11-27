@@ -210,11 +210,11 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Verification | Result | Evidence |
 |--------------|--------|----------|
 | Build | PASS | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` — all files compile without syntax errors |
-| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 92 files |
-| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 92 files already formatted |
+| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 106 files |
+| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 106 files already formatted |
 | ShellCheck | PASS | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` — no errors |
-| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 51 source files |
-| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 330 passed, 0 failed (48 subtests) |
+| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 53 source files |
+| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/ -p no:cacheprovider -q` — 372 passed, 0 failed (48 subtests passed) |
 | Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 330 total; 0 failed |
 | Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 330 total; 0 failed |
 | E2E Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/e2e` — included in 330 total; 0 failed |
