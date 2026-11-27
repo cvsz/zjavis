@@ -84,11 +84,16 @@ def create_app() -> FastAPI:
         debug=settings.debug,
     )
 
-    # CORS — restrict to same-origin by default; configure via env if needed.
+    # CORS — default-deny: no wildcard origins with credentials.
+    # Configure allowed origins via JARVIS_CORS_ORIGINS if cross-origin
+    # access is required. Credentials are only allowed with explicit,
+    # non-wildcard origins.
+    cors_origins = settings.cors_origins or ["http://localhost:8000"]
+    allow_credentials = len(cors_origins) > 0 and "*" not in cors_origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=cors_origins,
+        allow_credentials=allow_credentials,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )

@@ -92,7 +92,8 @@ async def list_agents(
 ) -> list[AgentResponse]:
     """List agents for the authenticated user's tenant."""
     user = await get_current_user(session, authorization)
-    query = select(Agent).where(Agent.tenant_id == user.id)
+    tenant_id = user.tenant_id or user.organization_id
+    query = select(Agent).where(Agent.tenant_id == tenant_id)
     if is_active is not None:
         query = query.where(Agent.is_active == is_active)
     query = query.limit(limit)
@@ -121,8 +122,9 @@ async def get_agent(
 ) -> AgentResponse:
     """Get a single agent by ID."""
     user = await get_current_user(session, authorization)
+    tenant_id = user.tenant_id or user.organization_id
     result = await session.execute(
-        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == user.id)
+        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant_id)
     )
     agent = result.scalar_one_or_none()
     if agent is None:

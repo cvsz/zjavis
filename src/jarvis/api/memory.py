@@ -96,9 +96,10 @@ async def list_memories(
 ) -> list[MemoryResponse]:
     """List memories for the authenticated user."""
     user = await get_current_user(session, authorization)
+    tenant_id = str(user.tenant_id or user.organization_id)
     service = MemoryService(session)
     memories = await service.search_memories(
-        tenant_id=str(user.id),
+        tenant_id=tenant_id,
         memory_type=memory_type,
         limit=limit,
     )
@@ -130,8 +131,9 @@ async def get_memory(
 ) -> MemoryResponse:
     """Get a single memory by ID."""
     user = await get_current_user(session, authorization)
+    tenant_id = str(user.tenant_id or user.organization_id)
     service = MemoryService(session)
-    memory = await service.get_memory(str(memory_id), str(user.id))
+    memory = await service.get_memory(str(memory_id), tenant_id)
     if memory is None:
         raise NotFoundError(f"Memory not found: {memory_id}")
     return MemoryResponse(
@@ -189,8 +191,9 @@ async def summarize_conversation(
     content = "\n".join(parts)
 
     # Create memory from conversation summary
+    tenant_id = str(user.tenant_id or user.organization_id)
     memory = Memory(
-        tenant_id=str(user.id),
+        tenant_id=tenant_id,
         user_id=str(user.id),
         memory_type="conversation",
         content=f"Conversation summary: {content[:2000]}",

@@ -104,8 +104,9 @@ async def create_conversation(
     """Create a new conversation for the authenticated user."""
     user = await get_current_user(session, authorization)
     safe_title = sanitize_message_content(request.title) if request.title else None
+    tenant_id = user.tenant_id or user.organization_id
     conversation = Conversation(
-        tenant_id=user.tenant_id,
+        tenant_id=tenant_id,
         user_id=user.id,
         title=safe_title,
     )

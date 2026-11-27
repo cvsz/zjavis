@@ -60,6 +60,11 @@ class Settings(BaseSettings):
         "Must be set via JARVIS_APP_SECRET in production.",
     )
 
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:8000"],
+        description="Allowed CORS origins. Wildcard '*' is not allowed with credentials.",
+    )
+
     @model_validator(mode="after")
     def _validate_production_secret(self) -> Settings:
         """Fail closed in production if the default secret key is used."""
@@ -136,6 +141,13 @@ class Settings(BaseSettings):
     )
     smart_environment_enabled: bool = Field(
         default=False, description="Enable smart environment integration"
+    )
+
+    # GPG passphrase (read from environment, not used by application logic;
+    # declared here so pydantic-settings does not reject it as an extra input
+    # when it is present in .env or the environment).
+    gpg_passphrase: str | None = Field(
+        default=None, description="GPG passphrase for commit signing (unused by app)"
     )
 
 

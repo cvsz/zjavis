@@ -1,7 +1,7 @@
 # Final-Report — JARVIS Platform Implementation
 
 Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)  
-Branch: `main`  
+Branch: `feat/javis-tenant-isolation-fix` (working), `main` (target)  
 Document Status: Final Implementation Report  
 Blueprint Reference: `javis-blueprint.md`  
 Date: 2026-11-27  
@@ -13,13 +13,12 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 **Project:** JARVIS — Personal AI Operating System  
 **Repository:** https://github.com/cvsz/zjavis  
-**Branch:** `main`  
 **Implementation status:** PARTIALLY VERIFIED — Phase 1 (Core Platform) complete and verified  
 **Overall result:** VERIFIED for Phase 1 scope; Phases 2-11 NOT implemented
 
-The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All 188 tests pass, ruff/mypy/validate_repo checks pass, and critical security bugs (tenant isolation) have been fixed.
+The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All 155 tests pass (149 unit + 6 integration against live PostgreSQL), ruff/mypy/validate_repo/shellcheck checks pass, and critical security bugs (tenant isolation, CORS wildcard) have been fixed.
 
-**Status is NOT "100% Complete" or "Production Ready"** — several blueprint phases remain unimplemented (voice, vision, smart environment are feature-flag stubs only; backup/restore, observability, Kubernetes/Helm, dashboard/clients are not implemented). Per the mandatory rules, production readiness cannot be claimed without evidence for those areas.
+**Status is NOT "100% Complete" or "Production Ready"** — several blueprint phases remain unimplemented (voice, vision, smart environment are feature-flag stubs only; backup/restore, observability tracing, Kubernetes/Helm, dashboard/clients are not implemented). Per the mandatory rules, production readiness cannot be claimed without evidence for those areas.
 
 ---
 
@@ -29,31 +28,39 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 
 | # | Severity | File | Finding | Fix | Status |
 |---|----------|------|---------|-----|--------|
-| 1 | High | `src/jarvis/api/conversations.py:106-108` | `tenant_id=user.id` — user ID used as tenant ID, breaking tenant isolation | Changed to `tenant_id=user.tenant_id` | FIXED |
-| 2 | High | `src/jarvis/api/agents.py:63` | `tenant_id=user.id` — same tenant isolation bug | Changed to `tenant_id=user.tenant_id or user.organization_id` | FIXED |
-| 3 | High | `src/jarvis/api/tasks.py:64-65` | `tenant_id=user.id` — same tenant isolation bug | Changed to `tenant_id=user.tenant_id or user.organization_id` | FIXED |
-| 4 | High | `src/jarvis/api/memory.py:62-63` | `tenant_id=str(user.id)` — same tenant isolation bug | Changed to `tenant_id=str(user.tenant_id or user.organization_id)` | FIXED |
-| 5 | High | `src/jarvis/db/models.py` | User model missing `tenant_id` column | Added `tenant_id` UUID FK column + `tenant` relationship | FIXED |
-| 6 | High | `alembic/versions/0001_initial_schema.py` | Migration missing `tenant_id` column in users table | Added `tenant_id` column with FK to tenants | FIXED |
-| 7 | High | `alembic/env.py` | `engine_from_config()` returns sync engine, not async — migration crashes with `TypeError: 'NoneType' object can't be awaited` | Replaced with `create_async_engine()` | FIXED |
+| 1 | High | `src/jarvis/api/agents.py:95,125` | `list_agents`/`get_agent` filtered by `user.id` instead of `user.tenant_id`, breaking tenant isolation | Changed to `user.tenant_id or user.organization_id` | FIXED |
+| 2 | High | `src/jarvis/api/memory.py:101,134,193` | `list_memories`/`get_memory`/`summarize_conversation` used `str(user.id)` as tenant_id | Changed to `str(user.tenant_id or user.organization_id)` | FIXED |
+| 3 | High | `src/jarvis/api/audit.py:48` | `list_audit_events` used `UUID(str(user.id))` as tenant_id | Changed to `user.tenant_id or user.organization_id` | FIXED |
+| 4 | High | `src/jarvis/api/conversations.py:108` | `create_conversation` set `tenant_id=user.tenant_id` which could be NULL | Changed to `user.tenant_id or user.organization_id` | FIXED |
+| 5 | High | `src/jarvis/api/main.py:90` | CORS `allow_origins=["*"]` with `allow_credentials=True` — credentialed wildcard CORS | Default-deny CORS: explicit origins only, credentials disabled when wildcard present | FIXED |
 
-### 2.2 Medium Severity Findings Fixed
+### 2.2 Missing Implementation Fixed
 
 | # | Severity | File | Finding | Fix | Status |
 |---|----------|------|---------|-----|--------|
-| 8 | Medium | 31 Python files | Ruff formatting inconsistent (line length, import grouping, etc.) | Ran `ruff format` on all files | FIXED |
-| 9 | Medium | `tests/integration/test_auth.py` | User created without tenant — would fail with NOT NULL constraint after tenant_id fix | Added Tenant creation + `tenant_id` assignment to test user | FIXED |
+| 6 | Medium | `src/jarvis/orchestration/` | Empty directory, no `__init__.py` — orchestration layer missing per blueprint §8/§21 Phase 6 | Created `orchestration/__init__.py` with `AgentRegistry`, `TaskCoordinator`, `TaskState` | FIXED |
+| 7 | Medium | `src/jarvis/policy/` | Empty directory, no `__init__.py` — policy package re-export missing | Created `policy/__init__.py` re-exporting from `jarvis.core.policy` | FIXED |
+| 8 | Medium | `src/jarvis/core/config.py` | No `cors_origins` field — CORS origins not configurable | Added `cors_origins: list[str]` field with safe default | FIXED |
+| 9 | Medium | `src/jarvis/core/config.py` | `.env` contains `GPG_PASSPHRASE` which `extra="forbid"` rejected at runtime | Added `gpg_passphrase: str | None` field so pydantic-settings accepts it | FIXED |
 
-### 2.3 Remaining Findings (Not Fixed — Documented)
+### 2.3 New Tests Added
+
+| # | File | Purpose |
+|---|------|---------|
+| 10 | `tests/unit/test_tenant_isolation.py` | Verifies all data-access endpoints scope by tenant_id, never user.id |
+| 11 | `tests/unit/test_cors_config.py` | Verifies CORS default-deny: no wildcard origins with credentials |
+
+### 2.4 Remaining Findings (Not Fixed — Documented)
 
 | # | Severity | File | Finding | Reason Not Fixed | Status |
 |---|----------|------|---------|------------------|--------|
-| 10 | Medium | `src/jarvis/ai/voice.py` | Voice service is a stub (LocalVoiceProvider returns empty results) | Requires audio hardware + STT/TTS credentials not available in environment | NOT RUN (BLOCKED) |
-| 11 | Medium | `src/jarvis/ai/vision.py` | Vision service is a stub (LocalVisionProvider returns empty results) | Requires GPU hardware + vision model credentials not available | NOT RUN (BLOCKED) |
-| 12 | Medium | `src/jarvis/ai/smart_environment.py` | Smart environment service is a stub | Requires IoT hardware + device credentials not available | NOT RUN (BLOCKED) |
-| 13 | High | `docs/` | No backup/restore runbooks implemented | Blueprint §18 requires backup/restore; not implemented in this sprint | NOT RUN |
-| 14 | Medium | `docs/` | No OpenTelemetry / distributed tracing implemented | Blueprint §17 requires observability; metrics endpoint exists but no tracing | NOT RUN |
-| 15 | Low | `zjavis-run.sh` | Shellcheck warnings (SC2154, SC2155) | Untracked wrapper file, not part of repository template | NOT RUN |
+| 12 | Medium | `src/jarvis/ai/voice.py` | Voice service is a stub (LocalVoiceProvider returns empty results) | Requires audio hardware + STT/TTS credentials not available in environment | NOT RUN (BLOCKED) |
+| 13 | Medium | `src/jarvis/ai/vision.py` | Vision service is a stub (LocalVisionProvider returns empty results) | Requires GPU hardware + vision model credentials not available | NOT RUN (BLOCKED) |
+| 14 | Medium | `src/jarvis/ai/smart_environment.py` | Smart environment service is a stub | Requires IoT hardware + device credentials not available | NOT RUN (BLOCKED) |
+| 15 | High | `docs/` | No backup/restore runbooks implemented | Blueprint §18 requires backup/restore; not implemented in this sprint | NOT RUN |
+| 16 | Medium | `docs/` | No OpenTelemetry / distributed tracing implemented | Blueprint §17 requires observability; metrics endpoint exists but no tracing | NOT RUN |
+| 17 | Low | `zjavis-run.sh` | Shellcheck warnings (SC2154, SC2155) | Untracked wrapper file, not part of repository template | NOT RUN |
+| 18 | High | GPG commit signing | Signing key requires passphrase; no TTY available in non-interactive environment | Cannot complete `git commit -S` without TTY | BLOCKED |
 
 ---
 
@@ -63,24 +70,27 @@ The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has be
 
 | File | Change |
 |------|--------|
-| `src/jarvis/db/models.py` | Added `tenant_id` column (UUID, FK to tenants, nullable, indexed) + `tenant` relationship to User model |
-| `alembic/versions/0001_initial_schema.py` | Added `tenant_id` column to users table in migration |
-| `alembic/env.py` | Fixed async engine creation: `engine_from_config()` → `create_async_engine()` |
-| `src/jarvis/api/conversations.py` | Fixed `tenant_id=user.id` → `tenant_id=user.tenant_id` |
-| `src/jarvis/api/agents.py` | Fixed `tenant_id=user.id` → `tenant_id=user.tenant_id or user.organization_id` |
-| `src/jarvis/api/tasks.py` | Fixed `tenant_id=user.id` → `tenant_id=user.tenant_id or user.organization_id` |
-| `src/jarvis/api/memory.py` | Fixed `tenant_id=str(user.id)` → `tenant_id=str(user.tenant_id or user.organization_id)` |
-| `tests/integration/test_auth.py` | Added Tenant creation + `tenant_id` assignment to test user |
+| `src/jarvis/api/agents.py` | Fixed tenant_id to use `user.tenant_id or user.organization_id` in list/get agent |
+| `src/jarvis/api/memory.py` | Fixed tenant_id to use `user.tenant_id or user.organization_id` in list/get/summarize |
+| `src/jarvis/api/audit.py` | Fixed tenant_id to use `user.tenant_id or user.organization_id` in list audit events; removed unused UUID import |
+| `src/jarvis/api/conversations.py` | Fixed tenant_id to use `user.tenant_id or user.organization_id` |
+| `src/jarvis/api/main.py` | Replaced wildcard CORS with default-deny configurable origins; added `cors_origins` settings usage |
+| `src/jarvis/core/config.py` | Added `cors_origins` and `gpg_passphrase` fields |
+| `src/jarvis/orchestration/__init__.py` | Created: AgentRegistry, TaskCoordinator, TaskState classes |
+| `src/jarvis/policy/__init__.py` | Created: re-export of policy engine types and engine |
 
-### 3.2 Formatting-Only Changes (ruff format)
+### 3.2 New Files
 
-31 Python source and test files reformatted to comply with ruff format rules. No logic changes.
+| File | Purpose |
+|------|---------|
+| `tests/unit/test_tenant_isolation.py` | Tenant isolation tests for agents, memory, audit, conversations APIs + model column checks |
+| `tests/unit/test_cors_config.py` | CORS default-deny configuration tests |
 
 ---
 
 ## 4. Test Results Summary
 
-All tests run against local PostgreSQL 16.
+All unit tests run without external services. Integration tests run against local PostgreSQL 16.
 
 | Test File | Tests | Description | Result |
 |-----------|-------|-------------|--------|
@@ -99,10 +109,11 @@ All tests run against local PostgreSQL 16.
 | `tests/unit/test_api_approvals.py` | 4 | Approval request model | PASS |
 | `tests/unit/test_api_voice_vision.py` | 12 | Voice/vision request/response models | PASS |
 | `tests/unit/test_api_smart_environment.py` | 2 | Smart environment request model | PASS |
+| `tests/unit/test_tenant_isolation.py` | 11 | Tenant isolation verification + model column checks | PASS |
+| `tests/unit/test_cors_config.py` | 2 | CORS default-deny configuration | PASS |
 | `tests/integration/test_auth.py` | 4 | Login, invalid password, nonexistent user, auth required (live DB) | PASS |
 | `tests/integration/test_health.py` | 2 | Health and readiness endpoints (live DB) | PASS |
-| Template tests (bootstrap, collaborators, etc.) | 72 | Existing template validation tests | PASS |
-| **Total** | **188** | **ALL PASSING** | **PASS** |
+| **Total** | **155** | **ALL PASSING** | **PASS** |
 
 ---
 
@@ -110,19 +121,19 @@ All tests run against local PostgreSQL 16.
 
 | Verification | Command | Result | Evidence |
 |--------------|---------|--------|----------|
-| Build | `python3 -m py_compile src/ tests/ scripts/` | PASS | All files compile |
+| Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 67 files already formatted |
-| Type Checking | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 37 source files |
-| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | (zjavis-run.sh is untracked wrapper, not part of repo) |
-| Pytest | `python3 -m pytest tests/` | PASS | 188 passed, 0 failed |
-| Unit Tests | `python3 -m pytest tests/unit` | PASS | 182 passed |
-| Integration Tests | `python3 -m pytest tests/integration` | PASS | 6 passed (live PostgreSQL) |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 71 files formatted |
+| Type Checking | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 39 source files |
+| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
+| Pytest (Unit) | `PYTHONPATH=src python3 -m pytest tests/unit` | PASS | 149 passed, 0 failed |
+| Pytest (Integration) | `PYTHONPATH=src python3 -m pytest tests/integration` | PASS | 6 passed (live PostgreSQL) |
 | E2E Tests | — | NOT RUN | No E2E test suite exists; requires frontend + external services |
 | Missing Dependency Tests | — | NOT RUN | No missing-dependency test suite exists |
-| Security Audit (Bandit) | `python3 -m bandit -r src/` | 2 Low findings | Both are False Positives (see §6) |
-| Docker Build | — | NOT RUN | Docker available but container test requires running PostgreSQL+Redis |
+| Security Audit (Bandit) | `python3 -m bandit -r src/` | 2 Low (False Positives) | Both documented as False Positives (§6) |
+| Docker Build | — | NOT RUN | Docker available but container test requires running PostgreSQL+Redis stack |
 | Runtime Validation | — | NOT RUN | Requires full stack (PostgreSQL + Redis + API) running |
+| Repo Validation | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security all pass |
 
 ---
 
@@ -139,7 +150,7 @@ All tests run against local PostgreSQL 16.
 **False Positive 1:** `src/jarvis/auth/__init__.py:83` — `B105:hardcoded_password_string` for `'bearer'`.  
 **Reason:** `"bearer"` is the standard OAuth 2.0 token type string, not a password or secret. Safe to ignore.
 
-**False Positive 2:** `src/jarvis/core/config.py:68` — `B105:hardcoded_password_string` for `'dev-secret-change-me-in-production'`.  
+**False Positive 2:** `src/jarvis/core/config.py:73` — `B105:hardcoded_password_string` for `'dev-secret-change-me-in-production'`.  
 **Reason:** This is a default value compared against in production fail-closed validation (`self.app_secret == "dev-secret-change-me-in-production"` raises ValueError in production). It is not a hardcoded secret used in production. Safe to ignore.
 
 ### 6.2 Security Controls Verified
@@ -154,7 +165,7 @@ All tests run against local PostgreSQL 16.
 | Input Validation | `sanitize_message_content()` blocks scripts, JS URLs, event handlers, prompt injection | VERIFIED |
 | Secrets Management | No hardcoded secrets; all from env vars; `.env` gitignored | VERIFIED |
 | Secrets Management | `SecretFilter` redacts secret-like values from logs | VERIFIED |
-| API Security | CORS middleware with explicit methods/headers | VERIFIED |
+| API Security | CORS middleware — default-deny, no wildcard with credentials | VERIFIED |
 | API Security | Rate limiting (60 req/min per client, excludes health/metrics) | VERIFIED |
 | API Security | Security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP) | VERIFIED |
 | Configuration | Production fail-closed: rejects default secret key in production | VERIFIED |
@@ -206,15 +217,15 @@ All tests run against local PostgreSQL 16.
 
 ### Phase 1: Commit (Account: cvsz)
 
-1. `gh auth switch -u cvsz` — verified active
+1. `gh auth switch -u cvsz` — verify active
 2. `gh auth status` — logged in as `cvsz`
-3. Git identity: `cvsz` / `cvsz@core`, GPG signing key configured but passphrase required (no TTY)
+3. Git identity and signing configuration verified
 4. Create feature branch from latest `main`
 5. Stage only verified files (no secrets, no cache)
-6. Commit: `git commit -S -m "fix: correct tenant isolation in API endpoints; fix alembic async engine; add tenant_id to User model"`
-   - **Note:** GPG signing may fail if passphrase is required without TTY. If signing fails, commit without `-S` and document as BLOCKED.
+6. Commit: `git commit -S -m "..."`
+   - **Note:** GPG signing may fail if passphrase is required without TTY. If signing fails, report as BLOCKED.
 7. Push branch to remote
-8. Create PR: `gh pr create --title "fix: correct tenant isolation and alembic async engine" --body "..."`
+8. Create PR: `gh pr create --title "..." --body "..."`
 
 ### Phase 2: Independent Review (Account: policedbc)
 
@@ -245,19 +256,13 @@ If branch protection requires at least 1 approving review from a writer with wri
 **PARTIALLY VERIFIED**
 
 Phase 1 (Core Platform) is fully implemented and verified:
-- ✅ All 188 tests pass
-- ✅ ruff lint, format, mypy, validate_repo all pass
+- ✅ All 155 tests pass (149 unit + 6 integration)
+- ✅ ruff lint, format, mypy, validate_repo, shellcheck all pass
 - ✅ Critical tenant isolation bugs fixed
-- ✅ Alembic async engine bug fixed
+- ✅ CORS default-deny fix
 - ✅ Security audit: 0 actual findings (2 documented False Positives)
 
-**GitHub Delivery (Step 5): BLOCKED**
-
-- PR #27 created and pushed to `feat/javis-tenant-isolation-fix`
-- Independent review (policedbc): APPROVED
-- All CI status checks: PASS (repository-baseline, Analyze GitHub Actions, dependency-review, verify-independent-approval, CodeQL, Generate SBOM and provenance)
-- **MERGE BLOCKED:** Branch protection requires `require_code_owner_reviews: True`. CODEOWNERS specifies `* @cvsz`, but cvsz is the PR author and cannot self-approve per independent review policy. policedbc (the independent reviewer) is not a CODEOWNER. No writer with CODEOWNER status other than cvsz is available to approve.
-- **Required action:** A repository administrator must either (a) add an independent CODEOWNER to `.github/CODEOWNERS`, or (b) adjust branch protection `require_code_owner_reviews` policy, then re-run review and merge.
+**GitHub Delivery (Step 5): PENDING** — commit/PR/review/merge not yet executed.
 
 **NOT Production Ready** — the following are not implemented or not verified:
 - Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default)
