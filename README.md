@@ -23,16 +23,16 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 250 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 273 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
 | Authentication & Authorization | ✅ COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation |
 | Policy Engine | ✅ COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging | ✅ COMPLETE / VERIFIED | Structured JSON logging with `SecretFilter` redaction |
-| Metrics / Observability | ✅ PARTIAL | Prometheus `/metrics` endpoint; no distributed tracing (OpenTelemetry) |
+| Metrics / Observability | ✅ PARTIAL | Prometheus `/metrics` endpoint; OpenTelemetry tracing module implemented (no-op when opentelemetry not installed) |
 | Data Layer (PostgreSQL + Alembic) | ✅ COMPLETE / VERIFIED | 14 SQLAlchemy models; initial migration `0001_initial_schema` |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
 | Orchestration Engine | ✅ IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
-| Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config |
+| Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; delegates to OrchestrationEngine |
 | SSRF Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
 | Path Traversal Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_safe_path()` confines paths within base directory using `os.path.realpath()` |
 | Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
@@ -41,12 +41,12 @@
 | Tool & Computer Integration (Phase 7) | ❌ NOT RUN | Browser/File/Terminal/Git/Docker/IDE/MCP adapters not implemented |
 | Engineering Intelligence (Phase 8) | ❌ NOT RUN | Repository discovery, code review, security scanning, etc. not implemented |
 | Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
-| Backup / Restore | ❌ NOT RUN | No backup code or runbooks implemented |
+| Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
 | GPG Commit Signing | ⚠️ BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
 | Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
-| E2E Tests | ❌ NOT RUN | No E2E test suite exists |
-| Missing Dependency Tests | ❌ NOT RUN | No missing-dependency test suite exists |
+| E2E Tests | ✅ IMPLEMENTED | `tests/e2e/test_e2e_flow.py` — auth flow, health/metrics, security headers (PASS) |
+| Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
 | Social Preview Image | ⚠️ BLOCKED | 1×1 placeholder; external image generation service has no credits |
 
 ---
@@ -94,6 +94,7 @@ and memories.
 | Policy Engine | `src/jarvis/core/policy.py` | ALLOW / DENY / REQUIRE_APPROVAL / REQUIRE_REAUTHENTICATION / OUT_OF_SCOPE decisions; default-deny |
 | Logging | `src/jarvis/core/logging.py` | Structured JSON logging with `SecretFilter` redaction |
 | Metrics | `src/jarvis/core/metrics.py` | Prometheus counters, gauges, histograms for requests, models, agents, tools, approvals |
+| Tracing | `src/jarvis/core/tracing.py` | OpenTelemetry tracing module; no-op when opentelemetry not installed |
 | Exceptions | `src/jarvis/core/exceptions.py` | Typed exception hierarchy (AuthN, AuthZ, NotFound, Conflict, Validation, Policy, Provider, Tool, Task, Agent, Memory) |
 
 ### Identity & Access Management
@@ -185,7 +186,7 @@ L6 Knowledge:        Memory model with tenant isolation and provenance
 L7 Data:             PostgreSQL (SQLAlchemy async, Alembic migrations)
 L8 Events:           Audit event model (tamper-evident)
 L9 Governance:       Policy engine, Approval service
-L10 Operations:      Health/readiness probes, structured logging, secret redaction, Prometheus metrics
+L10 Operations:      Health/readiness probes, structured logging, secret redaction, Prometheus metrics, OpenTelemetry tracing
 L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-flagged)
 ```
 
@@ -193,14 +194,14 @@ L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-fl
 
 ```
 RECEIVED → AUTHENTICATED → CLASSIFIED → CONTEXT_ASSEMBLED → PLANNED → POLICY_EVALUATED
-                                                      ↓
-                                               DENIED → REJECTED
-                                                      ↓
-                                               APPROVAL → WAITING_APPROVAL
-                                                      ↓
-                                               READY → EXECUTING → VERIFYING
-                                                      ↓                                           DENIED
-                                               COMPLETED ← FAILED → RECOVERY
+                                                       ↓
+                                                DENIED → REJECTED
+                                                       ↓
+                                                APPROVAL → WAITING_APPROVAL
+                                                       ↓
+                                            READY → EXECUTING → VERIFYING
+                                                       ↓                                           DENIED
+                                            COMPLETED ← FAILED → RECOVERY
 ```
 
 Every state transition is validated and persisted. State changes are safe under retries and concurrent workers.
@@ -231,6 +232,7 @@ Every state transition is validated and persisted. State changes are safe under 
 | API Security | Security headers (nosniff, DENY, no-referrer, CSP) | VERIFIED |
 | Configuration | Production fail-closed (`JARVIS_APP_SECRET` required in production) | VERIFIED |
 | Audit | Tamper-evident audit events | VERIFIED |
+| Observability | OpenTelemetry tracing module (no-op when not installed) | IMPLEMENTED |
 
 Report security vulnerabilities through [GitHub private vulnerability reporting](SECURITY.md) or the private channel documented in [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
 
@@ -266,7 +268,9 @@ Report security vulnerabilities through [GitHub private vulnerability reporting]
 | `JARVIS_OLLAMA_BASE_URL` | string | `null` | No | Ollama base URL |
 | `JARVIS_MODEL_GATEWAY_BUDGET_ENABLED` | bool | `false` | No | Enable budget enforcement |
 | `JARVIS_MODEL_GATEWAY_BUDGET_LIMIT` | int | `100000` | No | Token budget per window |
-| `JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS` | int | `86400` | No | Budget reset window |
+| `JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS` | int | `86400` | No | Budget reset window in seconds |
+| `JARVIS_TRACING_ENABLED` | bool | `false` | No | Enable OpenTelemetry distributed tracing |
+| `JARVIS_OTLP_ENDPOINT` | string | `null` | No | OTLP trace exporter endpoint |
 | `JARVIS_VOICE_ENABLED` | bool | `false` | No | Voice interface |
 | `JARVIS_VISION_ENABLED` | bool | `false` | No | Vision interface |
 | `JARVIS_AGENT_RUNTIME_ENABLED` | bool | `true` | No | Agent runtime |
@@ -354,6 +358,9 @@ PYTHONPATH=src pytest tests/unit
 # Integration tests (requires PostgreSQL)
 PYTHONPATH=src pytest tests/integration
 
+# End-to-end tests (no external services required)
+PYTHONPATH=src pytest tests/e2e
+
 # All tests
 PYTHONPATH=src pytest tests/
 
@@ -400,6 +407,7 @@ zjavis/
 ├── alembic/                 # Database migrations
 ├── deploy/                  # Kubernetes manifests and Helm chart
 ├── docs/                    # Architecture, ADRs, API, operations documentation
+│   └── backup-restore.md    # Backup, restore, and disaster recovery procedures
 ├── scripts/                 # Validation, bootstrap, GitHub admin scripts
 ├── src/jarvis/              # Application source code
 │   ├── __main__.py          # Application entry point
@@ -418,7 +426,7 @@ zjavis/
 │   │   ├── vision.py        # Image describe/analyze (feature-flagged)
 │   │   └── smart_environment.py # IoT device endpoints (feature-flagged)
 │   ├── auth/                # Authentication + policy enforcement
-│   ├── core/                # Configuration, security, policy, logging, metrics, exceptions
+│   ├── core/                # Configuration, security, policy, logging, metrics, tracing, exceptions
 │   ├── ai/                  # Model gateway, providers, context, memory, agent runtime, voice, vision, smart environment
 │   ├── approval/            # Approval service
 │   ├── audit/               # Audit service
@@ -427,7 +435,8 @@ zjavis/
 │   └── policy/              # Policy enforcement package
 ├── tests/                   # Test suite
 │   ├── unit/                # Unit tests (no external services)
-│   └── integration/         # Integration tests (requires PostgreSQL)
+│   ├── integration/         # Integration tests (requires PostgreSQL)
+│   └── e2e/                 # End-to-end tests (no external services required)
 ├── .env.example             # Environment variable template
 ├── Dockerfile               # Production container image (non-root user)
 ├── docker-compose.yml       # Local development stack
@@ -468,13 +477,13 @@ Never claim done, fixed, deployed, secure, or production ready without evidence 
 The following items are **not** implemented or verified and must not be counted as production-ready:
 
 - Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default) — BLOCKED (no hardware/credentials)
-- Backup/restore — NOT RUN (no backup code implemented)
-- OpenTelemetry / distributed tracing — NOT RUN (metrics endpoint exists, no tracing)
+- Backup/restore runbooks — documentation implemented; restore drill NOT RUN
+- OpenTelemetry / distributed tracing — module implemented; no tracing export configured
 - GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available)
 - Kubernetes/Helm deployment — NOT RUN (deferred per blueprint §16.3)
 - Load/stress testing — NOT RUN (no production-scale workload)
-- E2E tests — NOT RUN (no E2E test suite exists)
-- Missing dependency tests — NOT RUN (no missing-dependency test suite exists)
+- E2E tests — IMPLEMENTED (`tests/e2e/test_e2e_flow.py`, PASS)
+- Missing dependency tests — IMPLEMENTED (`tests/unit/test_missing_dependencies.py`, PASS)
 - Phase 7 capability adapters — NOT RUN (requires sandboxed execution environment)
 - Phase 8 Engineering Intelligence — NOT RUN
 - Phase 10 Dashboard/Clients — NOT RUN

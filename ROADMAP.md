@@ -142,12 +142,16 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`) — blocks private/reserved IPv4 and unsafe schemes
 - [x] Path traversal prevention (`validate_safe_path`) — confines paths within base directory, rejects `..`, null bytes, absolute paths
 - [x] Durable task orchestration engine (bounded execution, exponential backoff + jitter, cancellation, idempotency, state transition validation, dead-letter handling)
+- [x] Missing dependency tests — `tests/unit/test_missing_dependencies.py` verifies all production and dev dependencies are importable (PASS)
+- [x] E2E tests — `tests/e2e/test_e2e_flow.py` covers auth flow, health/metrics, security headers (PASS)
+- [x] OpenTelemetry tracing module — `src/jarvis/core/tracing.py` (no-op tracer when opentelemetry not installed; enabled via `JARVIS_TRACING_ENABLED=true`)
+- [x] Backup/Restore documentation — `docs/backup-restore.md` (procedures documented; restore drill NOT RUN)
 - [ ] Load and stress tests — NOT RUN (no production-scale workload)
 - [ ] Concurrency tests — NOT RUN
-- [ ] Backup and restore — NOT RUN (no backup code implemented)
+- [ ] Backup and restore restore drill — NOT RUN (no restore drill performed)
 - [ ] Disaster recovery — NOT RUN
 - [x] Deployment — Docker Compose available; Docker image `jarvis:local` builds successfully (PASS); K8s/Helm deferred per blueprint §16.3
-- [x] Observability (Prometheus metrics endpoint) — PARTIAL (no distributed tracing)
+- [x] Observability (Prometheus metrics endpoint) — PARTIAL (OpenTelemetry tracing module implemented; no distributed tracing export configured)
 - [ ] Alerting — NOT IMPLEMENTED
 - [ ] Cross-platform validation — NOT RUN
 - [x] Independent review — CODEOWNERS configured (@policedbc for src/, tests/, .github/)
