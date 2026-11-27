@@ -11,7 +11,7 @@ Changes must remain generic where applicable, secure by default, easy to customi
 - **Repository:** `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)
 - **Blueprint:** `javis-blueprint.md`
 - **Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)
-- **Phase status:** Phase 1 (Core Platform) COMPLETE and VERIFIED; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+- **Phase status:** Phase 1 (Core Platform) COMPLETE and VERIFIED; Orchestration Engine, SSRF/path traversal prevention, tenant isolation hardening, and execution-time policy enforcement implemented and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
 - **Version:** 0.1.0
 
 ## Operating rules
@@ -72,7 +72,7 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 245 passed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (documented False Positives) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
-| Docker build | `docker build -t jarvis:local .` | NOT RUN (Docker available, build not executed in this session) |
+| Docker build | `docker build -t jarvis:local .` | PASS (image built successfully, non-root appuser, Python 3.14-alpine) |
 
 ## Pull requests and releases
 

@@ -23,15 +23,15 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
-| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, state transition validation, idempotency keys |
+| Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build VERIFIED PASS |
+| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, absolute deadlines, per-step timeouts, retry with exponential backoff + jitter (secrets-based), cancellation propagation, idempotency keys, state transition validation, dead-letter handling |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation, content hash, provenance |
 | Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions |
 | Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
 | Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
 | Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
-| Observability | ✅ PARTIAL | Prometheus metrics endpoint (`/metrics`); no distributed tracing |
+| Observability | ✅ PARTIAL | Prometheus metrics endpoint (`/metrics`); structured JSON logging; no distributed tracing (OpenTelemetry) |
 | Backup / Restore | ❌ NOT RUN | No backup code implemented |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
 | Dashboard / Clients | ❌ NOT RUN | No frontend implemented |

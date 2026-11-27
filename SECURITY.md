@@ -123,7 +123,7 @@ Security incidents affecting production systems should preserve evidence and use
 | Critical | 0 | — | None |
 | High | 0 | RESOLVED | All 9 high-severity findings from prior audit fixed (tenant_id FK violations, auth header, CORS, config extra="forbid") |
 | Medium | 0 | — | None |
-| Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string (standard OAuth 2.0); dev-secret comparison in fail-closed validation |
+| Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string (standard OAuth 2.0); dev-secret comparison in fail-closed validation. Both documented in Final-Report.md §6.2. |
 
 ### Security areas not yet implemented (BLOCKED / NOT RUN)
 
@@ -132,7 +132,7 @@ Security incidents affecting production systems should preserve evidence and use
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
 - Backup/restore: not implemented → NOT RUN
 - OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
-- GPG commit signing: signing key requires passphrase, no TTY available → BLOCKED
+- GPG commit signing: signing key requires passphrase, `GPG_PASSPHRASE` env var present but signing not completed, no TTY available → BLOCKED
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
 - Load/stress testing: no production-scale workload → NOT RUN
 - E2E tests: no E2E test suite → NOT RUN

@@ -155,8 +155,8 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 | Unbounded agent execution | 0 | VERIFIED (bounded retries, timeouts) |
 | Untracked production changes | 0 | VERIFIED (all changes via PR) |
 | Task state invariants | 100% in defined test scenarios | VERIFIED |
-| Backup restore verification | Pass before release | NOT RUN |
-| Critical security findings | 0 before production release | VERIFIED |
+| Backup restore verification | Pass before release | NOT RUN (no backup code implemented) |
+| Critical security findings | 0 before production release | VERIFIED (Bandit: 0 actual findings; 2 documented False Positives) |
 
 ## Future optional modules (template)
 
