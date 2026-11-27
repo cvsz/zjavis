@@ -46,10 +46,14 @@ async def authenticate_user(
     result = await session.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if user is None:
-        logger.warning("Authentication failed: user not found", extra={"username": username})
+        logger.warning(
+            "Authentication failed: user not found", extra={"username": username}
+        )
         raise AuthenticationError("Invalid username or password")
     if not verify_password(password, user.password_hash):
-        logger.warning("Authentication failed: invalid password", extra={"username": username})
+        logger.warning(
+            "Authentication failed: invalid password", extra={"username": username}
+        )
         raise AuthenticationError("Invalid username or password")
     if not user.is_active:
         raise AuthenticationError("User account is disabled")
@@ -67,10 +71,17 @@ def create_tokens_for_user(user: User) -> dict[str, str]:
     """
     jwt_token = create_access_token(
         str(user.id),
-        additional_claims={"username": user.username, "is_superuser": user.is_superuser},
+        additional_claims={
+            "username": user.username,
+            "is_superuser": user.is_superuser,
+        },
     )
     refresh_token = generate_secure_token()
-    return {"access_token": jwt_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {
+        "access_token": jwt_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
 
 
 async def get_current_user(

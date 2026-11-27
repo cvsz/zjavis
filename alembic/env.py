@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from alembic import context
 
@@ -71,25 +71,17 @@ def do_run_migrations(connection) -> None:
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
-    An Engine (or AsyncEngine) is required here.
+    An AsyncEngine is required here.
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
-        future=True,
     )
 
-    # If we created an async engine, acquire a connection and run.
-    if isinstance(connectable, AsyncEngine):
-        async with connectable.connect() as connection:
-            await connection.run_sync(do_run_migrations)
-    else:
-        with connectable.connect() as connection:
-            do_run_migrations(connection)
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
 
-    if hasattr(connectable, "dispose"):
-        await connectable.dispose()
+    await connectable.dispose()
 
 
 if context.is_offline_mode():

@@ -65,6 +65,13 @@ def upgrade() -> None:
             index=True,
         ),
         sa.Column("email", sa.String(length=255), nullable=False, index=True),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
         sa.Column("username", sa.String(length=255), nullable=False, index=True),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),

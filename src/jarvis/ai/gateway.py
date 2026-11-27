@@ -57,7 +57,9 @@ class ModelGateway:
             max_context_tokens=4096,
         )
         self._routes["default"] = ModelRoute(
-            provider="local", model="local-model", capability=self._models["local-model"]
+            provider="local",
+            model="local-model",
+            capability=self._models["local-model"],
         )
 
         # Register OpenAI provider if credentials available
@@ -107,7 +109,9 @@ class ModelGateway:
                 "Cloud model fallback is ENABLED. Private data may egress to external providers.",
             )
         else:
-            self.logger.info("Cloud model fallback disabled (default per blueprint §4.2)")
+            self.logger.info(
+                "Cloud model fallback disabled (default per blueprint §4.2)"
+            )
 
     def register_provider(self, name: str, adapter: ProviderAdapter) -> None:
         """Register a model provider adapter.
@@ -142,7 +146,11 @@ class ModelGateway:
         self._routes[task_type] = route
         self.logger.info(
             "Route registered",
-            extra={"task_type": task_type, "provider": route.provider, "model": route.model},
+            extra={
+                "task_type": task_type,
+                "provider": route.provider,
+                "model": route.model,
+            },
         )
 
     def route(self, *, task_type: str = "default") -> ModelRoute:
@@ -162,7 +170,9 @@ class ModelGateway:
             raise ProviderError(f"No model route for task type: {task_type}")
         return route
 
-    def _check_budget(self, provider: str, model: str, estimated_tokens: int = 0) -> None:
+    def _check_budget(
+        self, provider: str, model: str, estimated_tokens: int = 0
+    ) -> None:
         """Check budget limits before allowing a request.
 
         Args:
@@ -229,9 +239,7 @@ class ModelGateway:
 
         # Assemble context with token budget
         max_tokens = route.capability.max_context_tokens
-        assembled_messages = assemble_context(
-            messages, max_tokens=max_tokens
-        )
+        assembled_messages = assemble_context(messages, max_tokens=max_tokens)
 
         # Estimate token count for budget check
         estimated_tokens = sum(
@@ -254,11 +262,17 @@ class ModelGateway:
         )
 
         try:
-            result = await adapter.complete(model=route.model, messages=assembled_messages, **kwargs)
+            result = await adapter.complete(
+                model=route.model, messages=assembled_messages, **kwargs
+            )
         except Exception as exc:
             self.logger.error(
                 "Provider completion failed",
-                extra={"provider": route.provider, "model": route.model, "error": str(exc)},
+                extra={
+                    "provider": route.provider,
+                    "model": route.model,
+                    "error": str(exc),
+                },
             )
             raise ProviderError(f"Provider {route.provider} failed: {exc}") from exc
 
@@ -334,7 +348,11 @@ class ModelGateway:
         except Exception as exc:
             self.logger.error(
                 "Provider streaming failed",
-                extra={"provider": route.provider, "model": route.model, "error": str(exc)},
+                extra={
+                    "provider": route.provider,
+                    "model": route.model,
+                    "error": str(exc),
+                },
             )
             raise ProviderError(f"Provider {route.provider} failed: {exc}") from exc
 

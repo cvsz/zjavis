@@ -54,7 +54,9 @@ async def describe_image(
     image_bytes = base64.b64decode(request.image_b64)
     result = await vision.describe_image(image_bytes=image_bytes, prompt=request.prompt)
     if "error" in result:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"])
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"]
+        )
     return DescribeImageResponse(
         description=result.get("description", ""),
         confidence=result.get("confidence", 0.0),
@@ -71,9 +73,13 @@ async def analyze_image(
     """Answer questions about an image."""
     await get_current_user(session, authorization)
     image_bytes = base64.b64decode(request.image_b64)
-    result = await vision.analyze_image(image_bytes=image_bytes, questions=request.questions)
+    result = await vision.analyze_image(
+        image_bytes=image_bytes, questions=request.questions
+    )
     if "error" in result:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"])
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"]
+        )
     return AnalyzeImageResponse(
         answers=result.get("answers", {}),
         provider=result.get("provider", "unknown"),

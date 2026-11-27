@@ -40,7 +40,9 @@ class UserResponse(BaseModel):
     is_superuser: bool
 
 
-@router.post("/login", response_model=LoginResponse, summary="Authenticate and obtain tokens")
+@router.post(
+    "/login", response_model=LoginResponse, summary="Authenticate and obtain tokens"
+)
 async def login(
     request: LoginRequest,
     session: AsyncSession = Depends(get_session),  # noqa: B008
@@ -51,9 +53,7 @@ async def login(
     return 401 without revealing whether the username exists.
     """
     try:
-        user = await authenticate_user(
-            session, request.username, request.user_pwd
-        )
+        user = await authenticate_user(session, request.username, request.user_pwd)
     except AuthenticationError:
         # Return generic failure to avoid user enumeration
         raise HTTPException(

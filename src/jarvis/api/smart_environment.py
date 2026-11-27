@@ -54,7 +54,9 @@ async def get_device_state(
     await get_current_user(session, authorization)
     result = await smart_environment.get_device_state(device_id)
     if "error" in result:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"])
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"]
+        )
     return DeviceStateResponse(
         device_id=result.get("device_id", device_id),
         state=result.get("state", {}),
@@ -72,7 +74,9 @@ async def set_device_state(
     await get_current_user(session, authorization)
     result = await smart_environment.set_device_state(device_id, request.state)
     if "error" in result:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"])
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=result["error"]
+        )
     return DeviceStateResponse(
         device_id=result.get("device_id", device_id),
         state=result.get("state", {}),

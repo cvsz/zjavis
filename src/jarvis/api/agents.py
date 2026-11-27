@@ -60,7 +60,7 @@ async def create_agent(
     """Create a new agent definition."""
     user = await get_current_user(session, authorization)
     agent = Agent(
-        tenant_id=user.id,
+        tenant_id=user.tenant_id or user.organization_id,
         name=request.name,
         version=request.version,
         description=request.description,

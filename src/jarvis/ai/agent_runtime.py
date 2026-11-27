@@ -56,18 +56,14 @@ class AgentRuntime:
         return UUID(str(value)) if value is not None else None
 
     async def _load_agent(self, agent_id: UUID) -> Agent:
-        result = await self.session.execute(
-            select(Agent).where(Agent.id == agent_id)
-        )
+        result = await self.session.execute(select(Agent).where(Agent.id == agent_id))
         agent = result.scalar_one_or_none()
         if agent is None:
             raise NotFoundError(f"Agent not found: {agent_id}")
         return agent
 
     async def _load_task(self, task_id: UUID) -> Task:
-        result = await self.session.execute(
-            select(Task).where(Task.id == task_id)
-        )
+        result = await self.session.execute(select(Task).where(Task.id == task_id))
         task = result.scalar_one_or_none()
         if task is None:
             raise NotFoundError(f"Task not found: {task_id}")
@@ -126,9 +122,7 @@ class AgentRuntime:
             if agent_id is not None:
                 agent = await self._load_agent(agent_id)
                 if not agent.is_active:
-                    raise PermissionError(
-                        f"Agent {agent.id} is not active"
-                    )
+                    raise PermissionError(f"Agent {agent.id} is not active")
 
         # Approval gate for risk tasks
         if await self._requires_approval(task) and not await self._is_approved(task):
@@ -139,9 +133,7 @@ class AgentRuntime:
                 actor_id=self._uuid(task.user_id),
                 details=f"Task {task_id} requires approval but none granted",
             )
-            raise PermissionError(
-                f"Task {task_id} requires approval before execution"
-            )
+            raise PermissionError(f"Task {task_id} requires approval before execution")
 
         # Mark task as running
         task.state = "running"

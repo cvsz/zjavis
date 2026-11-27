@@ -95,9 +95,7 @@ def create_app() -> FastAPI:
 
     # Global error handler for JarvisError -> consistent JSON responses.
     @app.exception_handler(JarvisError)
-    async def jarvis_error_handler(
-        request: Request, exc: JarvisError
-    ) -> JSONResponse:
+    async def jarvis_error_handler(request: Request, exc: JarvisError) -> JSONResponse:
         status_code = status.HTTP_400_BAD_REQUEST
         if isinstance(exc, AuthenticationError):
             status_code = status.HTTP_401_UNAUTHORIZED

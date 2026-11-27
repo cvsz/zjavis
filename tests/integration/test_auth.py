@@ -12,7 +12,7 @@ import anyio
 from httpx import ASGITransport, AsyncClient
 
 from jarvis.core.security import hash_password
-from jarvis.db.models import Organization, User
+from jarvis.db.models import Organization, Tenant, User
 
 
 async def _create_user_and_login(
@@ -34,8 +34,16 @@ async def _create_user_and_login(
         org = Organization(name=org_name, slug=org_slug)
         db_session.add(org)
         await db_session.flush()
+        tenant = Tenant(
+            organization_id=org.id,
+            name=org_name,
+            slug=org_slug,
+        )
+        db_session.add(tenant)
+        await db_session.flush()
         user = User(
             organization_id=org.id,
+            tenant_id=tenant.id,
             email=email,
             username=username,
             password_hash=hash_password(password),

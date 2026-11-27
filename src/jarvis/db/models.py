@@ -52,8 +52,12 @@ class Organization(Base, TimestampMixin):
     slug = Column(String(255), nullable=False, unique=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
-    users = relationship("User", back_populates="organization", cascade="all, delete-orphan")
-    tenants = relationship("Tenant", back_populates="organization", cascade="all, delete-orphan")
+    users = relationship(
+        "User", back_populates="organization", cascade="all, delete-orphan"
+    )
+    tenants = relationship(
+        "Tenant", back_populates="organization", cascade="all, delete-orphan"
+    )
 
 
 class User(Base, TimestampMixin):
@@ -68,6 +72,12 @@ class User(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
+    tenant_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     email = Column(String(255), nullable=False, index=True)
     username = Column(String(255), nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
@@ -80,7 +90,10 @@ class User(Base, TimestampMixin):
     )
 
     organization = relationship("Organization", back_populates="users")
-    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    tenant = relationship("Tenant")
+    sessions = relationship(
+        "Session", back_populates="user", cascade="all, delete-orphan"
+    )
     role_bindings = relationship(
         "RoleBinding", back_populates="user", cascade="all, delete-orphan"
     )
@@ -218,7 +231,9 @@ class Conversation(Base, TimestampMixin):
     is_archived = Column(Boolean, default=False, nullable=False)
 
     tenant = relationship("Tenant", back_populates="conversations")
-    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+    messages = relationship(
+        "Message", back_populates="conversation", cascade="all, delete-orphan"
+    )
 
 
 class Message(Base, TimestampMixin):
@@ -258,12 +273,20 @@ class Memory(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
-    memory_type = Column(String(50), nullable=False)  # working, conversation, episodic, semantic, procedural, project, preference
+    memory_type = Column(
+        String(50), nullable=False
+    )  # working, conversation, episodic, semantic, procedural, project, preference
     content = Column(Text, nullable=False)
-    content_hash = Column(String(64), nullable=True, index=True)  # SHA-256 hash for deduplication
+    content_hash = Column(
+        String(64), nullable=True, index=True
+    )  # SHA-256 hash for deduplication
     source = Column(String(255), nullable=True)
-    source_type = Column(String(50), nullable=True)  # document, web, conversation, email, etc.
-    source_id = Column(String(255), nullable=True, index=True)  # External source identifier
+    source_type = Column(
+        String(50), nullable=True
+    )  # document, web, conversation, email, etc.
+    source_id = Column(
+        String(255), nullable=True, index=True
+    )  # External source identifier
     confidence = Column(Integer, nullable=True)  # 0-100
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
@@ -315,7 +338,9 @@ class Task(Base, TimestampMixin):
     )
     task_type = Column(String(100), nullable=False)
     risk_classification = Column(String(50), default="low", nullable=False)
-    state = Column(String(50), default="queued", nullable=False)  # queued, running, blocked, completed, failed, cancelled
+    state = Column(
+        String(50), default="queued", nullable=False
+    )  # queued, running, blocked, completed, failed, cancelled
     idempotency_key = Column(String(255), nullable=True, index=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
@@ -348,7 +373,9 @@ class Approval(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    state = Column(String(50), default="pending", nullable=False)  # pending, granted, denied, expired
+    state = Column(
+        String(50), default="pending", nullable=False
+    )  # pending, granted, denied, expired
     expires_at = Column(DateTime(timezone=True), nullable=True)
 
 
@@ -371,7 +398,11 @@ class AuditEvent(Base, TimestampMixin):
         index=True,
     )
     event_type = Column(String(100), nullable=False, index=True)
-    event_category = Column(String(50), nullable=False)  # security, auth, system, tool, agent, memory
+    event_category = Column(
+        String(50), nullable=False
+    )  # security, auth, system, tool, agent, memory
     outcome = Column(String(50), nullable=False)  # success, failure, denial
     details = Column(Text, nullable=True)
-    occurred_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    occurred_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

@@ -14,14 +14,14 @@ from jarvis.ai.memory import MemoryService, chunk_text, generate_content_hash
 def _scalar_mock(value: Any) -> MagicMock:
     """Create a MagicMock whose scalar_one_or_none returns the given value."""
     mock = MagicMock()
-    mock.scalar_one_or_none = lambda: value  
+    mock.scalar_one_or_none = lambda: value
     return mock
 
 
 def _scalars_mock(values: list[Any]) -> MagicMock:
     """Create a MagicMock whose scalars().all() returns the given list."""
     mock = MagicMock()
-    mock.scalars = lambda: MagicMock(all=lambda: values)  
+    mock.scalars = lambda: MagicMock(all=lambda: values)
     return mock
 
 
@@ -136,8 +136,12 @@ class TestMemoryService:
         from jarvis.db.models import Memory
 
         service = MemoryService(mock_session)
-        m1 = Memory(id="m1", tenant_id="t1", user_id="u1", memory_type="c", content="hello")
-        m2 = Memory(id="m2", tenant_id="t1", user_id="u1", memory_type="c", content="world")
+        m1 = Memory(
+            id="m1", tenant_id="t1", user_id="u1", memory_type="c", content="hello"
+        )
+        m2 = Memory(
+            id="m2", tenant_id="t1", user_id="u1", memory_type="c", content="world"
+        )
         mock_session.execute.return_value = _scalars_mock([m1, m2])  # type: ignore[attr-defined]
 
         memories = await service.search_memories(tenant_id="t1", query="hello")
@@ -191,8 +195,16 @@ class TestMemoryService:
         from jarvis.db.models import Memory
 
         service = MemoryService(mock_session)
-        m1 = Memory(id="m1", tenant_id="t1", user_id="u1", memory_type="conversation", content="a")
-        m2 = Memory(id="m2", tenant_id="t1", user_id="u1", memory_type="episodic", content="b")
+        m1 = Memory(
+            id="m1",
+            tenant_id="t1",
+            user_id="u1",
+            memory_type="conversation",
+            content="a",
+        )
+        m2 = Memory(
+            id="m2", tenant_id="t1", user_id="u1", memory_type="episodic", content="b"
+        )
         mock_session.execute.return_value = _scalars_mock([m1, m2])  # type: ignore[attr-defined]
 
         stats = await service.get_memory_stats("t1")

@@ -62,7 +62,7 @@ async def create_task(
     """Create a new task."""
     user = await get_current_user(session, authorization)
     task = Task(
-        tenant_id=user.id,
+        tenant_id=user.tenant_id or user.organization_id,
         user_id=user.id,
         task_type=request.task_type,
         risk_classification=request.risk_classification,
