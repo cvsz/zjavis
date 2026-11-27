@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,7 +68,7 @@ async def login(
 @router.get("/me", response_model=UserResponse, summary="Get current user profile")
 async def get_me(
     session: AsyncSession = Depends(get_session),  # noqa: B008
-    authorization: str | None = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> UserResponse:
     """Return the profile of the currently authenticated user."""
     user = await get_current_user(session, authorization)
@@ -87,7 +87,7 @@ async def get_me(
 )
 async def superuser_check(
     session: AsyncSession = Depends(get_session),  # noqa: B008
-    authorization: str | None = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> dict[str, str]:
     """Require superuser access. Returns success if authorized."""
     user = await get_current_user(session, authorization)

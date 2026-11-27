@@ -6,14 +6,13 @@ Integrates with the AuditService for business logic.
 
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
 from jarvis.audit import AuditService
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
 
@@ -43,9 +42,10 @@ async def list_audit_events(
 ) -> list[AuditEventResponse]:
     """List audit events for the authenticated user's tenant."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = AuditService(session)
     events = await service.get_events(
-        tenant_id=UUID(str(user.id)),
+        tenant_id=tenant.id,
         event_type=event_type,
         event_category=event_category,
         limit=limit,

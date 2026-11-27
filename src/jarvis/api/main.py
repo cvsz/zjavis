@@ -85,10 +85,11 @@ def create_app() -> FastAPI:
     )
 
     # CORS — restrict to same-origin by default; configure via env if needed.
+    # allow_credentials must be False when allow_origins is wildcard per CORS spec.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )

@@ -1,7 +1,14 @@
 # Replace or extend ownership rules for generated repositories.
 * @cvsz
 
-/.github/ @cvsz
+# Independent reviewer for security and tenant isolation fixes
+/.github/ @policedbc
+/src/ @policedbc
+/tests/ @policedbc
+/Final-Report.md @policedbc
+/README.md @policedbc
+/alembic/ @policedbc
+
 /SECURITY.md @cvsz
 /AGENTS.md @cvsz
 /CLAUDE.md @cvsz

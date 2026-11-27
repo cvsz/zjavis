@@ -22,9 +22,50 @@ from jarvis.core.security import (
     verify_password,
 )
 from jarvis.db.models import Session as DbSession  # noqa: F401
-from jarvis.db.models import User
+from jarvis.db.models import Tenant, User
 
 logger = get_logger(__name__)
+
+
+async def get_or_create_user_tenant(
+    session: AsyncSession,
+    user: User,
+) -> Tenant:
+    """Return a tenant for the given user's organization.
+
+    Looks up an existing tenant in the user's organization. If none
+    exists, creates a default tenant for that organization so that
+    tenant-scoped resources (conversations, tasks, agents, memories)
+    can be associated with a valid tenant.
+
+    Args:
+        session: Database session.
+        user: The authenticated user.
+
+    Returns:
+        A Tenant instance associated with the user's organization.
+    """
+    result = await session.execute(
+        select(Tenant).where(Tenant.organization_id == user.organization_id).limit(1)
+    )
+    tenant = result.scalar_one_or_none()
+    if tenant is not None:
+        return tenant
+
+    tenant = Tenant(
+        organization_id=user.organization_id,
+        name=f"{user.username}'s workspace",
+        slug=f"user-{str(user.id)[:8]}",
+        is_active=True,
+    )
+    session.add(tenant)
+    await session.commit()
+    await session.refresh(tenant)
+    logger.info(
+        "Created default tenant for user",
+        extra={"user_id": str(user.id), "tenant_id": str(tenant.id)},
+    )
+    return tenant
 
 
 async def authenticate_user(

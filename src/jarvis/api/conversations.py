@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.gateway import gateway
 from jarvis.api.auth import get_current_user
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.exceptions import NotFoundError, ValidationError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
@@ -101,9 +102,10 @@ async def create_conversation(
 ) -> ConversationResponse:
     """Create a new conversation for the authenticated user."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     safe_title = sanitize_message_content(request.title) if request.title else None
     conversation = Conversation(
-        tenant_id=user.id,
+        tenant_id=tenant.id,
         user_id=user.id,
         title=safe_title,
     )
