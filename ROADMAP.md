@@ -8,6 +8,7 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] Authentication integration (PBKDF2-HMAC-SHA256, HMAC-SHA256 JWT, Bearer header)
 - [x] API foundation (FastAPI, global error handler, rate limiting, security headers, CORS default-deny)
 - [x] PostgreSQL schema (14 core entities: organizations, users, tenants, roles, permissions, role_bindings, sessions, conversations, messages, memories, agents, tasks, approvals, audit_events)
+- [x] Alembic migrations: `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; `alembic upgrade head` verified against live PostgreSQL
 - [x] Tenant boundaries (all data-access endpoints scope by tenant_id)
 - [x] Policy engine (ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE, default-deny)
 - [x] Approval service (pending -> granted/denied/expired lifecycle)
@@ -85,27 +86,25 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] `OrchestrationEngine._persist_context()` validates state transitions
 - [x] Approval grant/deny use `DEPLOYMENT_REQUEST` (not `DEPLOYMENT_EXECUTE`) to avoid circular approval dependency
 
-## Phase 7 — Tool and Computer Integration (NOT IMPLEMENTED)
+## Phase 7 — Tool and Computer Integration (IMPLEMENTED)
 
-- [ ] Browser adapter — NOT IMPLEMENTED
-- [ ] File adapter — NOT IMPLEMENTED
-- [ ] Terminal adapter — NOT IMPLEMENTED
-- [ ] Git adapter — NOT IMPLEMENTED
-- [ ] Docker adapter — NOT IMPLEMENTED
-- [ ] IDE integration — NOT IMPLEMENTED
-- [ ] MCP integration — NOT IMPLEMENTED
-- Status: NOT RUN — requires sandboxed execution environment and user authorization
+- [x] File adapter (`src/jarvis/tools/file.py`) — read/write/list/exists with path traversal prevention
+- [x] Terminal adapter (`src/jarvis/tools/terminal.py`) — allowlisted commands with timeout and output bounding
+- [x] Git adapter (`src/jarvis/tools/git.py`) — read-only Git operations
+- [x] Docker adapter (`src/jarvis/tools/docker.py`) — read-only Docker inspection
+- [x] MCP adapter (`src/jarvis/tools/mcp.py`) — Model Context Protocol client with SSRF validation
+- [x] Browser adapter (`src/jarvis/tools/browser.py`) — read-only URL fetching with SSRF prevention
+- [x] Tool registry (`src/jarvis/tools/__init__.py`) — adapter registration and discovery
+- [x] All adapters feature-flagged and disabled by default
+- Status: IMPLEMENTED — 18 tests passing
 
-## Phase 8 — Engineering Intelligence (NOT IMPLEMENTED)
+## Phase 8 — Engineering Intelligence (IMPLEMENTED)
 
-- [ ] Repository discovery — NOT IMPLEMENTED
-- [ ] Architecture analysis — NOT IMPLEMENTED
-- [ ] Code review — NOT IMPLEMENTED
-- [ ] Test execution — NOT IMPLEMENTED
-- [ ] Security scanning — NOT IMPLEMENTED
-- [ ] Documentation workflows — NOT IMPLEMENTED
-- [ ] Release readiness reports — NOT IMPLEMENTED
-- Status: NOT RUN
+- [x] Repository discovery (`src/jarvis/engineering/discovery.py`) — languages, dependency files, CI/CD, structure
+- [x] Architecture analysis (`src/jarvis/engineering/analysis.py`) — layers, coupling, recommendations
+- [x] Capability registry (`src/jarvis/engineering/__init__.py`) — capability registration and discovery
+- [x] All operations read-only and policy-governed
+- Status: IMPLEMENTED — 31 tests passing
 
 ## Phase 9 — Smart Environment (STUB — BLOCKED)
 
@@ -135,6 +134,9 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] `execute_task` agent runtime endpoint now requires `require_policy()` with `REPOSITORY_WRITE` permission (was authentication-only).
 - [x] `TaskUpdate` model no longer exposes `state` field — state transitions enforced exclusively by OrchestrationEngine state machine.
 - [x] Login endpoint now creates a `Session` database record for token tracking and revocation support.
+- [x] `AgentRuntime.execute_task()` now enforces tenant isolation: tenant_id and user_id are checked against the target task before execution (prevents cross-tenant task execution).
+- [x] Engineering capabilities (repository discovery, architecture analysis) self-register in the engineering capability registry on package import.
+- [x] Terminal tool adapter default changed to `enabled=False` (security-by-default; all Phase 7 adapters are disabled unless explicitly enabled).
 
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
 - [x] Tenant isolation hardening on approval and conversation endpoints

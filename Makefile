@@ -106,6 +106,17 @@ help: ## Show this help message
 	@awk '/^.PHONY:.*clean/ {getline; print "  make clean             - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
 	@awk '/^.PHONY:.*deps/ {getline; print "  make deps              - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
 	@awk '/^.PHONY:.*deps-audit/ {getline; print "  make deps-audit        - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@printf '\n$(BOLD)Service Management:$(RESET)\n'
+	@awk '/^.PHONY:.*autoloop-start/ {getline; print "  make autoloop-start    - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-stop/ {getline; print "  make autoloop-stop     - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-restart/ {getline; print "  make autoloop-restart  - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-status/ {getline; print "  make autoloop-status   - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-enable/ {getline; print "  make autoloop-enable   - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-disable/ {getline; print "  make autoloop-disable  - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-is-active/ {getline; print "  make autoloop-is-active - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-is-enabled/ {getline; print "  make autoloop-is-enabled - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^.PHONY:.*autoloop-live/ {getline; print "  make autoloop-live       - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
+	@awk '/^autoloop: ##/ {print "  make autoloop FLAG=<flag> - " $$0}' $(MAKEFILE_LIST) | sed 's/## / - /'
 	@printf '\n$(BOLD)Key Variables:$(RESET)\n'
 	@printf '  REPO=%s          - GitHub repo (owner/name)\n' "$(REPO)"
 	@printf '  BRANCH=%s        - Default branch\n' "$(BRANCH)"
@@ -519,6 +530,57 @@ doctor: ## Check development environment
 .PHONY: list-targets
 list-targets: ## List all Makefile targets
 	@awk '/^.PHONY:/ {for(i=2;i<=NF;i++) print $$i}' $(MAKEFILE_LIST) | sort -u
+
+# =============================================================================
+# SERVICE MANAGEMENT
+# =============================================================================
+.PHONY: autoloop
+autoloop: ## Run zjavis-run.service via systemctl --user (usage: make autoloop FLAG=start|stop|restart|status|enable|disable|is-active|is-enabled)
+	@if [ -z "$(FLAG)" ]; then \
+		printf '$(RED)Usage: make autoloop FLAG=<systemctl flag> [FLAG_ARGS=...]$(RESET)\n' >&2; \
+		printf '  Example: make autoloop FLAG=start\n' >&2; \
+		printf '  Example: make autoloop FLAG=status\n' >&2; \
+		exit 2; \
+	fi
+	@printf '$(BLUE)==> Running: systemctl --user %s zjavis-run.service$(RESET)\n' "$(FLAG)"
+	@systemctl --user "$(FLAG)" zjavis-run.service $(FLAG_ARGS)
+
+.PHONY: autoloop-start
+autoloop-start: ## Start zjavis-run.service (user systemd)
+	@$(MAKE) autoloop FLAG=start
+
+.PHONY: autoloop-stop
+autoloop-stop: ## Stop zjavis-run.service (user systemd)
+	@$(MAKE) autoloop FLAG=stop
+
+.PHONY: autoloop-restart
+autoloop-restart: ## Restart zjavis-run.service (user systemd)
+	@$(MAKE) autoloop FLAG=restart
+
+.PHONY: autoloop-status
+autoloop-status: ## Show zjavis-run.service status (user systemd)
+	@$(MAKE) autoloop FLAG=status
+
+.PHONY: autoloop-enable
+autoloop-enable: ## Enable zjavis-run.service on login (user systemd)
+	@$(MAKE) autoloop FLAG=enable
+
+.PHONY: autoloop-disable
+autoloop-disable: ## Disable zjavis-run.service on login (user systemd)
+	@$(MAKE) autoloop FLAG=disable
+
+.PHONY: autoloop-is-active
+autoloop-is-active: ## Check if zjavis-run.service is active
+	@$(MAKE) autoloop FLAG=is-active
+
+.PHONY: autoloop-is-enabled
+autoloop-is-enabled: ## Check if zjavis-run.service is enabled
+	@$(MAKE) autoloop FLAG=is-enabled
+
+.PHONY: autoloop-live
+autoloop-live: ## Stream live logs of zjavis-run.service (user systemd journal)
+	@printf '$(BLUE)==> Streaming live logs for zjavis-run.service (Ctrl-C to stop)...$(RESET)\n'
+	@journalctl --user -u zjavis-run.service -f
 
 # =============================================================================
 # META

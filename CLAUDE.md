@@ -18,11 +18,15 @@ Use: `VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED`, `BLOCKED`, `NOT APPLICABLE`
 
 - **Blueprint:** `javis-blueprint.md` defines target architecture and roadmap.
 - **Phase 1 (Core Platform):** COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, orchestration engine, SSRF/path traversal prevention, and API routes.
+- **Phase 7 (Tool & Computer Integration):** IMPLEMENTED — File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry.
+- **Phase 8 (Engineering Intelligence):** IMPLEMENTED — Repository discovery, architecture analysis, engineering capability registry. All operations read-only and policy-governed.
 - **Security hardening:** tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context to PolicyEngine; `AgentRuntime` API passes `enabled=settings.agent_runtime_enabled`; `OrchestrationEngine` validates state transitions.
 - **Blocked/NOT RUN:** Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY).
 - **Do not claim Production Ready or 100% Complete** while Critical/High findings, failed tests, or unmet conditions remain.
-- **Tests:** 273 passing (221 unit/integration + 46 template + 6 missing-dependency/e2e; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives), Docker build PASS (`jarvis:local` image built successfully).
+- **Tests:** 330 passing (225 unit/integration + 46 template + 59 Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives), Docker build PASS (`jarvis:local` image built successfully).
+- **Alembic migrations fixed:** `alembic/env.py` `connectable.dispose()` corrected for sync engine; `alembic upgrade head` verified passing against live PostgreSQL.
 - **Authorization hardening (this session):** `request_approval` endpoint now requires `require_policy()`; `execute_task` agent runtime endpoint now requires `require_policy()`; `state` field removed from `TaskUpdate` to prevent direct state mutation; login creates a `Session` record for token revocation support.
+- **RBAC repair (this session):** Added `role_permissions` junction table (migration `0002_add_role_permissions`). Fixed `get_user_permissions()` join so roles carry atomic permissions. Default permissions, default "user" role, and caller role binding self-provisioned idempotently.
 
 ## For GitHub repository-administration work
 

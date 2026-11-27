@@ -14,11 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.agent_runtime import AgentRuntime
 from jarvis.api.auth import get_current_user
-from jarvis.auth import require_policy
+from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.config import settings
 from jarvis.core.logging import get_logger
 from jarvis.core.security import Permission
 from jarvis.db import get_session
+from jarvis.db.models import User
 
 logger = get_logger(__name__)
 
@@ -52,10 +53,15 @@ async def execute_task(
     authorization: str | None = None,
 ) -> TaskExecuteResponse:
     """Execute a task through the agent runtime."""
-    await get_current_user(session, authorization)
+    user: User = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     runtime = AgentRuntime(session=session, enabled=settings.agent_runtime_enabled)
     try:
-        result = await runtime.execute_task(request.task_id)
+        result = await runtime.execute_task(
+            request.task_id,
+            tenant_id=tenant.id,
+            user_id=user.id,
+        )
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except RuntimeError as exc:

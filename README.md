@@ -23,12 +23,12 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 273 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 330 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
 | Authentication & Authorization | ✅ COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation |
 | Policy Engine | ✅ COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging | ✅ COMPLETE / VERIFIED | Structured JSON logging with `SecretFilter` redaction |
 | Metrics / Observability | ✅ PARTIAL | Prometheus `/metrics` endpoint; OpenTelemetry tracing module implemented (no-op when opentelemetry not installed) |
-| Data Layer (PostgreSQL + Alembic) | ✅ COMPLETE / VERIFIED | 14 SQLAlchemy models; initial migration `0001_initial_schema` |
+| Data Layer (PostgreSQL + Alembic) | ✅ COMPLETE / VERIFIED | 14 SQLAlchemy models; migrations `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic upgrade head` verified; `alembic/env.py` `connectable.dispose()` sync engine fix applied |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
 | Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
 | Orchestration Engine | ✅ IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
@@ -38,8 +38,8 @@
 | Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
 | Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
 | Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
-| Tool & Computer Integration (Phase 7) | ❌ NOT RUN | Browser/File/Terminal/Git/Docker/IDE/MCP adapters not implemented |
-| Engineering Intelligence (Phase 8) | ❌ NOT RUN | Repository discovery, code review, security scanning, etc. not implemented |
+| Tool & Computer Integration (Phase 7) | ✅ IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry |
+| Engineering Intelligence (Phase 8) | ✅ IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed |
 | Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
 | Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
@@ -49,7 +49,24 @@
 | Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
 | Social Preview Image | ⚠️ BLOCKED | 1×1 placeholder; external image generation service has no credits |
 
+
 ---
+
+## Table of Contents
+
+- [Project Identity](#project-identity)
+- [Bridge Status](#bridge-status)
+- [Features Implemented](#features-implemented)
+- [Architecture](#architecture)
+- [Security Controls](#security-controls)
+- [Configuration](#configuration)
+- [Getting Started](#getting-started)
+- [Development](#development)
+- [Project Structure](#project-structure)
+- [Evidence States](#evidence-states)
+- [Limitations and Open Findings](#limitations-and-open-findings)
+- [License](#license)
+- [Governance](#governance)
 
 ## Overview
 
@@ -79,6 +96,8 @@ and memories.
 | Database | PostgreSQL 16+ (SQLAlchemy async, Alembic migrations) |
 | Cache / Transient | Redis 7+ (optional) |
 | Version | 0.1.0 |
+|---------|-------|
+| Status | PARTIALLY VERIFIED — Phase 1 complete and verified; Phase 7 tool adapters and Phase 8 engineering intelligence implemented and verified; Phases 2-6, 9-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md). |
 | License | MIT |
 
 ---
@@ -129,8 +148,30 @@ and memories.
 | Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` | No |
 | Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged, disabled) | Yes |
 | Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged, disabled) | Yes |
-| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`) |
+| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`); `execute_task()` enforces tenant isolation (tenant_id/user_id scope checked against target task) |
 | Smart Environment | `/api/v1/smart-environment` | `GET /devices`, `GET /devices/{id}/state`, `POST /devices/{id}/state` (feature-flagged, disabled) | Yes |
+| Tool Registry | Internal | `src/jarvis/tools/` — File, Terminal, Git, Docker, MCP, Browser adapters | Feature-flagged, disabled by default |
+
+### Tool & Computer Integration (Phase 7)
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Tool Registry | `src/jarvis/tools/__init__.py` | Adapter registry (register/get/list) for all capability adapters |
+| Base Adapter | `src/jarvis/tools/base.py` | `BaseToolAdapter` abstract class and `ToolResult` standardized result |
+| File Adapter | `src/jarvis/tools/file.py` | Read/write/list/exists with path traversal prevention via `validate_safe_path()` |
+| Terminal Adapter | `src/jarvis/tools/terminal.py` | Allowlisted command execution with timeouts and output bounding; disabled by default |
+| Git Adapter | `src/jarvis/tools/git.py` | Read-only Git operations (status, log, diff, show, branch, etc.) |
+| Docker Adapter | `src/jarvis/tools/docker.py` | Read-only Docker inspection (ps, images, inspect, version, etc.) |
+| MCP Adapter | `src/jarvis/tools/mcp.py` | Model Context Protocol client with SSRF validation |
+| Browser Adapter | `src/jarvis/tools/browser.py` | Read-only URL fetching with SSRF prevention and content-type filtering |
+
+### Engineering Intelligence (Phase 8)
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Capability Registry | `src/jarvis/engineering/__init__.py` | Registry for engineering intelligence capabilities |
+| Repository Discovery | `src/jarvis/engineering/discovery.py` | Discovers languages, dependency files, CI/CD, test/src directories |
+| Architecture Analysis | `src/jarvis/engineering/analysis.py` | Identifies layers, coupling, and recommendations |
 
 ### AI Model Gateway (Phase 2)
 
@@ -431,8 +472,10 @@ zjavis/
 │   ├── approval/            # Approval service
 │   ├── audit/               # Audit service
 │   ├── db/                  # Database models and session
+│   ├── engineering/         # Engineering intelligence (repository discovery, architecture analysis)
 │   ├── orchestration/       # Durable task orchestration (retry, cancellation, state transitions)
-│   └── policy/              # Policy enforcement package
+│   ├── policy/              # Policy enforcement package
+│   └── tools/               # Tool & Computer Integration adapters (file, terminal, git, docker, mcp, browser)
 ├── tests/                   # Test suite
 │   ├── unit/                # Unit tests (no external services)
 │   ├── integration/         # Integration tests (requires PostgreSQL)
@@ -476,16 +519,15 @@ Never claim done, fixed, deployed, secure, or production ready without evidence 
 
 The following items are **not** implemented or verified and must not be counted as production-ready:
 
+- Tool & Computer Integration (Phase 7) — IMPLEMENTED (file, terminal, git, docker, MCP, browser adapters)
+- Engineering Intelligence (Phase 8) — IMPLEMENTED (repository discovery, architecture analysis)
 - Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default) — BLOCKED (no hardware/credentials)
 - Backup/restore runbooks — documentation implemented; restore drill NOT RUN
 - OpenTelemetry / distributed tracing — module implemented; no tracing export configured
+- Alembic migrations — `0002_add_role_permissions` added (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL
 - GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available)
 - Kubernetes/Helm deployment — NOT RUN (deferred per blueprint §16.3)
 - Load/stress testing — NOT RUN (no production-scale workload)
-- E2E tests — IMPLEMENTED (`tests/e2e/test_e2e_flow.py`, PASS)
-- Missing dependency tests — IMPLEMENTED (`tests/unit/test_missing_dependencies.py`, PASS)
-- Phase 7 capability adapters — NOT RUN (requires sandboxed execution environment)
-- Phase 8 Engineering Intelligence — NOT RUN
 - Phase 10 Dashboard/Clients — NOT RUN
 
 Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain.

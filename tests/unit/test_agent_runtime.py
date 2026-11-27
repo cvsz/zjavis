@@ -8,7 +8,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.agent_runtime import AgentRuntime
-from jarvis.core.exceptions import NotFoundError
+from jarvis.core.exceptions import AuthorizationError, NotFoundError
+from jarvis.db.models import Task
 
 
 class TestAgentRuntime:
@@ -87,3 +88,93 @@ class TestAgentRuntime:
         task.id = None
         result = await runtime._is_approved(task)
         assert result is False
+
+    @pytest.mark.asyncio
+    async def test_execute_task_tenant_isolation_violation(
+        self, runtime: AgentRuntime
+    ) -> None:
+        """execute_task must reject a task that belongs to a different tenant."""
+        import uuid
+
+        wrong_tenant = uuid.uuid4()
+        task = Task(
+            id=uuid.uuid4(),
+            tenant_id=wrong_tenant,
+            user_id=uuid.uuid4(),
+            task_type="test",
+            risk_classification="low",
+        )
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = task
+        runtime.session.execute.return_value = mock_result
+
+        with pytest.raises(AuthorizationError) as exc:
+            await runtime.execute_task(
+                task.id, tenant_id=uuid.uuid4(), user_id=task.user_id
+            )
+        assert exc.value.code == "tenant_isolation_violation"
+
+    @pytest.mark.asyncio
+    async def test_execute_task_user_ownership_violation(
+        self, runtime: AgentRuntime
+    ) -> None:
+        """execute_task must reject a task that belongs to a different user."""
+        import uuid
+
+        task = Task(
+            id=uuid.uuid4(),
+            tenant_id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            task_type="test",
+            risk_classification="low",
+        )
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = task
+        runtime.session.execute.return_value = mock_result
+
+        with pytest.raises(AuthorizationError) as exc:
+            await runtime.execute_task(
+                task.id, tenant_id=task.tenant_id, user_id=uuid.uuid4()
+            )
+        assert exc.value.code == "user_ownership_violation"
+
+    @pytest.mark.asyncio
+    async def test_execute_task_matching_tenant_and_user_passes(
+        self, runtime: AgentRuntime
+    ) -> None:
+        """execute_task proceeds when tenant_id and user_id match the task."""
+        import uuid
+
+        tenant_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        task = Task(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            user_id=user_id,
+            task_type="test",
+            risk_classification="low",
+            state="queued",
+        )
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = task
+        runtime.session.execute.return_value = mock_result
+
+        # Approval not required for low risk; orchestration engine will be
+        # invoked. Mock the engine to avoid real execution.
+        from unittest.mock import AsyncMock, patch
+
+        fake_engine = AsyncMock()
+        fake_engine.execute.return_value = {
+            "state": "completed",
+            "task_id": str(task.id),
+            "response": "ok",
+            "retries": 0,
+        }
+        with patch(
+            "jarvis.ai.agent_runtime.OrchestrationEngine", return_value=fake_engine
+        ):
+            result = await runtime.execute_task(
+                task.id, tenant_id=tenant_id, user_id=user_id
+            )
+        assert result["state"] == "completed"
+        assert result["response"] == "ok"
