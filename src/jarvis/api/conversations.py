@@ -18,9 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.gateway import gateway
 from jarvis.api.auth import get_current_user
-from jarvis.auth import get_or_create_user_tenant
+from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.exceptions import NotFoundError, ValidationError
 from jarvis.core.logging import get_logger
+from jarvis.core.security import Permission
 from jarvis.db import get_session
 from jarvis.db.models import Conversation, Message
 
@@ -94,10 +95,19 @@ class ChatResponse(BaseModel):
     usage: dict[str, int]
 
 
-@router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_conversation(
     request: ConversationCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.READ,
+            action="create conversation",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ) -> ConversationResponse:
     """Create a new conversation for the authenticated user."""
@@ -154,6 +164,13 @@ async def create_message(
     conversation_id: UUID,
     request: MessageCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.READ,
+            action="create message",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ) -> MessageResponse:
     """Add a message to a conversation."""
@@ -198,6 +215,13 @@ async def chat(
     conversation_id: UUID,
     request: ChatRequest,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.READ,
+            action="send chat message",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ) -> ChatResponse:
     """Send a message and get an AI response.
@@ -240,9 +264,7 @@ async def chat(
     recent_messages.reverse()  # Chronological order
 
     # Build messages for model gateway
-    messages = [
-        {"role": m.role, "content": m.content} for m in recent_messages
-    ]
+    messages = [{"role": m.role, "content": m.content} for m in recent_messages]
 
     # Call model gateway
     result = await gateway.complete(
@@ -289,6 +311,13 @@ async def chat_stream(
     conversation_id: UUID,
     request: ChatRequest,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.READ,
+            action="stream chat message",
+            risk_level="low",
+        )
+    ),
     authorization: str | None = None,
 ):
     """Send a message and get a streaming AI response.
@@ -330,9 +359,7 @@ async def chat_stream(
     recent_messages = list(result_msgs.scalars().all())
     recent_messages.reverse()
 
-    messages = [
-        {"role": m.role, "content": m.content} for m in recent_messages
-    ]
+    messages = [{"role": m.role, "content": m.content} for m in recent_messages]
 
     async def stream_generator():
         """Stream AI response chunks and save complete response."""

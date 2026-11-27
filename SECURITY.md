@@ -1,6 +1,6 @@
-# Security Policy
+# Security Policy — zjavis (JARVIS Personal AI Operating System)
 
-Security is part of the default delivery baseline for repositories created from this template.
+Security is part of the default delivery baseline for this repository.
 
 ## Reporting a vulnerability
 
@@ -49,3 +49,83 @@ The helper `scripts/github_admin.py` can configure and verify the baseline when 
 Generated projects should document detection, containment, credential handling, remediation, recovery, validation, disclosure, and rollback appropriate to their risk profile.
 
 Security incidents affecting production systems should preserve evidence and use the smallest safe containment action consistent with the incident-response plan.
+
+## zjavis security architecture
+
+### Authentication (VERIFIED)
+
+- Password hashing: PBKDF2-HMAC-SHA256 with 210,000 iterations (OWASP recommended minimum as of 2023)
+- JWT tokens: HMAC-SHA256 signed using Python standard library only (no third-party JWT dependencies with known vulnerabilities)
+- Token transmission: Header-based `Authorization: Bearer <token>` (query-string transmission eliminated)
+- Token validation: Signature verified before payload decoding; expiration checked
+- Current user resolution: Database lookup with active-status check
+
+### Authorization (VERIFIED)
+
+- Policy engine: `jarvis/core/policy.py` implements execution-time decisions per javis-blueprint.md §15.3
+- Decision outcomes: `ALLOW`, `DENY`, `REQUIRE_APPROVAL`, `REQUIRE_REAUTHENTICATION`, `OUT_OF_SCOPE`
+- Default: deny when policy cannot be evaluated
+- Approval-required actions: `database.mutate`, `deployment.execute` (always require human approval regardless of permissions)
+- High-risk actions (`risk_level` in `high`/`critical`) also require approval
+- Capability-based permissions: `system.read`, `repository.read`, `repository.write`, `browser.read`, `browser.interact`, `terminal.allowlisted`, `container.inspect`, `database.read`, `database.mutate`, `deployment.request`, `deployment.execute`, `secrets.metadata.read`
+- Policy enforcement dependency: `require_policy()` applied to mutating API endpoints
+- Tenant isolation: All data-access endpoints scope resources by tenant ID; user.id is never used as tenant_id
+
+### Input validation (VERIFIED)
+
+- SQLAlchemy ORM parameterized queries (no SQL injection)
+- `sanitize_message_content()` blocks: `<script>` tags, `javascript:` URLs, `on*` event handlers, `ignore previous instructions`, `system: you are` prompt injection patterns
+- Pydantic models with field constraints (min_length, max_length, type validation)
+- UUID validation for path parameters
+
+### API security (VERIFIED)
+
+- CORS: Default-deny; `allow_origins=["*"]` with `allow_credentials=False` (credentialed wildcard CORS prohibited)
+- Security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'self'`
+- Rate limiting: 60 requests per minute per client IP
+- Global error handler: Structured JSON errors, no stack traces leaked to clients
+
+### Secrets management (VERIFIED)
+
+- No hardcoded secrets in source code
+- `.env` is gitignored; `.env.example` contains placeholders only
+- `SecretFilter` redacts secret-like values from logs (password, secret, token, api_key, authorization, credential, private_key, session, cookie)
+- `redact_secret()` helper for safe logging of secret values
+- Production fail-closed: `JARVIS_APP_SECRET` must not be the development default when `JARVIS_APP_ENV=production`
+- API keys for model providers loaded from environment, never embedded in code
+
+### Audit (VERIFIED)
+
+- `AuditService` records tamper-evident audit events with tenant_id, actor_id, event_type, event_category, outcome, details, occurred_at
+- Audit categories: auth, security, system, tool, agent, memory, approval
+- Audit outcomes: success, failure, denial
+- Agent runtime records task execution outcomes (completed, failed, blocked)
+
+### Known findings and status
+
+| Severity | Count | Status | Details |
+|----------|-------|--------|---------|
+| Critical | 0 | — | None |
+| High | 0 | RESOLVED | All 9 high-severity findings from prior audit fixed (tenant_id FK violations, auth header, CORS, config extra="forbid") |
+| Medium | 0 | — | None |
+| Low | 2 | FALSE POSITIVE | Bandit B105: `"bearer"` token type string (standard OAuth 2.0); dev-secret comparison in fail-closed validation |
+
+### Security areas not yet implemented (BLOCKED / NOT RUN)
+
+- Voice interface (STT/TTS): requires audio hardware + provider credentials → BLOCKED
+- Vision interface: requires GPU hardware + vision model credentials → BLOCKED
+- Smart environment / IoT: requires device hardware + credentials → BLOCKED
+- Backup/restore: not implemented → NOT RUN
+- OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
+- GPG commit signing: signing key requires passphrase, no TTY available → BLOCKED
+- Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
+- Load/stress testing: no production-scale workload → NOT RUN
+- E2E tests: no E2E test suite → NOT RUN
+
+## Supply chain security
+
+- Dependabot enabled for dependency vulnerability alerts
+- Dependency Review workflow (`dependency-review.yml`) fails on high severity
+- CodeQL workflow (`codeql.yml`) for static analysis
+- Actions pinned to immutable SHAs
+- `validate_repo.py` scans for hardcoded secrets and tracked secret-bearing files

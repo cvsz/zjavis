@@ -13,9 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
-from jarvis.auth import get_or_create_user_tenant
+from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
+from jarvis.core.security import Permission
 from jarvis.db import get_session
 from jarvis.db.models import Task
 
@@ -58,6 +59,14 @@ class TaskResponse(BaseModel):
 async def create_task(
     request: TaskCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="create task",
+            risk_level="medium",
+            require_approval_on=frozenset({Permission.DATABASE_MUTATE}),
+        )
+    ),
     authorization: str | None = None,
 ) -> TaskResponse:
     """Create a new task."""
@@ -102,7 +111,9 @@ async def list_tasks(
     """List tasks for the authenticated user."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
-    query = select(Task).where(Task.user_id == user.id).where(Task.tenant_id == tenant.id)
+    query = (
+        select(Task).where(Task.user_id == user.id).where(Task.tenant_id == tenant.id)
+    )
     if state is not None:
         query = query.where(Task.state == state)
     if task_type is not None:
@@ -139,7 +150,9 @@ async def get_task(
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
+        select(Task).where(
+            Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id
+        )
     )
     task = result.scalar_one_or_none()
     if task is None:
@@ -165,13 +178,23 @@ async def update_task(
     task_id: UUID,
     request: TaskUpdate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="update task",
+            risk_level="medium",
+            require_approval_on=frozenset({Permission.DATABASE_MUTATE}),
+        )
+    ),
     authorization: str | None = None,
 ) -> TaskResponse:
     """Update a task."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
+        select(Task).where(
+            Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id
+        )
     )
     task = result.scalar_one_or_none()
     if task is None:
@@ -211,13 +234,23 @@ async def update_task(
 async def delete_task(
     task_id: UUID,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="delete task",
+            risk_level="high",
+            require_approval_on=frozenset({Permission.DATABASE_MUTATE}),
+        )
+    ),
     authorization: str | None = None,
 ) -> None:
     """Delete a task."""
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
+        select(Task).where(
+            Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id
+        )
     )
     task = result.scalar_one_or_none()
     if task is None:
