@@ -94,7 +94,9 @@ class ChatResponse(BaseModel):
     usage: dict[str, int]
 
 
-@router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_conversation(
     request: ConversationCreate,
     session: AsyncSession = Depends(get_session),  # noqa: B008
@@ -240,9 +242,7 @@ async def chat(
     recent_messages.reverse()  # Chronological order
 
     # Build messages for model gateway
-    messages = [
-        {"role": m.role, "content": m.content} for m in recent_messages
-    ]
+    messages = [{"role": m.role, "content": m.content} for m in recent_messages]
 
     # Call model gateway
     result = await gateway.complete(
@@ -330,9 +330,7 @@ async def chat_stream(
     recent_messages = list(result_msgs.scalars().all())
     recent_messages.reverse()
 
-    messages = [
-        {"role": m.role, "content": m.content} for m in recent_messages
-    ]
+    messages = [{"role": m.role, "content": m.content} for m in recent_messages]
 
     async def stream_generator():
         """Stream AI response chunks and save complete response."""

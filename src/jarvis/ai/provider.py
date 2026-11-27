@@ -63,9 +63,13 @@ class ProviderAdapter:
         """Return a redacted form of the credential for logging."""
         return str(redact_secret(self._credential))
 
-    async def complete(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+    async def complete(
+        self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, Any]:
         """Complete a chat completion. Must be implemented by subclasses."""
-        raise ProviderError(f"Provider {self.provider_name} does not implement complete()")
+        raise ProviderError(
+            f"Provider {self.provider_name} does not implement complete()"
+        )
 
     def complete_stream(
         self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any
@@ -74,7 +78,9 @@ class ProviderAdapter:
 
         Yields chunks of the completion response.
         """
-        raise ProviderError(f"Provider {self.provider_name} does not implement complete_stream()")
+        raise ProviderError(
+            f"Provider {self.provider_name} does not implement complete_stream()"
+        )
 
 
 class LocalProviderAdapter(ProviderAdapter):
@@ -86,7 +92,9 @@ class LocalProviderAdapter(ProviderAdapter):
     without external credentials.
     """
 
-    async def complete(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+    async def complete(
+        self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, Any]:
         last_user = ""
         for msg in reversed(messages):
             if msg.get("role") == "user":
@@ -117,11 +125,15 @@ class OpenAIProviderAdapter(ProviderAdapter):
     (e.g., local LLMs served via Ollama, vLLM, etc.).
     """
 
-    def __init__(self, provider_name: str, credential: str | None, base_url: str | None = None) -> None:
+    def __init__(
+        self, provider_name: str, credential: str | None, base_url: str | None = None
+    ) -> None:
         super().__init__(provider_name, credential)
         self.base_url = base_url or "https://api.openai.com/v1"
 
-    async def complete(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+    async def complete(
+        self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, Any]:
         """Complete a chat completion via OpenAI-compatible API.
 
         Args:
@@ -150,15 +162,16 @@ class OpenAIProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client:  # noqa: SIM117
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    data = await response.json()
+            async with httpx.AsyncClient(
+                timeout=kwargs.get("timeout", 120)
+            ) as client, client.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "OpenAI provider error",
@@ -169,7 +182,9 @@ class OpenAIProviderAdapter(ProviderAdapter):
                     "error": exc.response.text[:200],
                 },
             )
-            raise ProviderError(f"OpenAI provider error: {exc.response.status_code}") from exc
+            raise ProviderError(
+                f"OpenAI provider error: {exc.response.status_code}"
+            ) from exc
         except httpx.RequestError as exc:
             logger.error(
                 "OpenAI provider connection error",
@@ -220,33 +235,34 @@ class OpenAIProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client:  # noqa: SIM117
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if line.startswith("data: "):
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                break
-                            try:
-                                data = json.loads(data_str)
-                                choice = data.get("choices", [{}])[0]
-                                delta = choice.get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    yield {
-                                        "provider": self.provider_name,
-                                        "model": model,
-                                        "content": content,
-                                        "finish_reason": choice.get("finish_reason"),
-                                    }
-                            except json.JSONDecodeError:
-                                continue
+            async with httpx.AsyncClient(
+                timeout=kwargs.get("timeout", 120)
+            ) as client, client.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str.strip() == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            choice = data.get("choices", [{}])[0]
+                            delta = choice.get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                yield {
+                                    "provider": self.provider_name,
+                                    "model": model,
+                                    "content": content,
+                                    "finish_reason": choice.get("finish_reason"),
+                                }
+                        except json.JSONDecodeError:
+                            continue
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "OpenAI provider streaming error",
@@ -257,7 +273,9 @@ class OpenAIProviderAdapter(ProviderAdapter):
                     "error": exc.response.text[:200],
                 },
             )
-            raise ProviderError(f"OpenAI provider streaming error: {exc.response.status_code}") from exc
+            raise ProviderError(
+                f"OpenAI provider streaming error: {exc.response.status_code}"
+            ) from exc
         except httpx.RequestError as exc:
             logger.error(
                 "OpenAI provider streaming connection error",
@@ -267,7 +285,9 @@ class OpenAIProviderAdapter(ProviderAdapter):
                     "error": str(exc),
                 },
             )
-            raise ProviderError(f"OpenAI provider streaming connection error: {exc}") from exc
+            raise ProviderError(
+                f"OpenAI provider streaming connection error: {exc}"
+            ) from exc
 
 
 class OllamaProviderAdapter(ProviderAdapter):
@@ -277,11 +297,15 @@ class OllamaProviderAdapter(ProviderAdapter):
     No external credentials required.
     """
 
-    def __init__(self, provider_name: str, credential: str | None, base_url: str | None = None) -> None:
+    def __init__(
+        self, provider_name: str, credential: str | None, base_url: str | None = None
+    ) -> None:
         super().__init__(provider_name, credential)
         self.base_url = base_url or "http://localhost:11434"
 
-    async def complete(self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+    async def complete(
+        self, *, model: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, Any]:
         """Complete a chat completion via Ollama API.
 
         Args:
@@ -306,14 +330,15 @@ class OllamaProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client:  # noqa: SIM117
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/api/chat",
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    data = await response.json()
+            async with httpx.AsyncClient(
+                timeout=kwargs.get("timeout", 120)
+            ) as client, client.stream(
+                "POST",
+                f"{self.base_url}/api/chat",
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "Ollama provider error",
@@ -324,7 +349,9 @@ class OllamaProviderAdapter(ProviderAdapter):
                     "error": exc.response.text[:200],
                 },
             )
-            raise ProviderError(f"Ollama provider error: {exc.response.status_code}") from exc
+            raise ProviderError(
+                f"Ollama provider error: {exc.response.status_code}"
+            ) from exc
         except httpx.RequestError as exc:
             logger.error(
                 "Ollama provider connection error",
@@ -343,7 +370,8 @@ class OllamaProviderAdapter(ProviderAdapter):
             "usage": {
                 "prompt_tokens": data.get("prompt_eval_count", 0),
                 "completion_tokens": data.get("eval_count", 0),
-                "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
+                "total_tokens": data.get("prompt_eval_count", 0)
+                + data.get("eval_count", 0),
             },
             "finish_reason": "stop",
         }
@@ -366,31 +394,32 @@ class OllamaProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client:  # noqa: SIM117
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/api/chat",
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line.strip():
-                            continue
-                        try:
-                            data = json.loads(line)
-                            message = data.get("message", {})
-                            content = message.get("content", "")
-                            if content:
-                                yield {
-                                    "provider": self.provider_name,
-                                    "model": model,
-                                    "content": content,
-                                    "finish_reason": data.get("done", False) and "stop",
-                                }
-                            if data.get("done"):
-                                break
-                        except json.JSONDecodeError:
-                            continue
+            async with httpx.AsyncClient(
+                timeout=kwargs.get("timeout", 120)
+            ) as client, client.stream(
+                "POST",
+                f"{self.base_url}/api/chat",
+                json=payload,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        message = data.get("message", {})
+                        content = message.get("content", "")
+                        if content:
+                            yield {
+                                "provider": self.provider_name,
+                                "model": model,
+                                "content": content,
+                                "finish_reason": data.get("done", False) and "stop",
+                            }
+                        if data.get("done"):
+                            break
+                    except json.JSONDecodeError:
+                        continue
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "Ollama provider streaming error",
@@ -401,7 +430,9 @@ class OllamaProviderAdapter(ProviderAdapter):
                     "error": exc.response.text[:200],
                 },
             )
-            raise ProviderError(f"Ollama provider streaming error: {exc.response.status_code}") from exc
+            raise ProviderError(
+                f"Ollama provider streaming error: {exc.response.status_code}"
+            ) from exc
         except httpx.RequestError as exc:
             logger.error(
                 "Ollama provider streaming connection error",
@@ -411,4 +442,6 @@ class OllamaProviderAdapter(ProviderAdapter):
                     "error": str(exc),
                 },
             )
-            raise ProviderError(f"Ollama provider streaming connection error: {exc}") from exc
+            raise ProviderError(
+                f"Ollama provider streaming connection error: {exc}"
+            ) from exc

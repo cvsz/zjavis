@@ -156,7 +156,9 @@ class TestModelGateway:
         assert len(chunks) >= 1
 
     @pytest.mark.asyncio
-    async def test_complete_provider_not_registered(self, gateway: ModelGateway) -> None:
+    async def test_complete_provider_not_registered(
+        self, gateway: ModelGateway
+    ) -> None:
         # Temporarily remove local provider to force error
         original = gateway._providers.pop("local", None)
         try:

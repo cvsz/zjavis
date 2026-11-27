@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![JARVIS Social Preview](docs/assets/social-preview.png)
+![JARVIS Social Preview — BLOCKED: social-preview.png could not be generated (external image-generation credits unavailable). Placeholder only; not a product claim.](https://placehold.co/1200x630/0f172a/38bdf8?text=JARVIS+Social+Preview+BLOCKED)
 
 **Local-first · Multimodal · Multi-agent · Secure · Observable · Production-oriented**
 
@@ -21,13 +21,14 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 149 unit + 6 integration tests passing |
-| Model Gateway (Phase 2) | ✅ COMPLETE | Local provider, OpenAI-compatible, Ollama adapters |
-| Voice Intelligence (Phase 4) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Vision Intelligence (Phase 5) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Agent Runtime (Phase 6) | ✅ COMPLETE | Approval-gated task execution |
-| Smart Environment (Phase 9) | ⚠️ STUB | Feature-flagged, disabled by default |
-| Observability | ✅ PARTIAL | Prometheus metrics endpoint |
+| Core Platform (Phase 1) | ✅ COMPLETE | 205 tests passing (159 unit + 6 integration + 46 template + orchestration) |
+| Model Gateway (Phase 2) | ✅ COMPLETE | Local provider, OpenAI-compatible, Ollama adapters; routing, budget, usage accounting |
+| Voice Intelligence (Phase 4) | ⚠️ STUB | Feature-flagged, disabled by default; LocalVoiceProvider returns error without audio hardware/credentials |
+| Vision Intelligence (Phase 5) | ⚠️ STUB | Feature-flagged, disabled by default; LocalVisionProvider returns error without GPU/model credentials |
+| Agent Runtime (Phase 6) | ✅ COMPLETE | Approval-gated task execution, audit event recording, task lifecycle management |
+| Orchestration Engine | ✅ COMPLETE | Bounded execution: timeout, retry+exponential backoff+jitter, CancellationToken, idempotency, dead-letter (10 unit tests) |
+| Smart Environment (Phase 9) | ⚠️ STUB | Feature-flagged, disabled by default; requires IoT hardware + device credentials |
+| Observability | ✅ PARTIAL | Prometheus metrics endpoint (/metrics); no distributed tracing |
 | Backup / Restore | ❌ NOT IMPLEMENTED | Runbooks not implemented |
 | Kubernetes / Helm | ✅ AVAILABLE | Manifests and chart provided |
 

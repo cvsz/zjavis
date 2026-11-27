@@ -180,9 +180,9 @@ async def summarize_conversation(
     user = await get_current_user(session, authorization)
     tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Message).where(
-            Message.conversation_id == conversation_id
-        ).order_by(Message.created_at.asc())
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.asc())
     )
     messages = result.scalars().all()
     if not messages:

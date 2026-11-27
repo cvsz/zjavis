@@ -25,9 +25,20 @@ def test_base_metadata_has_tables() -> None:
     """The declarative base has registered table metadata."""
     table_names = list(Base.metadata.tables.keys())
     expected = {
-        "organizations", "users", "tenants", "roles", "permissions",
-        "role_bindings", "sessions", "conversations", "messages",
-        "memories", "agents", "tasks", "approvals", "audit_events",
+        "organizations",
+        "users",
+        "tenants",
+        "roles",
+        "permissions",
+        "role_bindings",
+        "sessions",
+        "conversations",
+        "messages",
+        "memories",
+        "agents",
+        "tasks",
+        "approvals",
+        "audit_events",
     }
     for expected_table in expected:
         assert expected_table in table_names, f"Missing table: {expected_table}"

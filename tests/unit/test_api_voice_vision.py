@@ -85,7 +85,9 @@ class TestAnalyzeImageRequest:
         import base64
 
         img = base64.b64encode(b"fake image").decode("ascii")
-        req = AnalyzeImageRequest(image_b64=img, questions=["What color?", "What shape?"])
+        req = AnalyzeImageRequest(
+            image_b64=img, questions=["What color?", "What shape?"]
+        )
         assert len(req.questions) == 2
 
     def test_questions_empty(self) -> None:
@@ -100,6 +102,4 @@ class TestAnalyzeImageRequest:
 
         img = base64.b64encode(b"fake image").decode("ascii")
         with pytest.raises(ValidationError):
-            AnalyzeImageRequest(
-                image_b64=img, questions=["q"] * 11
-            )
+            AnalyzeImageRequest(image_b64=img, questions=["q"] * 11)

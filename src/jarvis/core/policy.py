@@ -148,7 +148,10 @@ class PolicyEngine:
             )
 
         # High-risk actions always require approval even with permission.
-        if risk_level in ("high", "critical") or required_permission in APPROVAL_REQUIRED_ACTIONS:
+        if (
+            risk_level in ("high", "critical")
+            or required_permission in APPROVAL_REQUIRED_ACTIONS
+        ):
             self.logger.info(
                 "Policy evaluation: approval required",
                 extra={
