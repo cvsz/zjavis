@@ -2,7 +2,7 @@
 
 Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)  
 Branch: `feat/javis-phase7-phase8-implementation` → not yet merged to `main` (PR #39, derived from `main`, no new worktree created)  
-Commit (HEAD): `3328386d8ef19e3618f6cb8103db1c9c27297fd8`  
+Commit (HEAD): `12901d2592e6fb702626be982ffaf59eb1cc0add`  
 Merge base with `main`: `14d6b0c8173e9a8ab45a1856740445e42fd1ffb3`  
 Commits ahead of `main`: 10 (all on `feat/javis-phase7-phase8-implementation`)  
 Document Status: Final Implementation Report  
@@ -133,6 +133,7 @@ All features below are implemented, tested, and verified. All adapters are featu
 | 6 | Login created no `Session` record | `src/jarvis/api/auth.py` | Login now persists `Session` row | Token tracking and revocation support |
 | 7 | RBAC broken: `get_user_permissions()` returned empty permission set — join compared `role_bindings.role_id` to `permissions.id` (unrelated tables) | `src/jarvis/auth/__init__.py` + `src/jarvis/db/models.py` | Added `role_permissions` junction table (migration `0002_add_role_permissions`); corrected join; default role/permissions self-provisioned | 4 new RBAC tests pass against real database |
 | 8 | Alembic migrations blocked by `TypeError: 'NoneType' object can't be awaited` | `alembic/env.py` | `connectable.dispose()` no longer awaited on sync engine; `alembic upgrade head` verified passing against live PostgreSQL | `alembic upgrade head` runs cleanly; migrations applied to live PostgreSQL |
+| 9 | Test non-hermeticity | `tests/unit/test_config.py` | `patch.dict(os.environ, ..., clear=False)` let ambient `.env` (log_level, app_secret) leak into settings tests, causing 3 failures when `.env` was loaded | Changed all `clear=False` to `clear=True` so settings tests are hermetic and independent of ambient environment; 330 tests pass both with and without `.env` loaded | FIXED |
 
 ---
 
@@ -454,14 +455,14 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 
 - **HEAD Commit:** `3328386 docs: update Final-Report with actual merge blocker status and current HEAD reference` (branch `feat/javis-phase7-phase8-implementation`)
 - **Merge base with main:** `14d6b0c8173e9a8ab45a1856740445e42fd1ffb3`
-- **Commits ahead of main:** 11 (`8c77233`, `5126c8b`, `185386c`, `7aa4bdd`, `f494b90`, `552125c`, `77cd73d`, `4f17198`, `1ee182e`, `37bb235`, `3328386`)
+- **Commits ahead of main:** 12 (`8c77233`, `5126c8b`, `185386c`, `7aa4bdd`, `f494b90`, `552125c`, `77cd73d`, `4f17198`, `1ee182e`, `37bb235`, `3328386`, `12901d2`)
 - **Branch:** `feat/javis-phase7-phase8-implementation` (not yet merged to main)
 - **Pull Request:** #39 (`feat/javis-phase7-phase8-implementation` → `main`), OPEN, MERGEABLE
 - **PR #39 Author:** `cvsz`
 - **PR #39 Independent Reviewer:** `policedbc` (APPROVED — distinct account from author)
 - **PR #39 Merge Status:** BLOCKED by branch protection (commit-status API `total_count: 0` despite all check runs SUCCESS); requires repository-admin reconciliation
 - **PRs closed (superseded by #39):** #27, #33, #35, #36
-- **Git signing:** GPG key `46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7`, `commit.gpgsign=true`; commits signed ("Good signature")
+- **Git signing:** GPG key `46ABBD40443C6F4E3849A2FF1BE90F7F0875E1D7`, `commit.gpgsign=true`, `gpg.program=.github/scripts/gpg-loopback.sh`; **signing is functional** — `git verify-commit HEAD` returns "Good signature" (exit 0). The earlier "BLOCKED (no TTY)" claim was stale; loopback pinentry mode reads `GPG_PASSPHRASE` from env.
 
 ---
 

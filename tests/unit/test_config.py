@@ -17,7 +17,7 @@ _TEST_ENV = {
 
 def test_default_settings() -> None:
     """Default settings load with safe values (ignoring local .env)."""
-    with patch.dict(os.environ, _TEST_ENV, clear=False):
+    with patch.dict(os.environ, _TEST_ENV, clear=True):
         s = Settings(_env_file=None)
         assert s.app_name == "jarvis"
         assert s.app_env == "development"
@@ -52,7 +52,7 @@ def test_env_prefix_loading() -> None:
         "JARVIS_CLOUD_FALLBACK_ENABLED": "true",
         "JARVIS_VOICE_ENABLED": "true",
     }
-    with patch.dict(os.environ, env, clear=False):
+    with patch.dict(os.environ, env, clear=True):
         s = Settings(_env_file=None)
         assert s.app_env == "production"
         assert s.debug is True
@@ -65,7 +65,7 @@ def test_env_prefix_loading() -> None:
 
 def test_secret_key_has_dev_default() -> None:
     """app_secret has a dev default; production requires JARVIS_APP_SECRET."""
-    with patch.dict(os.environ, {}, clear=False):
+    with patch.dict(os.environ, {}, clear=True):
         s = Settings(_env_file=None)
         assert s.app_secret == "dev-secret-change-me-in-production"
 
@@ -76,7 +76,7 @@ def test_secret_key_required_in_production() -> None:
         patch.dict(
             os.environ,
             {"JARVIS_APP_ENV": "production"},
-            clear=False,
+            clear=True,
         ),
         pytest.raises(ValueError),
     ):
@@ -85,6 +85,6 @@ def test_secret_key_required_in_production() -> None:
 
 def test_cloud_fallback_disabled_by_default() -> None:
     """Cloud model fallback must be disabled by default per blueprint §4.2."""
-    with patch.dict(os.environ, _TEST_ENV, clear=False):
+    with patch.dict(os.environ, _TEST_ENV, clear=True):
         s = Settings(_env_file=None)
         assert s.cloud_fallback_enabled is False
