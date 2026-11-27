@@ -5,6 +5,9 @@
 /.github/ @policedbc
 /src/ @policedbc
 /tests/ @policedbc
+/Final-Report.md @policedbc
+/README.md @policedbc
+/alembic/ @policedbc
 
 /SECURITY.md @cvsz
 /AGENTS.md @cvsz
