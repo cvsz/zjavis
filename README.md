@@ -49,7 +49,24 @@
 | Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
 | Social Preview Image | ⚠️ BLOCKED | 1×1 placeholder; external image generation service has no credits |
 
+
 ---
+
+## Table of Contents
+
+- [Project Identity](#project-identity)
+- [Bridge Status](#bridge-status)
+- [Features Implemented](#features-implemented)
+- [Architecture](#architecture)
+- [Security Controls](#security-controls)
+- [Configuration](#configuration)
+- [Getting Started](#getting-started)
+- [Development](#development)
+- [Project Structure](#project-structure)
+- [Evidence States](#evidence-states)
+- [Limitations and Open Findings](#limitations-and-open-findings)
+- [License](#license)
+- [Governance](#governance)
 
 ## Overview
 

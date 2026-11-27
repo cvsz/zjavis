@@ -23,7 +23,7 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the shared execution fr
 - Required env: `JARVIS_DATABASE_URL`, `JARVIS_APP_SECRET` (fail-closed in production)
 - Tests: `PYTHONPATH=src python3 -m pytest tests/` (326 passing: 225 unit/integration + 46 template + 55 Phase 7/8; 0 failed)
 - Security hardening applied: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; permission resolution scoped by tenant_id; SSRF and path traversal prevention; orchestration engine state transition validation; authorization on request_approval and execute_task endpoints; task state mutation prevented via API; login session record created; Phase 7 tool adapters (file, terminal, git, docker, MCP, browser); Phase 8 engineering intelligence (repository discovery, architecture analysis)
-- Verification baseline (all current): Build PASS, Ruff PASS (89 files), Ruff format PASS, MyPy PASS (51 source files), ShellCheck PASS, Pytest 322 passed, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS
+- Verification baseline (all current): Build PASS, Ruff PASS (91 files), Ruff format PASS, MyPy PASS (51 source files), ShellCheck PASS, Pytest 326 passed, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS
 
 ## Evidence states
 

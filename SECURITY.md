@@ -158,11 +158,11 @@ Security incidents affecting production systems should preserve evidence and use
 | Check | Command | Result | Evidence |
 |-------|---------|--------|----------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 89 files |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 89 files already formatted |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 91 files |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 91 files already formatted |
 | MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 51 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 322 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 326 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |
