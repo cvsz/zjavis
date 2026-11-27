@@ -4,7 +4,7 @@
 
 ![JARVIS Social Preview](docs/assets/social-preview.png)
 
-> **Note:** The social preview image above is a **1×1 placeholder**. Real social preview generation is **BLOCKED** — the external image generation service has no credits available. Replace `docs/assets/social-preview.png` with a real 1200×630 banner before any public release.
+> **Note:** The social preview image above is a **real 1200×630 OpenGraph PNG** generated locally via Pillow (`scripts/generate_social_preview.py`). No external image-generation credits are required.
 
 **Local-first · Multimodal · Multi-agent · Secure · Observable · Production-oriented**
 
@@ -47,7 +47,7 @@
 | Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
 | E2E Tests | ✅ IMPLEMENTED | `tests/e2e/test_e2e_flow.py` — auth flow, health/metrics, security headers (PASS) |
 | Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
-| Social Preview Image | ⚠️ BLOCKED | 1×1 placeholder; external image generation service has no credits |
+| Social Preview Image | ✅ VERIFIED | Real 1200×630 OpenGraph PNG generated locally via Pillow (`scripts/generate_social_preview.py`); no external credits required |
 
 
 ---
