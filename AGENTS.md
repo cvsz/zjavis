@@ -63,16 +63,23 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Check | Command | Result |
 |-------|---------|--------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS |
-| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS |
-| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 199 passed |
-| Pytest (template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | 46 passed |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 245 passed |
-| Bandit (security) | `bandit -r src/jarvis` | 2 Low (documented False Positives) |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS (0 errors, 0 warnings, 78 files) |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS (78 files already formatted) |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS (0 issues in 40 source files) |
+| ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS (no errors) |
+| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 221 passed, 0 failed |
+| Pytest (template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | 46 passed, 48 subtests passed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 273 passed, 0 failed |
+| Bandit (security) | `bandit -r src/jarvis` | 2 Low (both documented False Positives; 0 actual findings) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
-| Docker build | `docker build -t jarvis:local .` | NOT RUN (Docker available, build not executed in this session) |
+| Docker build | `docker build -t jarvis:local .` | PASS (image `jarvis:local` built successfully) |
+
+### Security hardening applied (this session)
+
+- `request_approval` endpoint now requires `require_policy()` with `DEPLOYMENT_REQUEST` permission (was authentication-only).
+- `execute_task` agent runtime endpoint now requires `require_policy()` with `REPOSITORY_WRITE` permission (was authentication-only).
+- `state` field removed from `TaskUpdate` model — task state transitions are enforced exclusively by the OrchestrationEngine state machine, preventing direct state mutation via API.
+- Login endpoint now creates a `Session` database record for token tracking and revocation support.
 
 ## Pull requests and releases
 
