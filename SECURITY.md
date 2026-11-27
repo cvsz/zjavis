@@ -49,3 +49,41 @@ The helper `scripts/github_admin.py` can configure and verify the baseline when 
 Generated projects should document detection, containment, credential handling, remediation, recovery, validation, disclosure, and rollback appropriate to their risk profile.
 
 Security incidents affecting production systems should preserve evidence and use the smallest safe containment action consistent with the incident-response plan.
+
+
+## zjavis Implemented Security Controls (verified)
+
+The following controls are implemented in `cvsz/zjavis` and verified by testing and static analysis:
+
+| Domain | Control | Implementation | Status |
+|--------|---------|----------------|--------|
+| Authentication | Password hashing | PBKDF2-HMAC-SHA256, 210,000 iterations (OWASP minimum), `src/jarvis/core/security.py` | VERIFIED |
+| Authentication | Token signing | HMAC-SHA256 JWT, Python stdlib only (no third-party JWT dependency), `src/jarvis/core/security.py` | VERIFIED |
+| Authentication | Token transmission | `Authorization: Bearer` header only; no query-string tokens, `src/jarvis/api/auth.py` | VERIFIED |
+| Authorization | Permission model | Capability-based `Permission` class + `require_permission()`, `src/jarvis/core/security.py` | VERIFIED |
+| Authorization | Policy engine | `PolicyEngine` with ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny, `src/jarvis/core/policy.py` | VERIFIED |
+| Authorization | Tenant isolation | All data-access endpoints scope by `tenant_id` (never `user.id`), `src/jarvis/api/*` | VERIFIED |
+| Authorization | Approval gate | Medium/high-risk and `database.mutate`/`deployment.execute` require explicit approval, `src/jarvis/approval/` | VERIFIED |
+| Input validation | SQL injection prevention | SQLAlchemy ORM with parameterized queries only | VERIFIED |
+| Input validation | XSS / prompt injection | `sanitize_message_content()` blocks `<script>`, `javascript:`, `on*` handlers, `ignore previous instructions`, `system: you are`, `src/jarvis/api/conversations.py` | VERIFIED |
+| Secrets management | No hardcoded secrets | `.env` gitignored; `.env.example` placeholders only; `validate_repo.py` secret-content scan | VERIFIED |
+| Secrets in logs | Secret redaction | `SecretFilter` redacts secret-like keys (password, token, secret, api_key, authorization, credential, private_key, session, cookie) from log records, `src/jarvis/core/logging.py` | VERIFIED |
+| Production config | Fail-closed secret | `JARVIS_APP_SECRET` must be set when `JARVIS_APP_ENV=production`; default rejected, `src/jarvis/core/config.py` | VERIFIED |
+| API security | CORS default-deny | `allow_credentials=False` with wildcard origins; explicit methods/headers only, `src/jarvis/api/main.py` | VERIFIED |
+| API security | Rate limiting | 60 requests/minute per client IP; health/metrics exempt, `src/jarvis/api/main.py` | VERIFIED |
+| API security | Security headers | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'self'`, `src/jarvis/api/main.py` | VERIFIED |
+| Audit | Tamper-evident events | `AuditEvent` records with tenant/actor/category/outcome; no secrets recorded, `src/jarvis/audit/` | VERIFIED |
+| Cryptography | CSPRNG for jitter | `secrets.SystemRandom().uniform()` in orchestration backoff (Bandit B311 remediated), `src/jarvis/orchestration/executor.py` | VERIFIED |
+
+### Bandit Scan Results (latest)
+
+| Severity | Count | Disposition |
+|----------|-------|-------------|
+| Undefined | 0 | — |
+| Low | 2 | Both documented False Positives (`"bearer"` token type; fail-closed default-secret comparison) |
+| Medium | 0 | — |
+| High | 0 | — |
+
+One B311 finding (non-crypto PRNG in orchestration jitter) was remediated and no longer appears.
+
+No credentials, tokens, or private keys are committed to the repository. `.env` is untracked and gitignored.

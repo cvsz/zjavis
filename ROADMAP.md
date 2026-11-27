@@ -49,3 +49,26 @@ This template stays language-agnostic while providing production-grade **reposit
 - [ ] Benchmark/reference-set framework when there are real scenarios to measure
 
 Generated repositories should adopt only modules appropriate to their stack, threat model, operating environment, and compliance needs.
+
+
+## zjavis Blueprint Implementation Progress (cvsz/zjavis)
+
+Progress against `javis-blueprint.md` section 21 (Implementation Roadmap):
+
+| Phase | Domain | Status | Modules | Evidence |
+|-------|--------|--------|---------|----------|
+| Phase 0 | Discovery & Governance | COMPLETE | AGENTS.md, ZEAZ-INTRODUCTION.md, SECURITY.md, GOVERNANCE.md, CODEOWNERS | Repository contract in place |
+| Phase 1 | Core Platform | COMPLETE | `src/jarvis/core/`, `src/jarvis/auth/`, `src/jarvis/db/`, `src/jarvis/api/` | 14 entities, Alembic `0001_initial_schema`, 205 tests pass |
+| Phase 2 | Model Gateway & Intelligence | COMPLETE | `src/jarvis/ai/gateway.py`, `provider.py`, `context.py` | Local/OpenAI/Ollama adapters, routing, budget, usage |
+| Phase 3 | Memory & Knowledge | COMPLETE | `src/jarvis/ai/memory.py` | CRUD, deduplication (SHA-256), search, retention |
+| Phase 4 | Voice | STUB | `src/jarvis/ai/voice.py` | Feature-flagged (`JARVIS_VOICE_ENABLED=false`); requires audio hardware + STT/TTS credentials |
+| Phase 5 | Vision | STUB | `src/jarvis/ai/vision.py` | Feature-flagged (`JARVIS_VISION_ENABLED=false`); requires GPU + vision model credentials |
+| Phase 6 | Agent Runtime | COMPLETE | `src/jarvis/ai/agent_runtime.py`, `src/jarvis/approval/`, `src/jarvis/audit/` | Approval-gated execution, audit trail |
+| Phase 6 (ext.) | Orchestration Engine | COMPLETE | `src/jarvis/orchestration/executor.py` | Timeout, retry+backoff+jitter, CancellationToken, idempotency, dead-letter |
+| Phase 7 | Tool & Computer Integration | NOT RUN | — | Browser, terminal, file, Git, Docker, MCP adapters not implemented |
+| Phase 8 | Engineering Intelligence | NOT RUN | — | Repository analysis, coding, review, testing not implemented |
+| Phase 9 | Smart Environment | STUB | `src/jarvis/ai/smart_environment.py` | Feature-flagged (`JARVIS_SMART_ENVIRONMENT_ENABLED=false`); requires IoT hardware + credentials |
+| Phase 10 | Dashboard & Clients | NOT RUN | — | Web/desktop/mobile clients not implemented |
+| Phase 11 | Production Hardening | PARTIAL | Security controls, observability metrics | Backup/restore, tracing, load testing, E2E not implemented |
+
+GitHub delivery (Step 5 of master plan): PR #33 (orchestration engine) BLOCKED by branch protection; PR #31 (CODEOWNERS) BLOCKED by merge conflicts; PR #27 (tenant isolation) Changes Requested.

@@ -73,3 +73,23 @@ Add a child AGENTS.md only when a subtree has durable rules that differ from thi
 When applying this template to an established repository, follow [docs/repository-rollout.md](docs/repository-rollout.md). Audit the target first and port only missing compatible controls. Do not overwrite repository-specific AGENTS rules, CI matrices, release workflows, infrastructure ownership, or operational evidence merely to match this template.
 
 For repository administration, `scripts/github_admin.py` requires an authenticated GitHub identity with Administration permission. Treat successful read-back verification—not script presence—as evidence that the controls are effective.
+
+
+## zjavis Project-Specific Implementation Status
+
+This repository (`cvsz/zjavis`) implements the JARVIS Personal AI Operating System per `javis-blueprint.md`. The following subsystems are implemented and verified:
+
+| Subsystem | Module(s) | Status | Evidence |
+|-----------|-----------|--------|----------|
+| Core Platform (Phase 1) | `src/jarvis/core/`, `src/jarvis/auth/`, `src/jarvis/db/`, `src/jarvis/api/` | COMPLETE | 205 tests pass (199 unit + 6 integration), ruff/mypy/black/shellcheck/validate_repo PASS |
+| Model Gateway (Phase 2) | `src/jarvis/ai/gateway.py`, `src/jarvis/ai/provider.py`, `src/jarvis/ai/context.py` | COMPLETE | Local/OpenAI/Ollama adapters, routing, budget, usage accounting |
+| Agent Runtime (Phase 6) | `src/jarvis/ai/agent_runtime.py`, `src/jarvis/approval/`, `src/jarvis/audit/` | COMPLETE | Approval-gated task execution, audit event recording |
+| Orchestration Engine | `src/jarvis/orchestration/executor.py` | COMPLETE | Bounded execution: timeout, retry+backoff+jitter, CancellationToken, idempotency, dead-letter (10 unit tests) |
+| Voice / Vision / Smart Environment | `src/jarvis/ai/voice.py`, `src/jarvis/ai/vision.py`, `src/jarvis/ai/smart_environment.py` | STUB | Feature-flagged, disabled by default; require external hardware/credentials |
+| Observability | `src/jarvis/core/metrics.py`, `src/jarvis/core/logging.py` | PARTIAL | Prometheus metrics endpoint; structured JSON logging with secret redaction; no distributed tracing |
+
+Security controls: PBKDF2-HMAC-SHA256 (210k iterations), HMAC-SHA256 JWT (stdlib), PolicyEngine default-deny, tenant isolation, CORS default-deny, rate limiting (60 req/min), security headers, input sanitization, SecretFilter redaction, production fail-closed on `JARVIS_APP_SECRET`.
+
+Bandit scan: 2 Low findings, both documented False Positives (`"bearer"` token type; fail-closed default-secret comparison). One B311 finding remediated (CSPRNG `secrets.SystemRandom` for orchestration jitter).
+
+GitHub delivery: PR #33 (orchestration engine) BLOCKED by branch protection (stale failed check run); PR #31 (CODEOWNERS) BLOCKED by merge conflicts; PR #27 (tenant isolation) Changes Requested (architectural conflict, missing migration, `.env.example` secret key).
