@@ -115,3 +115,36 @@ Use this checklist after creating a repository from `ztemplate`, or as an audit 
 - [ ] Every applicable production-readiness gate is `VERIFIED`; any `NOT APPLICABLE` gate has an explicit reason.
 
 A green template CI run alone is never sufficient to claim application production readiness.
+
+---
+
+## zjavis Project Status (cvsz/zjavis — JARVIS Personal AI Operating System)
+
+This section records the current state of the zjavis implementation per `javis-blueprint.md` and is updated with each release.
+
+| System | Phase | Status | Evidence |
+|--------|-------|--------|----------|
+| Core Platform | Phase 1 | COMPLETE / VERIFIED | 326 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
+| Authentication & Authorization | Phase 1 | COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation; session record on login |
+| Policy Engine | Phase 1 | COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
+| Logging / Metrics / Tracing | Phase 1 | COMPLETE / PARTIAL | Structured JSON logging with `SecretFilter`; Prometheus `/metrics`; OpenTelemetry tracing module (no export configured) |
+| Data Layer (PostgreSQL + Alembic) | Phase 1 | COMPLETE / VERIFIED | 14 SQLAlchemy models; initial migration `0001_initial_schema` |
+| Model Gateway | Phase 2 | IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
+| Memory & Knowledge | Phase 3 | IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
+| Orchestration Engine | Phase 6 | IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
+| Agent Runtime | Phase 6 | IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; tenant isolation on `execute_task()` |
+| SSRF Prevention | Phase 6/7 | IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
+| Path Traversal Prevention | Phase 6/7 | IMPLEMENTED / VERIFIED | `validate_safe_path()` confines paths within base directory using `os.path.realpath()` |
+| Tool & Computer Integration | Phase 7 | IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry. All adapters disabled by default. |
+| Engineering Intelligence | Phase 8 | IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed; self-register on package import |
+| Voice Intelligence | Phase 4 | BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
+| Vision Intelligence | Phase 5 | BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
+| Smart Environment | Phase 9 | BLOCKED | Stub only — requires IoT hardware + device credentials |
+| Dashboard / Clients | Phase 10 | NOT RUN | Not implemented |
+| Backup / Restore | Phase 11 | PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
+| Kubernetes / Helm | Phase 11 | NOT RUN | Deferred per blueprint §16.3 |
+| Load / Stress Testing | Phase 11 | NOT RUN | No production-scale workload available |
+| GPG Commit Signing | Phase 11 | BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
+| Social Preview Image | Docs | BLOCKED | 1×1 placeholder; external image generation service has no credits |
+
+**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, GPG commit signing is BLOCKED, PR #39 merge is BLOCKED by branch protection (CI status not propagated).
