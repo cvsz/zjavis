@@ -144,7 +144,7 @@ This section records the current state of the zjavis implementation per `javis-b
 | Backup / Restore | Phase 11 | PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | Phase 11 | NOT RUN | Deferred per blueprint §16.3 |
 | Load / Stress Testing | Phase 11 | NOT RUN | No production-scale workload available |
-| GPG Commit Signing | Phase 11 | BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
+| GPG Commit Signing | Phase 11 | VERIFIED | Functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed |
 | Social Preview Image | Docs | BLOCKED | 1×1 placeholder; external image generation service has no credits |
 
-**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, GPG commit signing is BLOCKED, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 330 tests passing (0 failed).**
+**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 330 tests passing (0 failed). GPG commit signing is VERIFIED functional.**

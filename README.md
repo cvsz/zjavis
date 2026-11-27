@@ -43,7 +43,7 @@
 | Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
 | Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
-| GPG Commit Signing | ⚠️ BLOCKED | Signing key requires passphrase; no TTY available in non-interactive environment |
+| GPG Commit Signing | ✅ VERIFIED | Signing functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed |
 | Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
 | E2E Tests | ✅ IMPLEMENTED | `tests/e2e/test_e2e_flow.py` — auth flow, health/metrics, security headers (PASS) |
 | Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
@@ -525,7 +525,7 @@ The following items are **not** implemented or verified and must not be counted 
 - Backup/restore runbooks — documentation implemented; restore drill NOT RUN
 - OpenTelemetry / distributed tracing — module implemented; no tracing export configured
 - Alembic migrations — `0002_add_role_permissions` added (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL
-- GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available)
+- GPG commit signing — VERIFIED functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed
 - Kubernetes/Helm deployment — NOT RUN (deferred per blueprint §16.3)
 - Load/stress testing — NOT RUN (no production-scale workload)
 - Phase 10 Dashboard/Clients — NOT RUN

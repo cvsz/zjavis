@@ -148,7 +148,7 @@ Security incidents affecting production systems should preserve evidence and use
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
 - Backup/restore: not implemented → NOT RUN
 - OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
-- GPG commit signing: signing key requires passphrase; no TTY available in non-interactive environment → BLOCKED (cannot complete `git commit -S` without passphrase provisioning)
+- GPG commit signing: functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature (VERIFIED in current session). Not blocked.
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
 - Load/stress testing: no production-scale workload available → NOT RUN
 - Dashboard/Clients (Phase 10): not implemented → NOT RUN

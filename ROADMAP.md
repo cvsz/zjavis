@@ -158,7 +158,7 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [ ] Cross-platform validation — NOT RUN
 - [x] Independent review — CODEOWNERS configured (@policedbc for src/, tests/, .github/)
 - [ ] Release evidence — NOT RUN
-- [ ] GPG commit signing — BLOCKED (signing key requires passphrase; no TTY available in non-interactive environment)
+- [x] GPG commit signing — VERIFIED functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature; all branch commits GPG-signed
 
 ## Acceptance criteria (blueprint §22)
 
