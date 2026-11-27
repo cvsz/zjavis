@@ -36,7 +36,6 @@ class TaskUpdate(BaseModel):
     task_type: str | None = Field(default=None, min_length=1, max_length=100)
     risk_classification: str | None = Field(default=None, max_length=50)
     agent_id: UUID | None = None
-    state: str | None = Field(default=None, max_length=50)
     idempotency_key: str | None = Field(default=None, max_length=255)
 
 
@@ -206,8 +205,6 @@ async def update_task(
         task.risk_classification = request.risk_classification
     if request.agent_id is not None:
         task.agent_id = request.agent_id
-    if request.state is not None:
-        task.state = request.state
     if request.idempotency_key is not None:
         task.idempotency_key = request.idempotency_key
 

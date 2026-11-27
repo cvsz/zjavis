@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +13,14 @@ from jarvis.auth import (
     authenticate_user,
     create_tokens_for_user,
     get_current_user,
+    get_or_create_user_tenant,
     require_superuser,
 )
+from jarvis.core.config import settings
 from jarvis.core.exceptions import AuthenticationError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
+from jarvis.db.models import Session as DbSession
 
 logger = get_logger(__name__)
 
@@ -61,7 +67,24 @@ async def login(
             detail="Invalid username or password",
         )
     tokens = create_tokens_for_user(user)
-    logger.info("User authenticated", extra={"user_id": str(user.id)})
+
+    # Create session record for token tracking and revocation support.
+    tenant = await get_or_create_user_tenant(session, user)
+    session_record = DbSession(
+        user_id=user.id,
+        tenant_id=tenant.id,
+        token_hash=hashlib.sha256(tokens["access_token"].encode("utf-8")).hexdigest(),
+        expires_at=datetime.now(UTC)
+        + timedelta(minutes=settings.access_token_expire_minutes),
+        is_revoked=False,
+    )
+    session.add(session_record)
+    await session.commit()
+
+    logger.info(
+        "User authenticated and session created",
+        extra={"user_id": str(user.id), "session_id": str(session_record.id)},
+    )
     return LoginResponse(**tokens)
 
 

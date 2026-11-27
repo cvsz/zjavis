@@ -21,8 +21,8 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the shared execution fr
 - Blueprint: `javis-blueprint.md`
 - Entry point: `python3 -m jarvis` or `uvicorn jarvis.api.main:create_app --factory`
 - Required env: `JARVIS_DATABASE_URL`, `JARVIS_APP_SECRET` (fail-closed in production)
-- Tests: `PYTHONPATH=src python3 -m pytest tests/` (245 passing: 199 unit/integration + 46 template; 0 failed)
-- Security hardening applied: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; permission resolution scoped by tenant_id; SSRF and path traversal prevention; orchestration engine state transition validation
+- Tests: `PYTHONPATH=src python3 -m pytest tests/` (250 passing: 204 unit/integration + 46 template; 0 failed)
+- Security hardening applied: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; permission resolution scoped by tenant_id; SSRF and path traversal prevention; orchestration engine state transition validation; authorization on request_approval and execute_task endpoints; task state mutation prevented via API; login session record created
 - Verification baseline (all current): Build PASS, Ruff PASS, Ruff format PASS, MyPy PASS, ShellCheck PASS, Pytest 245 passed, Bandit 2 Low (documented False Positives), validate_repo PASS, Docker build PASS
 
 ## Evidence states

@@ -44,6 +44,13 @@ class ApprovalResponse(BaseModel):
 async def request_approval(
     request: ApprovalRequest,
     session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DEPLOYMENT_REQUEST,
+            action="request approval",
+            risk_level="medium",
+        )
+    ),
     authorization: str | None = None,
 ) -> ApprovalResponse:
     """Request approval for a consequential action."""

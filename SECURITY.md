@@ -129,6 +129,15 @@ Security incidents affecting production systems should preserve evidence and use
 **Total issues by confidence (Bandit):** Undefined: 0, Low: 0, Medium: 2, High: 0  
 **Actual security vulnerabilities remaining:** 0
 
+### Additional authorization hardening applied (this session)
+
+| # | Severity | File | Finding | Fix | Status |
+|---|----------|------|---------|-----|--------|
+| A1 | Medium | `src/jarvis/api/approvals.py` | `request_approval` endpoint authenticated but had no execution-time authorization policy — any authenticated user could request approvals | Added `require_policy()` with `DEPLOYMENT_REQUEST` permission; policy enforced at request time | FIXED |
+| A2 | Medium | `src/jarvis/api/agent_runtime.py` | `execute_task` endpoint authenticated but had no `require_policy()` — any authenticated user could trigger agent task execution | Added `require_policy()` with `REPOSITORY_WRITE` permission; policy enforced at request time | FIXED |
+| A3 | Medium | `src/jarvis/api/tasks.py` | `TaskUpdate` model exposed `state` field, allowing API clients to mutate task state directly and bypass the OrchestrationEngine state machine | Removed `state` from `TaskUpdate`; state transitions enforced exclusively by `OrchestrationEngine.validate_state_transition()` | FIXED |
+| A4 | Medium | `src/jarvis/api/auth.py` | Login returned tokens but created no session record — tokens could not be tracked or revoked | Login now persists a `Session` row (token hash, expiry, tenant) for revocation and audit support | FIXED |
+
 ### Security areas not yet implemented (BLOCKED / NOT RUN)
 
 - Voice interface (STT/TTS): requires audio hardware + provider credentials → BLOCKED

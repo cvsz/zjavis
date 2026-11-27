@@ -130,6 +130,12 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 
 ## Phase 11 — Production Hardening (PARTIAL)
 
+### Authorization hardening applied (this session)
+- [x] `request_approval` endpoint now requires `require_policy()` with `DEPLOYMENT_REQUEST` permission (was authentication-only).
+- [x] `execute_task` agent runtime endpoint now requires `require_policy()` with `REPOSITORY_WRITE` permission (was authentication-only).
+- [x] `TaskUpdate` model no longer exposes `state` field — state transitions enforced exclusively by OrchestrationEngine state machine.
+- [x] Login endpoint now creates a `Session` database record for token tracking and revocation support.
+
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
 - [x] Tenant isolation hardening on approval and conversation endpoints
 - [x] Execution-time policy enforcement with tenant-scoped permissions on all mutating endpoints
