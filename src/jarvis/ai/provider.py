@@ -162,14 +162,15 @@ class OpenAIProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=kwargs.get("timeout", 120)
-            ) as client, client.stream(
-                "POST",
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-            ) as response:
+            async with (
+                httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                ) as response,
+            ):
                 response.raise_for_status()
                 data = await response.json()
         except httpx.HTTPStatusError as exc:
@@ -235,14 +236,15 @@ class OpenAIProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=kwargs.get("timeout", 120)
-            ) as client, client.stream(
-                "POST",
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-            ) as response:
+            async with (
+                httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                ) as response,
+            ):
                 response.raise_for_status()
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -330,13 +332,14 @@ class OllamaProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=kwargs.get("timeout", 120)
-            ) as client, client.stream(
-                "POST",
-                f"{self.base_url}/api/chat",
-                json=payload,
-            ) as response:
+            async with (
+                httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                ) as response,
+            ):
                 response.raise_for_status()
                 data = await response.json()
         except httpx.HTTPStatusError as exc:
@@ -394,13 +397,14 @@ class OllamaProviderAdapter(ProviderAdapter):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=kwargs.get("timeout", 120)
-            ) as client, client.stream(
-                "POST",
-                f"{self.base_url}/api/chat",
-                json=payload,
-            ) as response:
+            async with (
+                httpx.AsyncClient(timeout=kwargs.get("timeout", 120)) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                ) as response,
+            ):
                 response.raise_for_status()
                 async for line in response.aiter_lines():
                     if not line.strip():

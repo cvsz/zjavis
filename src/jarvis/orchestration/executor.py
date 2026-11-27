@@ -11,7 +11,7 @@ All operations are timeout-bounded and safe under concurrent workers.
 from __future__ import annotations
 
 import asyncio
-import random
+import secrets
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -130,7 +130,10 @@ class ExecutionEngine:
             self.bounds.base_backoff_seconds * (2**attempt),
             self.bounds.max_backoff_seconds,
         )
-        jitter = random.uniform(0.0, self.bounds.jitter_seconds)
+        # Use a cryptographically secure RNG for jitter (bandit B311: random
+        # is not suitable for security purposes; jitter is a security-relevant
+        # randomization here because it desynchronizes concurrent retries).
+        jitter = secrets.SystemRandom().uniform(0.0, self.bounds.jitter_seconds)
         return float(backoff + jitter)
 
     async def _record_idempotency(self, key: str, result: ExecutionResult) -> None:
