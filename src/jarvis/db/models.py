@@ -131,6 +131,11 @@ class Role(Base, TimestampMixin):
     role_bindings = relationship(
         "RoleBinding", back_populates="role", cascade="all, delete-orphan"
     )
+    role_permissions = relationship(
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+    )
 
 
 class Permission(Base, TimestampMixin):
@@ -141,6 +146,44 @@ class Permission(Base, TimestampMixin):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, unique=True)
     description = Column(Text, nullable=True)
+
+    role_permissions = relationship(
+        "RolePermission",
+        back_populates="permission",
+        cascade="all, delete-orphan",
+    )
+
+
+class RolePermission(Base, TimestampMixin):
+    """Many-to-many association between roles and permissions.
+
+    Grants a role the atomic permissions it contains. Without this
+    association table, roles exist but carry no permissions, which made
+    ``get_user_permissions()`` resolve to an empty set for every user.
+    """
+
+    __tablename__ = "role_permissions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    role_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("roles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    permission_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("permissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),
+    )
+
+    role = relationship("Role", back_populates="role_permissions")
+    permission = relationship("Permission", back_populates="role_permissions")
 
 
 class RoleBinding(Base, TimestampMixin):

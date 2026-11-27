@@ -23,7 +23,7 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 326 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
+| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 330 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
 | Authentication & Authorization | ✅ COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation |
 | Policy Engine | ✅ COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging | ✅ COMPLETE / VERIFIED | Structured JSON logging with `SecretFilter` redaction |
@@ -96,6 +96,8 @@ and memories.
 | Database | PostgreSQL 16+ (SQLAlchemy async, Alembic migrations) |
 | Cache / Transient | Redis 7+ (optional) |
 | Version | 0.1.0 |
+|---------|-------|
+| Status | PARTIALLY VERIFIED — Phase 1 complete and verified; Phase 7 tool adapters and Phase 8 engineering intelligence implemented and verified; Phases 2-6, 9-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md). |
 | License | MIT |
 
 ---

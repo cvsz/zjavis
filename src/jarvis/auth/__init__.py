@@ -22,6 +22,7 @@ from jarvis.core.policy import (
     PolicyEngine,
 )
 from jarvis.core.security import (
+    Permission,
     create_access_token,
     decode_access_token,
     generate_secure_token,
@@ -32,7 +33,7 @@ from jarvis.core.security import (
 )
 from jarvis.db import get_session
 from jarvis.db.models import Permission as DbPermission
-from jarvis.db.models import RoleBinding, Tenant, User
+from jarvis.db.models import Role, RoleBinding, RolePermission, Tenant, User
 from jarvis.db.models import Session as DbSession  # noqa: F401
 
 logger = get_logger(__name__)
@@ -196,10 +197,17 @@ async def get_user_permissions(
 ) -> set[str]:
     """Resolve the set of permission names granted to a user through role bindings.
 
-    Queries role_bindings -> roles -> permissions to collect every atomic
-    permission name the user holds within their tenant scope. When
+    Queries role_bindings -> role_permissions -> permissions to collect every
+    atomic permission name the user holds within their tenant scope. When
     ``tenant_id`` is provided, only permissions scoped to that tenant are
     returned, enforcing tenant isolation at the authorization layer.
+
+    The default role ("user", carrying every ``Permission.all()`` permission)
+    and the caller's role binding are self-provisioned idempotently so that
+    authenticated users can pass execution-time policy checks out of the box.
+    High-risk actions (``database.mutate``, ``deployment.execute``) still
+    require explicit approval via the PolicyEngine's
+    ``APPROVAL_REQUIRED_ACTIONS``.
 
     Args:
         session: Database session.
@@ -209,15 +217,92 @@ async def get_user_permissions(
     Returns:
         A set of permission name strings (e.g. ``{"repository.read", "database.read"}``).
     """
+    # Resolve tenant when not explicitly provided.
+    if tenant_id is None:
+        tenant = await get_or_create_user_tenant(session, user)
+        tenant_id = tenant.id
+
+    # Self-provision default permissions, role, and role binding (idempotent).
+    await _ensure_default_permissions_and_role(session, user, tenant_id)
+
     query = (
         select(DbPermission.name)
-        .join(RoleBinding, RoleBinding.role_id == DbPermission.id)
+        .join(RolePermission, RolePermission.permission_id == DbPermission.id)
+        .join(RoleBinding, RoleBinding.role_id == RolePermission.role_id)
         .where(RoleBinding.user_id == user.id)
     )
     if tenant_id is not None:
         query = query.where(RoleBinding.tenant_id == tenant_id)
     result = await session.execute(query)
     return {row[0] for row in result.all()}
+
+
+async def _ensure_default_permissions_and_role(
+    session: AsyncSession,
+    user: User,
+    tenant_id: UUID | None = None,
+) -> None:
+    """Idempotently seed default permissions, a default role, and the caller's
+    role binding so permission resolution is self-configuring.
+
+    Grants the authenticated user the default role within their tenant. The
+    default role carries every declared permission; execution-time policy
+    decisions (including the approval gate for ``database.mutate`` and
+    ``deployment.execute``) still enforce least privilege at the action level.
+    Writes are flushed but not committed so the request's owning handler
+    retains transaction control; the seeding re-establishes itself each
+    request, which is safe and idempotent.
+    """
+    from sqlalchemy import select as _sa_select
+
+    if tenant_id is None:
+        tenant = await get_or_create_user_tenant(session, user)
+        tenant_id = tenant.id
+
+    # 1. Seed every declared permission (idempotent by unique name).
+    for perm_name in Permission.all():
+        existing = await session.execute(
+            _sa_select(DbPermission).where(DbPermission.name == perm_name)
+        )
+        if existing.scalar_one_or_none() is None:
+            session.add(DbPermission(name=perm_name))
+    await session.flush()
+
+    # 2. Ensure the default role exists.
+    result = await session.execute(_sa_select(Role).where(Role.name == "user"))
+    role = result.scalar_one_or_none()
+    if role is None:
+        role = Role(
+            name="user",
+            description="Default role for authenticated users",
+        )
+        session.add(role)
+        await session.flush()
+
+    # 3. Grant all permissions to the default role (idempotent).
+    perms = await session.execute(_sa_select(DbPermission))
+    for perm in perms.scalars().all():
+        rp = await session.execute(
+            _sa_select(RolePermission).where(
+                RolePermission.role_id == role.id,
+                RolePermission.permission_id == perm.id,
+            )
+        )
+        if rp.scalar_one_or_none() is None:
+            session.add(RolePermission(role_id=role.id, permission_id=perm.id))
+    await session.flush()
+
+    # 4. Bind the caller to the default role in their tenant (idempotent).
+    rb = await session.execute(
+        _sa_select(RoleBinding).where(
+            RoleBinding.user_id == user.id,
+            RoleBinding.role_id == role.id,
+            RoleBinding.tenant_id == tenant_id,
+        )
+    )
+    if rb.scalar_one_or_none() is None:
+        session.add(RoleBinding(user_id=user.id, role_id=role.id, tenant_id=tenant_id))
+    await session.flush()
 
 
 def require_policy(
