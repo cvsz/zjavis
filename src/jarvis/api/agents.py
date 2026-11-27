@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
@@ -59,8 +60,9 @@ async def create_agent(
 ) -> AgentResponse:
     """Create a new agent definition."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     agent = Agent(
-        tenant_id=user.id,
+        tenant_id=tenant.id,
         name=request.name,
         version=request.version,
         description=request.description,
@@ -92,7 +94,8 @@ async def list_agents(
 ) -> list[AgentResponse]:
     """List agents for the authenticated user's tenant."""
     user = await get_current_user(session, authorization)
-    query = select(Agent).where(Agent.tenant_id == user.id)
+    tenant = await get_or_create_user_tenant(session, user)
+    query = select(Agent).where(Agent.tenant_id == tenant.id)
     if is_active is not None:
         query = query.where(Agent.is_active == is_active)
     query = query.limit(limit)
@@ -121,8 +124,9 @@ async def get_agent(
 ) -> AgentResponse:
     """Get a single agent by ID."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == user.id)
+        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant.id)
     )
     agent = result.scalar_one_or_none()
     if agent is None:
@@ -148,8 +152,9 @@ async def update_agent(
 ) -> AgentResponse:
     """Update an agent definition."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == user.id)
+        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant.id)
     )
     agent = result.scalar_one_or_none()
     if agent is None:
@@ -191,8 +196,9 @@ async def delete_agent(
 ) -> None:
     """Delete an agent definition."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == user.id)
+        select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant.id)
     )
     agent = result.scalar_one_or_none()
     if agent is None:

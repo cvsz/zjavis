@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.ai.memory import MemoryService
 from jarvis.api.auth import get_current_user
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
@@ -58,9 +59,10 @@ async def create_memory(
 ) -> MemoryResponse:
     """Create a new memory item."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = MemoryService(session)
     memory = await service.add_memory(
-        tenant_id=str(user.id),
+        tenant_id=str(tenant.id),
         user_id=str(user.id),
         memory_type=request.memory_type,
         content=request.content,
@@ -96,9 +98,10 @@ async def list_memories(
 ) -> list[MemoryResponse]:
     """List memories for the authenticated user."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = MemoryService(session)
     memories = await service.search_memories(
-        tenant_id=str(user.id),
+        tenant_id=str(tenant.id),
         memory_type=memory_type,
         limit=limit,
     )
@@ -130,8 +133,9 @@ async def get_memory(
 ) -> MemoryResponse:
     """Get a single memory by ID."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = MemoryService(session)
-    memory = await service.get_memory(str(memory_id), str(user.id))
+    memory = await service.get_memory(str(memory_id), str(tenant.id))
     if memory is None:
         raise NotFoundError(f"Memory not found: {memory_id}")
     return MemoryResponse(
@@ -159,8 +163,9 @@ async def delete_memory(
 ) -> None:
     """Soft-delete a memory item."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = MemoryService(session)
-    deleted = await service.delete_memory(str(memory_id), str(user.id))
+    deleted = await service.delete_memory(str(memory_id), str(tenant.id))
     if not deleted:
         raise NotFoundError(f"Memory not found: {memory_id}")
 
@@ -173,6 +178,7 @@ async def summarize_conversation(
 ) -> MemoryResponse:
     """Summarize a conversation into a memory item."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
         select(Message).where(
             Message.conversation_id == conversation_id
@@ -190,7 +196,7 @@ async def summarize_conversation(
 
     # Create memory from conversation summary
     memory = Memory(
-        tenant_id=str(user.id),
+        tenant_id=str(tenant.id),
         user_id=str(user.id),
         memory_type="conversation",
         content=f"Conversation summary: {content[:2000]}",
@@ -230,9 +236,10 @@ async def search_memory(
 ) -> list[MemoryResponse]:
     """Search memory within a conversation."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = MemoryService(session)
     memories = await service.search_memories(
-        tenant_id=str(user.id),
+        tenant_id=str(tenant.id),
         memory_type="conversation",
         query=query,
         limit=limit,

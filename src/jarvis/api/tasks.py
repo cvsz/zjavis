@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.exceptions import NotFoundError
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
@@ -61,8 +62,9 @@ async def create_task(
 ) -> TaskResponse:
     """Create a new task."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     task = Task(
-        tenant_id=user.id,
+        tenant_id=tenant.id,
         user_id=user.id,
         task_type=request.task_type,
         risk_classification=request.risk_classification,
@@ -99,7 +101,8 @@ async def list_tasks(
 ) -> list[TaskResponse]:
     """List tasks for the authenticated user."""
     user = await get_current_user(session, authorization)
-    query = select(Task).where(Task.user_id == user.id)
+    tenant = await get_or_create_user_tenant(session, user)
+    query = select(Task).where(Task.user_id == user.id).where(Task.tenant_id == tenant.id)
     if state is not None:
         query = query.where(Task.state == state)
     if task_type is not None:
@@ -134,8 +137,9 @@ async def get_task(
 ) -> TaskResponse:
     """Get a single task by ID."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id)
+        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
     )
     task = result.scalar_one_or_none()
     if task is None:
@@ -165,8 +169,9 @@ async def update_task(
 ) -> TaskResponse:
     """Update a task."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id)
+        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
     )
     task = result.scalar_one_or_none()
     if task is None:
@@ -210,8 +215,9 @@ async def delete_task(
 ) -> None:
     """Delete a task."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == user.id)
+        select(Task).where(Task.id == task_id, Task.user_id == user.id, Task.tenant_id == tenant.id)
     )
     task = result.scalar_one_or_none()
     if task is None:

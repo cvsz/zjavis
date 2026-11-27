@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jarvis.api.auth import get_current_user
 from jarvis.approval import ApprovalService
+from jarvis.auth import get_or_create_user_tenant
 from jarvis.core.logging import get_logger
 from jarvis.db import get_session
 from jarvis.db.models import Approval
@@ -71,7 +72,9 @@ async def list_approvals(
 ) -> list[ApprovalResponse]:
     """List approvals for the authenticated user."""
     user = await get_current_user(session, authorization)
-    query = select(Approval).where(Approval.requested_by == str(user.id))
+    # Ensure a tenant exists for the user (tenant isolation boundary)
+    await get_or_create_user_tenant(session, user)
+    query = select(Approval).where(Approval.requested_by == user.id)
     if state is not None:
         query = query.where(Approval.state == state)
     query = query.limit(limit)
