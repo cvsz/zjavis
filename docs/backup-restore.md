@@ -179,8 +179,22 @@ and after any change to backup or restore procedures. The drill:
 5. Verifies a sample login and task creation flow.
 6. Records the outcome (pass/fail, duration, RTO achieved).
 
-**No restore drill has been performed for this release.** See
-Final-Report.md §13 (Limitations and Items Not Verified).
+**Restore drill PASSED.** The drill was executed using
+`scripts/drill_restore.py`, which seeds minimal data into all 14 core
+tables, backs up with `pg_dump` (custom format), restores with
+`pg_restore --clean`, runs `alembic upgrade head`, and validates that all
+14 core tables are present and non-zero. Backup and restore scripts:
+
+- `scripts/backup_db.py` — compressed custom-format `pg_dump`, optional
+  `age` encryption, with `pg_restore --list` verification.
+- `scripts/restore_db.py` — `pg_restore --clean --if-exists --no-owner`,
+  Alembic migration to head, row-count validation.
+- `scripts/seed_drill_data.py` — idempotent minimal data across all 14
+  core entities.
+- `scripts/drill_restore.py` — orchestrates seed → backup → restore →
+  validate as a single drill.
+
+See Final-Report.md §13 and §19 for the recorded drill evidence.
 
 ## Disaster Recovery Runbooks
 
@@ -203,11 +217,15 @@ is added (see Phase 11 / Production Hardening).
 
 ## Testing
 
-Backup/restore tests are **NOT RUN** for this release. No backup code
-exists in the codebase. See:
+Backup/restore testing **HAS BEEN PERFORMED** via an isolated restore
+drill (see above). Drill scripts live in `scripts/`:
 
-- Final-Report.md §13 (Limitations and Items Not Verified)
-- ROADMAP.md Phase 11 (Production Hardening)
+- `scripts/backup_db.py`
+- `scripts/restore_db.py`
+- `scripts/seed_drill_data.py`
+- `scripts/drill_restore.py`
+
+See Final-Report.md §13 and §19 for the recorded drill evidence.
 
 ## Security
 

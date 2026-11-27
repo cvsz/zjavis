@@ -9,6 +9,7 @@ resources:
   - secret.yaml
   - deployment.yaml
   - service.yaml
+  - cronjob-backup.yaml
 
 images:
   - name: ghcr.io/cvsz/zjavis

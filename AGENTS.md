@@ -63,13 +63,13 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Check | Command | Result |
 |-------|---------|--------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS (0 errors, 0 warnings, 92 files) |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS (92 files already formatted) |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS (0 issues in 51 source files) |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS (0 errors, 0 warnings, 106 files) |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS (106 files already formatted) |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS (0 issues in 53 source files) |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS (no errors) |
-| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 225 passed, 0 failed |
+| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 372 passed, 0 failed |
 | Pytest (template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | 46 passed, 48 subtests passed |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 330 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 372 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (both documented False Positives; 0 actual findings) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
 | Docker build | `docker build -t jarvis:local .` | PASS (image `jarvis:local` built successfully) |

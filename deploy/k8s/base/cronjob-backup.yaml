@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jarvis-backup
+  namespace: jarvis
+  labels:
+    app.kubernetes.io/name: jarvis
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 02:00 UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: ghcr.io/cvsz/zjavis:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - python3
+                - scripts/backup_db.py
+                - --output
+                - /backups/jarvis-db-$(date +\%Y\%m\%d-\%H\%M\%S).dump
+              envFrom:
+                - configMapRef:
+                    name: jarvis-config
+                - secretRef:
+                    name: jarvis-secrets
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: PYTHONPATH
+                  value: "/app/src"
+                - name: JARVIS_BACKUP_DIR
+                  value: "/backups"
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              emptyDir: {}
