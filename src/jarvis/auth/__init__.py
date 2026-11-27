@@ -14,7 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jarvis.core.config import settings  # noqa: F401
 from jarvis.core.exceptions import AuthenticationError, AuthorizationError
 from jarvis.core.logging import get_logger
-from jarvis.core.policy import DECISION_REQUIRE_APPROVAL, PolicyEngine
+from jarvis.core.policy import (
+    APPROVAL_REQUIRED_ACTIONS,
+    DECISION_ALLOW,
+    DECISION_REQUIRE_APPROVAL,
+    PolicyDecision,
+    PolicyEngine,
+)
 from jarvis.core.security import (
     create_access_token,
     decode_access_token,
@@ -186,24 +192,31 @@ def require_superuser(user: User) -> None:
 async def get_user_permissions(
     session: AsyncSession,
     user: User,
+    tenant_id: UUID | None = None,
 ) -> set[str]:
     """Resolve the set of permission names granted to a user through role bindings.
 
     Queries role_bindings -> roles -> permissions to collect every atomic
-    permission name the user holds within their tenant scope.
+    permission name the user holds within their tenant scope. When
+    ``tenant_id`` is provided, only permissions scoped to that tenant are
+    returned, enforcing tenant isolation at the authorization layer.
 
     Args:
         session: Database session.
         user: The authenticated user.
+        tenant_id: Optional tenant ID to scope permissions to.
 
     Returns:
         A set of permission name strings (e.g. ``{"repository.read", "database.read"}``).
     """
-    result = await session.execute(
+    query = (
         select(DbPermission.name)
         .join(RoleBinding, RoleBinding.role_id == DbPermission.id)
         .where(RoleBinding.user_id == user.id)
     )
+    if tenant_id is not None:
+        query = query.where(RoleBinding.tenant_id == tenant_id)
+    result = await session.execute(query)
     return {row[0] for row in result.all()}
 
 
@@ -247,17 +260,40 @@ def require_policy(
         if required_permission is None:
             return user
 
+        # Resolve tenant for isolation-scoped permissions.
+        tenant = await get_or_create_user_tenant(session, user)
+        user_permissions = await get_user_permissions(
+            session, user, tenant_id=tenant.id
+        )
+
         engine = PolicyEngine()
-        user_permissions = await get_user_permissions(session, user)
+
+        # Combine built-in approval-required actions with caller-specified ones.
+        approval_required = set(APPROVAL_REQUIRED_ACTIONS)
+        if require_approval_on:
+            approval_required |= set(require_approval_on)
 
         decision = engine.evaluate(
             actor_permissions=user_permissions,
             required_permission=required_permission,
             action=action or f"{required_permission}:{action}",
             actor_id=str(user.id),
-            tenant_id=None,
+            tenant_id=str(tenant.id),
             risk_level=risk_level,
         )
+
+        # Override to REQUIRE_APPROVAL when the permission is in the
+        # approval-required set, even if the policy engine returned ALLOW.
+        if (
+            decision.decision == DECISION_ALLOW
+            and required_permission in approval_required
+        ):
+            decision = PolicyDecision(
+                decision=DECISION_REQUIRE_APPROVAL,
+                reason=f"Action requires explicit approval: {action}",
+                required_permission=required_permission,
+                requires_approval=True,
+            )
 
         if decision.decision == DECISION_REQUIRE_APPROVAL:
             raise AuthorizationError(

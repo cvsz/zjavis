@@ -68,8 +68,12 @@ Security incidents affecting production systems should preserve evidence and use
 - Approval-required actions: `database.mutate`, `deployment.execute` (always require human approval regardless of permissions)
 - High-risk actions (`risk_level` in `high`/`critical`) also require approval
 - Capability-based permissions: `system.read`, `repository.read`, `repository.write`, `browser.read`, `browser.interact`, `terminal.allowlisted`, `container.inspect`, `database.read`, `database.mutate`, `deployment.request`, `deployment.execute`, `secrets.metadata.read`
-- Policy enforcement dependency: `require_policy()` applied to mutating API endpoints
+- Policy enforcement dependency: `require_policy()` applied to all mutating API endpoints; resolves tenant context via `get_or_create_user_tenant()` and scopes permissions by tenant_id
 - Tenant isolation: All data-access endpoints scope resources by tenant ID; user.id is never used as tenant_id
+- Approval endpoints (`list`, `get`, `grant`, `deny`) enforce tenant isolation by joining through the `tasks` table
+- Conversation endpoints (`list`, `create-message`, `chat`, `chat-stream`) enforce tenant isolation by filtering on `tenant_id`
+- `get_user_permissions()` accepts optional `tenant_id` to scope role-binding permissions to a specific tenant
+- `require_policy()` passes `tenant_id` to `PolicyEngine.evaluate()` for audit context
 
 ### Input validation (VERIFIED)
 
@@ -132,6 +136,8 @@ Security incidents affecting production systems should preserve evidence and use
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
 - Load/stress testing: no production-scale workload → NOT RUN
 - E2E tests: no E2E test suite → NOT RUN
+- Browser/File/Terminal/Git/Docker/IDE/MCP capability adapters (Phase 7): not implemented → NOT RUN
+- Engineering Intelligence (Phase 8): not implemented → NOT RUN
 
 ## Supply chain security
 

@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select as _sa_select
+
 from jarvis.core.exceptions import TaskError
 from jarvis.core.logging import get_logger
 from jarvis.db.models import Task
@@ -183,9 +185,7 @@ class OrchestrationEngine:
         )
 
     async def _load_task(self, task_id: uuid.UUID) -> Task:
-        result = await self.session.execute(
-            __import__("sqlalchemy").select(Task).where(Task.id == task_id)
-        )
+        result = await self.session.execute(_sa_select(Task).where(Task.id == task_id))
         task = result.scalar_one_or_none()
         if task is None:
             raise TaskError(
@@ -197,6 +197,18 @@ class OrchestrationEngine:
 
     async def _persist_context(self, ctx: TaskContext) -> None:
         task = await self._load_task(ctx.task_id)
+        from_state = str(task.state) if task.state is not None else ""
+        to_state = ctx.state
+        if from_state and not self.validate_state_transition(from_state, to_state):
+            raise TaskError(
+                f"Invalid state transition {from_state} -> {to_state} for task {ctx.task_id}",
+                code="invalid_state_transition",
+                details={
+                    "task_id": str(ctx.task_id),
+                    "from_state": from_state,
+                    "to_state": to_state,
+                },
+            )
         task.state = ctx.state
         task.retry_count = ctx.retry_count
         task.error_message = ctx.error_message

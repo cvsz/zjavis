@@ -4,7 +4,7 @@
 
 ![JARVIS Social Preview](docs/assets/social-preview.png)
 
-> **Note:** The social preview image above is a 1×1 placeholder. Real social preview generation is **BLOCKED** — the external image generation service has no credits available. Replace `docs/assets/social-preview.png` with a real 1200×630 banner before any public release.
+> **Note:** The social preview image above is a **1×1 placeholder**. Real social preview generation is **BLOCKED** — the external image generation service has no credits available. Replace `docs/assets/social-preview.png` with a real 1200×630 banner before any public release.
 
 **Local-first · Multimodal · Multi-agent · Secure · Observable · Production-oriented**
 
@@ -23,15 +23,15 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE | 199 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
-| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff, cancellation, state transitions |
-| Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement |
-| Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation |
-| Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording |
-| Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS credentials |
-| Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU + vision model credentials |
+| Core Platform (Phase 1) | ✅ COMPLETE | 245 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Orchestration Engine | ✅ IMPLEMENTED | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, state transition validation, idempotency keys |
+| Model Gateway (Phase 2) | ✅ IMPLEMENTED | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
+| Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED | Memory service: CRUD, search, dedup, retention, tenant isolation, content hash, provenance |
+| Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions |
+| Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
+| Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
 | Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
-| Observability | ✅ PARTIAL | Prometheus metrics endpoint; no distributed tracing |
+| Observability | ✅ PARTIAL | Prometheus metrics endpoint (`/metrics`); no distributed tracing |
 | Backup / Restore | ❌ NOT RUN | No backup code implemented |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
 | Dashboard / Clients | ❌ NOT RUN | No frontend implemented |
@@ -51,7 +51,7 @@ and memories.
 **Blueprint:** `javis-blueprint.md`  
 **Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)  
 **Version:** 0.1.0  
-**Status:** PARTIALLY VERIFIED — Phase 1 complete; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+**Status:** PARTIALLY VERIFIED — Phase 1 complete and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
 
 ---
 
@@ -74,7 +74,8 @@ and memories.
 |-----------|--------|-------------|
 | Authentication | `src/jarvis/auth/` | Login, token issuance, current-user lookup, superuser checks, policy enforcement dependency |
 | Authorization | `src/jarvis/core/security.py` + `policy.py` | Capability-based permissions (`Permission` class); execution-time policy decisions |
-| Policy enforcement | `src/jarvis/auth/__init__.py` | `require_policy()` dependency on mutating API endpoints |
+| Policy enforcement | `src/jarvis/auth/__init__.py` | `require_policy()` dependency on all mutating API endpoints; tenant-scoped permissions |
+| Tenant isolation | `src/jarvis/auth/__init__.py` | `get_user_permissions()` scopes by tenant_id; all data-access endpoints filter by tenant |
 
 ### Data Layer
 
@@ -89,12 +90,12 @@ and memories.
 | Group | Prefix | Endpoints | Auth |
 |-------|--------|-----------|------|
 | Auth | `/api/v1/auth` | `POST /login`, `GET /me`, `POST /superuser-check` | Login: No; others: Yes |
-| Conversations | `/api/v1/conversations` | `POST`, `GET`, `POST /{id}/messages`, `POST /{id}/chat`, `POST /{id}/chat/stream` | Yes + policy |
-| Memory | `/api/v1/memory` | `POST`, `GET`, `GET /{id}`, `DELETE /{id}`, `POST /{id}/summarize`, `GET /{id}/search` | Yes + policy |
-| Approvals | `/api/v1/approvals` | `POST`, `GET`, `GET /{id}`, `POST /{id}/grant`, `POST /{id}/deny` | Yes + policy |
-| Agents | `/api/v1/agents` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy |
-| Tasks | `/api/v1/tasks` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy |
-| Audit | `/api/v1/audit` | `GET /events` | Yes |
+| Conversations | `/api/v1/conversations` | `POST`, `GET`, `POST /{id}/messages`, `POST /{id}/chat`, `POST /{id}/chat/stream` | Yes + policy + tenant isolation |
+| Memory | `/api/v1/memory` | `POST`, `GET`, `GET /{id}`, `DELETE /{id}`, `POST /{id}/summarize`, `GET /{id}/search` | Yes + policy + tenant isolation |
+| Approvals | `/api/v1/approvals` | `POST`, `GET`, `GET /{id}`, `POST /{id}/grant`, `POST /{id}/deny` | Yes + policy + tenant isolation |
+| Agents | `/api/v1/agents` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy + tenant isolation |
+| Tasks | `/api/v1/tasks` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy + tenant isolation |
+| Audit | `/api/v1/audit` | `GET /events` | Yes + tenant isolation |
 | Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` | No |
 | Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged) | Yes |
 | Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged) | Yes |
@@ -109,12 +110,6 @@ and memories.
 | Provider Adapters | `src/jarvis/ai/provider.py` | Local (deterministic echo), OpenAI-compatible API, Ollama |
 | Context Assembly | `src/jarvis/ai/context.py` | Token-budgeted context assembly, budget usage estimation |
 
-### Agent Runtime (Phase 6)
-
-| Component | Module | Description |
-|-----------|--------|-------------|
-| Runtime | `src/jarvis/ai/agent_runtime.py` | Approval-gated task execution, audit event recording, task lifecycle management |
-
 ### Task Orchestration
 
 | Component | Module | Description |
@@ -122,6 +117,12 @@ and memories.
 | Orchestration Engine | `src/jarvis/orchestration/__init__.py` | Durable bounded task execution, retry with exponential backoff + jitter, cancellation, idempotency, state transition validation, dead-letter handling |
 | SSRF Prevention | `src/jarvis/core/security.py` | `validate_ssrf_safe_url()`, `is_private_ip()` — blocks private/reserved IP targets and unsafe schemes |
 | Path Traversal Prevention | `src/jarvis/core/security.py` | `validate_safe_path()` — prevents directory escape via `..` traversal and null bytes |
+
+### Agent Runtime (Phase 6)
+
+| Component | Module | Description |
+|-----------|--------|-------------|
+| Runtime | `src/jarvis/ai/agent_runtime.py` | Approval-gated task execution, audit event recording, task lifecycle management |
 
 ---
 
@@ -148,14 +149,14 @@ L11 Capabilities:    Voice, Vision, Agent Runtime, Smart Environment (feature-fl
 
 ```
 RECEIVED → AUTHENTICATED → CLASSIFIED → CONTEXT_ASSEMBLED → PLANNED → POLICY_EVALUATED
-                                                   ↓
-                                            DENIED → REJECTED
-                                                   ↓
-                                            APPROVAL → WAITING_APPROVAL
-                                                   ↓
-                                            READY → EXECUTING → VERIFYING
-                                                   ↓                                           DENIED
-                                            COMPLETED ← FAILED → RECOVERY
+                                                    ↓
+                                             DENIED → REJECTED
+                                                    ↓
+                                             APPROVAL → WAITING_APPROVAL
+                                                    ↓
+                                             READY → EXECUTING → VERIFYING
+                                                    ↓                                           DENIED
+                                             COMPLETED ← FAILED → RECOVERY
 ```
 
 Every state transition is validated and persisted. State changes are safe under retries and concurrent workers.
@@ -171,6 +172,8 @@ Every state transition is validated and persisted. State changes are safe under 
 | Authentication | Header-based token transmission | VERIFIED |
 | Authorization | `require_permission()` + PolicyEngine default-deny | VERIFIED |
 | Authorization | Tenant isolation | VERIFIED |
+| Authorization | Tenant-scoped `require_policy()` on all mutating endpoints | VERIFIED |
+| Authorization | Approval grant/deny use `DEPLOYMENT_REQUEST` (no circular dependency) | VERIFIED |
 | Input Validation | SQLAlchemy ORM parameterized queries | VERIFIED |
 | Input Validation | `sanitize_message_content()` blocks XSS/prompt injection | VERIFIED |
 | Input Validation | `validate_ssrf_safe_url()` blocks private/reserved IPs and unsafe schemes | VERIFIED |
@@ -182,7 +185,7 @@ Every state transition is validated and persisted. State changes are safe under 
 | Configuration | Production fail-closed | VERIFIED |
 | Audit | Tamper-evident audit events | VERIFIED |
 
-Report security vulnerabilities through [GitHub Security Advisories](https://github.com/cvsz/zjavis/security/advisories) or the private channel documented in [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
+Report security vulnerabilities through [GitHub private vulnerability reporting](SECURITY.md) or the private channel documented in [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
 
 ---
 

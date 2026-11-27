@@ -139,8 +139,12 @@ async def list_conversations(
 ) -> list[ConversationResponse]:
     """List conversations for the authenticated user."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
-        select(Conversation).where(Conversation.user_id == user.id)
+        select(Conversation).where(
+            Conversation.user_id == user.id,
+            Conversation.tenant_id == tenant.id,
+        )
     )
     conversations = result.scalars().all()
     return [
@@ -175,9 +179,12 @@ async def create_message(
 ) -> MessageResponse:
     """Add a message to a conversation."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     result = await session.execute(
         select(Conversation).where(
-            Conversation.id == conversation_id, Conversation.user_id == user.id
+            Conversation.id == conversation_id,
+            Conversation.user_id == user.id,
+            Conversation.tenant_id == tenant.id,
         )
     )
     conversation = result.scalar_one_or_none()
@@ -230,10 +237,13 @@ async def chat(
     model gateway. Returns both messages with the AI response.
     """
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
 
     result = await session.execute(
         select(Conversation).where(
-            Conversation.id == conversation_id, Conversation.user_id == user.id
+            Conversation.id == conversation_id,
+            Conversation.user_id == user.id,
+            Conversation.tenant_id == tenant.id,
         )
     )
     conversation = result.scalar_one_or_none()
@@ -326,10 +336,13 @@ async def chat_stream(
     model gateway's streaming capability.
     """
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
 
     result = await session.execute(
         select(Conversation).where(
-            Conversation.id == conversation_id, Conversation.user_id == user.id
+            Conversation.id == conversation_id,
+            Conversation.user_id == user.id,
+            Conversation.tenant_id == tenant.id,
         )
     )
     conversation = result.scalar_one_or_none()

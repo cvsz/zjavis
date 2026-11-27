@@ -19,7 +19,7 @@ from jarvis.auth import get_or_create_user_tenant, require_policy
 from jarvis.core.logging import get_logger
 from jarvis.core.security import Permission
 from jarvis.db import get_session
-from jarvis.db.models import Approval
+from jarvis.db.models import Approval, Task
 
 logger = get_logger(__name__)
 
@@ -71,11 +71,17 @@ async def list_approvals(
     state: str | None = None,
     limit: int = 50,
 ) -> list[ApprovalResponse]:
-    """List approvals for the authenticated user."""
+    """List approvals for the authenticated user, scoped to their tenant."""
     user = await get_current_user(session, authorization)
-    # Ensure a tenant exists for the user (tenant isolation boundary)
-    await get_or_create_user_tenant(session, user)
-    query = select(Approval).where(Approval.requested_by == user.id)
+    tenant = await get_or_create_user_tenant(session, user)
+    query = (
+        select(Approval)
+        .join(Task, Approval.task_id == Task.id)
+        .where(
+            Approval.requested_by == user.id,
+            Task.tenant_id == tenant.id,
+        )
+    )
     if state is not None:
         query = query.where(Approval.state == state)
     query = query.limit(limit)
@@ -100,10 +106,19 @@ async def get_approval(
     session: AsyncSession = Depends(get_session),  # noqa: B008
     authorization: str | None = None,
 ) -> ApprovalResponse:
-    """Get a single approval by ID."""
-    await get_current_user(session, authorization)
+    """Get a single approval by ID, scoped to the user's tenant."""
+    user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = ApprovalService(session)
     approval = await service.get_approval(approval_id)
+    # Enforce tenant isolation: the approval's task must belong to the user's tenant.
+    result = await session.execute(
+        select(Task).where(Task.id == approval.task_id, Task.tenant_id == tenant.id)
+    )
+    if result.scalar_one_or_none() is None:
+        from jarvis.core.exceptions import NotFoundError
+
+        raise NotFoundError(f"Approval not found: {approval_id}")
     return ApprovalResponse(
         id=str(approval.id),
         task_id=str(approval.task_id),
@@ -120,17 +135,26 @@ async def grant_approval(
     session: AsyncSession = Depends(get_session),  # noqa: B008
     _: None = Depends(
         require_policy(
-            required_permission=Permission.DEPLOYMENT_EXECUTE,
+            required_permission=Permission.DEPLOYMENT_REQUEST,
             action="grant approval",
             risk_level="high",
-            require_approval_on=frozenset({Permission.DEPLOYMENT_EXECUTE}),
         )
     ),
     authorization: str | None = None,
 ) -> ApprovalResponse:
-    """Grant a pending approval."""
+    """Grant a pending approval, scoped to the user's tenant."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = ApprovalService(session)
+    approval = await service.get_approval(approval_id)
+    # Enforce tenant isolation before mutating.
+    result = await session.execute(
+        select(Task).where(Task.id == approval.task_id, Task.tenant_id == tenant.id)
+    )
+    if result.scalar_one_or_none() is None:
+        from jarvis.core.exceptions import NotFoundError
+
+        raise NotFoundError(f"Approval not found: {approval_id}")
     approval = await service.grant_approval(approval_id, UUID(str(user.id)))
     return ApprovalResponse(
         id=str(approval.id),
@@ -148,17 +172,26 @@ async def deny_approval(
     session: AsyncSession = Depends(get_session),  # noqa: B008
     _: None = Depends(
         require_policy(
-            required_permission=Permission.DEPLOYMENT_EXECUTE,
+            required_permission=Permission.DEPLOYMENT_REQUEST,
             action="deny approval",
             risk_level="high",
-            require_approval_on=frozenset({Permission.DEPLOYMENT_EXECUTE}),
         )
     ),
     authorization: str | None = None,
 ) -> ApprovalResponse:
-    """Deny a pending approval."""
+    """Deny a pending approval, scoped to the user's tenant."""
     user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
     service = ApprovalService(session)
+    approval = await service.get_approval(approval_id)
+    # Enforce tenant isolation before mutating.
+    result = await session.execute(
+        select(Task).where(Task.id == approval.task_id, Task.tenant_id == tenant.id)
+    )
+    if result.scalar_one_or_none() is None:
+        from jarvis.core.exceptions import NotFoundError
+
+        raise NotFoundError(f"Approval not found: {approval_id}")
     approval = await service.deny_approval(approval_id, UUID(str(user.id)))
     return ApprovalResponse(
         id=str(approval.id),

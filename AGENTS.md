@@ -72,7 +72,7 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 245 passed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (documented False Positives) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
-| Docker build | `docker build -t jarvis:local .` | PASS |
+| Docker build | `docker build -t jarvis:local .` | NOT RUN (Docker available, build not executed in this session) |
 
 ## Pull requests and releases
 

@@ -77,6 +77,13 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] Task orchestration engine (bounded execution, exponential backoff retry, cancellation, state transition validation, idempotency)
 - [x] SSRF prevention (`validate_ssrf_safe_url`, `is_private_ip`)
 - [x] Path traversal prevention (`validate_safe_path`)
+- [x] Tenant isolation on all approval endpoints (list/get/grant/deny scope by tenant via tasks join)
+- [x] Tenant isolation on all conversation endpoints (list/create-message/chat/chat-stream filter by tenant_id)
+- [x] `require_policy()` resolves tenant context and passes tenant_id to PolicyEngine
+- [x] `get_user_permissions()` scopes role-binding permissions by optional tenant_id
+- [x] `AgentRuntime` API endpoint passes `enabled=settings.agent_runtime_enabled`
+- [x] `OrchestrationEngine._persist_context()` validates state transitions
+- [x] Approval grant/deny use `DEPLOYMENT_REQUEST` (not `DEPLOYMENT_EXECUTE`) to avoid circular approval dependency
 
 ## Phase 7 — Tool and Computer Integration (NOT IMPLEMENTED)
 
@@ -124,6 +131,8 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 ## Phase 11 — Production Hardening (PARTIAL)
 
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
+- [x] Tenant isolation hardening on approval and conversation endpoints
+- [x] Execution-time policy enforcement with tenant-scoped permissions on all mutating endpoints
 - [ ] Load and stress tests — NOT RUN (no production-scale workload)
 - [ ] Concurrency tests — NOT RUN
 - [ ] Backup and restore — NOT RUN (no backup code implemented)

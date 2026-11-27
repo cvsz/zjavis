@@ -17,9 +17,11 @@ Use: `VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED`, `BLOCKED`, `NOT APPLICABLE`
 ## zjavis applied context
 
 - **Blueprint:** `javis-blueprint.md` defines target architecture and roadmap.
-- **Phase 1 (Core Platform):** COMPLETE and VERIFIED.
+- **Phase 1 (Core Platform):** COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, orchestration engine, SSRF/path traversal prevention, and API routes.
+- **Security hardening:** tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context to PolicyEngine; `AgentRuntime` API passes `enabled=settings.agent_runtime_enabled`; `OrchestrationEngine` validates state transitions.
 - **Blocked/NOT RUN:** Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY).
 - **Do not claim Production Ready or 100% Complete** while Critical/High findings, failed tests, or unmet conditions remain.
+- **Tests:** 245 passing (199 unit/integration + 46 template), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives).
 
 ## For GitHub repository-administration work
 

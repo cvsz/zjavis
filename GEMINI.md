@@ -14,5 +14,8 @@ Read `AGENTS.md` first and use `ZEAZ-INTRODUCTION.md` as the cross-agent executi
 
 - Repository: `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)
 - Blueprint: `javis-blueprint.md`
-- Phase 1 (Core Platform): COMPLETE and VERIFIED
-- Do not claim production readiness without evidence for each readiness gate
+- Phase 1 (Core Platform): COMPLETE and VERIFIED — configuration, security, policy engine, logging, metrics, exceptions, 14 SQLAlchemy models, Alembic migration, auth, approval, audit, model gateway, memory service, agent runtime, orchestration engine, SSRF/path traversal prevention, and API routes.
+- Security hardening: tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context; SSRF/path traversal prevention; orchestration state transition validation.
+- Do not claim production readiness without evidence for each readiness gate.
+- Tests: 245 passing (199 unit/integration + 46 template).
+- Blocked/NOT RUN: Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY).
