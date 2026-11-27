@@ -24,6 +24,9 @@ python-dotenv>=1.0.0
 # Logging
 ansilogs==1.2.0
 
+# Observability
+prometheus-client==0.21.1
+
 # Testing
 httpx==0.28.1
 pytest==9.1.1
