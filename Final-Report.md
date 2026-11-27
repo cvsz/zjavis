@@ -494,7 +494,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 
 ## 20. Current Session Independent Re-Verification (2026-11-28)
 
-This section records evidence re-obtained by the current agent session against the live repository state on branch `feat/javis-phase7-phase8-implementation` (HEAD `c4376d7`). No results are fabricated; each command was executed and its actual exit code recorded.
+This section records evidence re-obtained by the current agent session against the live repository state on branch `feat/javis-phase7-phase8-implementation` (HEAD `91b1270`, commit `docs: correct GPG commit signing finding from BLOCKED to FIXED`, GPG-signed `G`, verified with `git verify-commit HEAD` → "Good signature"). No results are fabricated; each command was executed and its actual exit code recorded.
 
 | Check | Command | Result | Exit Code |
 |---|---|---|---|
@@ -514,7 +514,7 @@ This section records evidence re-obtained by the current agent session against t
 
 **Correction to prior report:** GPG commit signing is **functional** in this session (clearsign produced a valid signature, exit 0, no passphrase required via the configured loopback pinentry). The earlier "BLOCKED — no TTY" note was stale. Signed commits (`git commit -S`) can be created.
 
-**Merge status:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) remains OPEN and MERGEABLE at code level, with `reviewDecision: APPROVED` from independent reviewer `policedbc` on exact head `c4376d7`. A fresh merge attempt (`gh pr merge 39 --merge --delete-branch` on HEAD `c4376d7`) → exit 1: "base branch policy prohibits the merge." Merge to `main` remains BLOCKED by branch-protection infrastructure: the GitHub commit-status API returns `total_count: 0` for HEAD despite all check runs SUCCESS, and `strict: true` branch protection evaluates commit statuses. This requires repository-admin reconciliation; it is not a code defect. `--admin`, `--force`, and force-push are prohibited and were not used.
+**Merge status:** PR #39 (`feat/javis-phase7-phase8-implementation` → `main`) remains OPEN and MERGEABLE at code level, with `reviewDecision: APPROVED` from independent reviewer `policedbc` on exact head `91b1270` (distinct account from PR author `cvsz`). A fresh merge attempt in this session (`gh pr merge 39 --merge --delete-branch` on HEAD `91b1270`) → exit 1: "Pull request cvsz/zjavis#39 is not mergeable: the base branch policy prohibits the merge." `--admin`, `--force`, and force-push were NOT used (prohibited). Merge to `main` remains BLOCKED by branch-protection infrastructure: the GitHub commit-status API returns `total_count: 0` for HEAD despite all check runs SUCCESS, and `strict: true` branch protection evaluates commit statuses, not check runs. This requires repository-admin reconciliation; it is not a code defect. PR #39 remains `OPEN` and `MERGEABLE`.
 
 ## 21. End of Final-Report
 
