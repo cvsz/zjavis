@@ -224,7 +224,7 @@ class TerminalToolAdapter(BaseToolAdapter):
 
 
 terminal_tool = TerminalToolAdapter(
-    enabled=True,  # Enabled by default: local allowlisted command runner
+    enabled=False,  # Disabled by default; enable via configuration
 )
 
 __all__ = [

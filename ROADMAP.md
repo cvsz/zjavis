@@ -133,6 +133,9 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] `execute_task` agent runtime endpoint now requires `require_policy()` with `REPOSITORY_WRITE` permission (was authentication-only).
 - [x] `TaskUpdate` model no longer exposes `state` field — state transitions enforced exclusively by OrchestrationEngine state machine.
 - [x] Login endpoint now creates a `Session` database record for token tracking and revocation support.
+- [x] `AgentRuntime.execute_task()` now enforces tenant isolation: tenant_id and user_id are checked against the target task before execution (prevents cross-tenant task execution).
+- [x] Engineering capabilities (repository discovery, architecture analysis) self-register in the engineering capability registry on package import.
+- [x] Terminal tool adapter default changed to `enabled=False` (security-by-default; all Phase 7 adapters are disabled unless explicitly enabled).
 
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
 - [x] Tenant isolation hardening on approval and conversation endpoints

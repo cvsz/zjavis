@@ -191,5 +191,16 @@ class TestEngineeringRegistry:
         assert "repository_discovery" in caps
         assert "architecture_analysis" in caps
 
+    def test_capabilities_self_register_on_import(self) -> None:
+        """The discovery and analysis capabilities self-register when the
+        engineering package is imported (no manual registration needed)."""
+        caps = list_capabilities()
+        assert "repository_discovery" in caps
+        assert "architecture_analysis" in caps
+        discovery_cap = get_capability("repository_discovery")
+        analysis_cap = get_capability("architecture_analysis")
+        assert discovery_cap is not None
+        assert analysis_cap is not None
+
     def test_get_unknown(self) -> None:
         assert get_capability("nonexistent") is None

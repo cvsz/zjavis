@@ -63,16 +63,17 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 | Check | Command | Result |
 |-------|---------|--------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS (0 errors, 0 warnings, 89 files) |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS (89 files already formatted) |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS (0 errors, 0 warnings, 91 files) |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS (91 files already formatted) |
 | MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS (0 issues in 51 source files) |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS (no errors) |
-| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 221 passed, 0 failed |
+| Pytest (unit + integration) | `PYTHONPATH=src python3 -m pytest tests/unit tests/integration` | 225 passed, 0 failed |
 | Pytest (template) | `PYTHONPATH=src python3 -m pytest tests/test_*.py` | 46 passed, 48 subtests passed |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 322 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | 326 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (both documented False Positives; 0 actual findings) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS |
 | Docker build | `docker build -t jarvis:local .` | PASS (image `jarvis:local` built successfully) |
+| Runtime validation | `docker run jarvis:local` then `GET /health` | PASS (HTTP 200); `/ready` returns 503 fail-closed when DB unavailable |
 
 ### Security hardening applied (this session)
 
@@ -80,6 +81,9 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 - `execute_task` agent runtime endpoint now requires `require_policy()` with `REPOSITORY_WRITE` permission (was authentication-only).
 - `state` field removed from `TaskUpdate` model — task state transitions are enforced exclusively by the OrchestrationEngine state machine, preventing direct state mutation via API.
 - Login endpoint now creates a `Session` database record for token tracking and revocation support.
+- `AgentRuntime.execute_task()` now enforces tenant isolation (tenant_id/user_id scope checked against the target task) before execution.
+- Engineering capabilities (repository discovery, architecture analysis) now self-register in the engineering capability registry on package import.
+- Terminal adapter default changed to `enabled=False` (security-by-default; all adapters disabled unless explicitly enabled).
 
 ## Pull requests and releases
 

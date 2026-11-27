@@ -7,6 +7,9 @@ release readiness assessment.
 
 All operations are read-only and governed by the policy engine.
 No repository mutations are performed by this package.
+
+The discovery and analysis capabilities are imported here so they
+self-register in the engineering capability registry on package load.
 """
 
 from __future__ import annotations
@@ -32,7 +35,16 @@ def list_capabilities() -> list[str]:
     return sorted(_engineering_registry.keys())
 
 
+# Import the capability modules so their module-level
+# ``register_capability(...)`` calls run and populate the registry.
+from jarvis.engineering import (
+    analysis,  # registers architecture_analysis
+    discovery,  # registers repository_discovery
+)
+
 __all__ = [
+    "analysis",
+    "discovery",
     "get_capability",
     "list_capabilities",
     "register_capability",

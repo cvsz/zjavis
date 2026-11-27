@@ -16,7 +16,13 @@ from typing import Any
 from jarvis.core.logging import get_logger
 from jarvis.core.security import validate_safe_path
 from jarvis.tools.base import BaseToolAdapter, ToolResult
-from jarvis.tools.terminal import terminal_tool
+from jarvis.tools.terminal import TerminalToolAdapter
+
+# Dedicated (read-only) terminal runner for git operations. It is
+# independent of the shared ``terminal_tool`` singleton so that enabling
+# the git adapter does not depend on the general terminal adapter being
+# enabled, and vice versa.
+_git_terminal = TerminalToolAdapter(enabled=True)
 
 logger = get_logger(__name__)
 
@@ -108,7 +114,7 @@ class GitToolAdapter(BaseToolAdapter):
                 provider=self.provider_name,
             )
 
-        result = await terminal_tool.execute(
+        result = await _git_terminal.execute(
             action="run",
             params={
                 "command": git_command,

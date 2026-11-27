@@ -11,7 +11,13 @@ from typing import Any
 
 from jarvis.core.logging import get_logger
 from jarvis.tools.base import BaseToolAdapter, ToolResult
-from jarvis.tools.terminal import terminal_tool
+from jarvis.tools.terminal import TerminalToolAdapter
+
+# Dedicated (read-only) terminal runner for Docker operations. It is
+# independent of the shared ``terminal_tool`` singleton so that enabling
+# the Docker adapter does not depend on the general terminal adapter
+# being enabled, and vice versa.
+_docker_terminal = TerminalToolAdapter(enabled=True)
 
 logger = get_logger(__name__)
 
@@ -82,7 +88,7 @@ class DockerToolAdapter(BaseToolAdapter):
 
         docker_command = ["docker"] + args
 
-        result = await terminal_tool.execute(
+        result = await _docker_terminal.execute(
             action="run",
             params={
                 "command": docker_command,

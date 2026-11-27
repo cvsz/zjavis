@@ -104,11 +104,19 @@ class AgentRuntime:
             details=details,
         )
 
-    async def execute_task(self, task_id: UUID) -> dict[str, Any]:
+    async def execute_task(
+        self,
+        task_id: UUID,
+        *,
+        tenant_id: UUID | None = None,
+        user_id: UUID | None = None,
+    ) -> dict[str, Any]:
         """Execute a task through the agent runtime.
 
         Args:
             task_id: The task to execute.
+            tenant_id: Tenant ID to scope the task to (enforced when provided).
+            user_id: User ID to scope the task to (enforced when provided).
 
         Returns:
             Dict with execution result details.
@@ -116,11 +124,42 @@ class AgentRuntime:
         Raises:
             RuntimeError: If agent runtime is disabled.
             NotFoundError: If agent or task not found.
-            PermissionError: If approval is required but not granted.
+            AuthorizationError: If the task does not belong to the scoped
+                tenant/user (tenant isolation violation).
         """
         self._require_enabled()
 
         task = await self._load_task(task_id)
+
+        # Enforce tenant isolation: the task must belong to the caller's
+        # tenant when a tenant scope is provided.
+        if tenant_id is not None and str(task.tenant_id) != str(tenant_id):
+            from jarvis.core.exceptions import AuthorizationError
+
+            raise AuthorizationError(
+                "Task does not belong to the requesting tenant",
+                code="tenant_isolation_violation",
+                details={
+                    "task_id": str(task_id),
+                    "task_tenant_id": str(task.tenant_id),
+                    "requested_tenant_id": str(tenant_id),
+                },
+            )
+
+        # Enforce user ownership when a user scope is provided.
+        if user_id is not None and str(task.user_id) != str(user_id):
+            from jarvis.core.exceptions import AuthorizationError
+
+            raise AuthorizationError(
+                "Task does not belong to the requesting user",
+                code="user_ownership_violation",
+                details={
+                    "task_id": str(task_id),
+                    "task_user_id": str(task.user_id),
+                    "requested_user_id": str(user_id),
+                },
+            )
+
         agent: Agent | None = None
         if task.agent_id is not None:
             agent_id = self._uuid(task.agent_id)

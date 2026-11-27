@@ -23,7 +23,7 @@
 
 | Subsystem | Status | Evidence |
 |-----------|--------|----------|
-| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 322 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS |
+| Core Platform (Phase 1) | ✅ COMPLETE / VERIFIED | 326 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
 | Authentication & Authorization | ✅ COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation |
 | Policy Engine | ✅ COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging | ✅ COMPLETE / VERIFIED | Structured JSON logging with `SecretFilter` redaction |
@@ -129,7 +129,7 @@ and memories.
 | Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` | No |
 | Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged, disabled) | Yes |
 | Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged, disabled) | Yes |
-| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`) |
+| Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`); `execute_task()` enforces tenant isolation (tenant_id/user_id scope checked against target task) |
 | Smart Environment | `/api/v1/smart-environment` | `GET /devices`, `GET /devices/{id}/state`, `POST /devices/{id}/state` (feature-flagged, disabled) | Yes |
 | Tool Registry | Internal | `src/jarvis/tools/` — File, Terminal, Git, Docker, MCP, Browser adapters | Feature-flagged, disabled by default |
 
@@ -140,7 +140,7 @@ and memories.
 | Tool Registry | `src/jarvis/tools/__init__.py` | Adapter registry (register/get/list) for all capability adapters |
 | Base Adapter | `src/jarvis/tools/base.py` | `BaseToolAdapter` abstract class and `ToolResult` standardized result |
 | File Adapter | `src/jarvis/tools/file.py` | Read/write/list/exists with path traversal prevention via `validate_safe_path()` |
-| Terminal Adapter | `src/jarvis/tools/terminal.py` | Allowlisted command execution with timeouts and output bounding |
+| Terminal Adapter | `src/jarvis/tools/terminal.py` | Allowlisted command execution with timeouts and output bounding; disabled by default |
 | Git Adapter | `src/jarvis/tools/git.py` | Read-only Git operations (status, log, diff, show, branch, etc.) |
 | Docker Adapter | `src/jarvis/tools/docker.py` | Read-only Docker inspection (ps, images, inspect, version, etc.) |
 | MCP Adapter | `src/jarvis/tools/mcp.py` | Model Context Protocol client with SSRF validation |

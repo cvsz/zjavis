@@ -23,7 +23,7 @@ Use: `VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED`, `BLOCKED`, `NOT APPLICABLE`
 - **Security hardening:** tenant-scoped policy enforcement on all mutating endpoints; tenant isolation on approval and conversation endpoints; `get_user_permissions()` scopes by tenant_id; `require_policy()` passes tenant context to PolicyEngine; `AgentRuntime` API passes `enabled=settings.agent_runtime_enabled`; `OrchestrationEngine` validates state transitions.
 - **Blocked/NOT RUN:** Voice, Vision, Smart Environment (no hardware/credentials), Backup/Restore, OpenTelemetry tracing, K8s/Helm, load testing, E2E tests, GPG commit signing (no TTY).
 - **Do not claim Production Ready or 100% Complete** while Critical/High findings, failed tests, or unmet conditions remain.
-- **Tests:** 322 passing (221 unit/integration + 46 template + 55 Phase 7/8; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives), Docker build PASS (`jarvis:local` image built successfully).
+- **Tests:** 326 passing (225 unit/integration + 46 template + 55 Phase 7/8; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit pass (2 documented Bandit Low False Positives), Docker build PASS (`jarvis:local` image built successfully).
 - **Authorization hardening (this session):** `request_approval` endpoint now requires `require_policy()`; `execute_task` agent runtime endpoint now requires `require_policy()`; `state` field removed from `TaskUpdate` to prevent direct state mutation; login creates a `Session` record for token revocation support.
 
 ## For GitHub repository-administration work
