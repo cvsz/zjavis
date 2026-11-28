@@ -245,7 +245,8 @@ def main(argv: list[str] | None = None) -> int:
         access_token=args.token,
     )
     try:
-        return args.func(client, args)
+        result = args.func(client, args)
+        return result if isinstance(result, int) else 0
     finally:
         client.close()
 

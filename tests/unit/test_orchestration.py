@@ -32,7 +32,7 @@ class _FakeSession:
 
     async def execute(self, stmt: Any) -> MagicMock:
         if hasattr(stmt, "_where_criteria"):
-            for criterion in stmt._where_criteria:  # type: ignore[attr-defined]
+            for criterion in stmt._where_criteria:
                 if hasattr(criterion, "right") and hasattr(criterion.right, "value"):
                     task_id = criterion.right.value
                     task = self._tasks.get(task_id)

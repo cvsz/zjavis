@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS — Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  :root { --bg: #0b1021; --panel: #111827; --border: #1f2a44; --text: #e8eaf2; --muted: #94a3b8; --accent: #60a5fa; --accent-hover: #93c5fd; --danger: #f87171; --ok: #4ade80; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); background: #0f172a; position: sticky; top: 0; z-index: 10; }
+  .brand { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em; color: var(--accent); text-decoration: none; }
+  .user { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.9rem; }
+  .user b { color: var(--text); }
+  .signout { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+  .signout:hover { border-color: var(--accent); }
+  .container { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%; }
+  .panel { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .panel h2 { margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .panel .body { flex: 1; min-height: 120px; }
+  .empty { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 6px 8px; border-bottom: 1px solid #1e293b; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #0f172a; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+  .badge-queued { background: #1e3a8a; color: #bfdbfe; }
+  .badge-running { background: #14532d; color: #bbf7d0; }
+  .badge-completed { background: #1e3a8a; color: #bfdbfe; }
+  .badge-failed { background: #7f1d1d; color: #fecaca; }
+  .badge-pending { background: #713f12; color: #fde68a; }
+  .badge-granted { background: #14532d; color: #bbf7d0; }
+  .badge-denied { background: #7f1d1d; color: #fecaca; }
+  .stat { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .stat small { font-weight: 500; color: var(--muted); font-size: 0.75rem; }
+  .btn { background: var(--accent); color: #0b1021; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.875rem; cursor: pointer; }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn.secondary:hover { border-color: var(--accent); }
+  .btn.danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .btn.danger:hover { background: var(--danger); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .actions { display: flex; gap: 6px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .pill .dot.up { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .pill .dot.down { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .progress { height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .progress > div { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+  .health-ready { color: var(--ok); font-weight: 700; }
+  .health-down { color: var(--danger); font-weight: 700; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 16px; border-radius: 8px; background: #0f172a; border: 1px solid var(--border); color: var(--text); font-size: 0.875rem; box-shadow: 0 10px 24px -6px rgba(0,0,0,0.5); display: none; z-index: 50; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/dashboard">JARVIS</a>
+  <div class="user" id="userInfo"><span>Signed in as</span> <b id="userName">—</b></div>
+  <button class="signout" id="signoutBtn">Sign out</button>
+</header>
+
+<div class="container">
+  <div class="grid">
+    <div class="panel">
+      <h2>System Health</h2>
+      <div class="body">
+        <div class="row"><span class="pill"><span class="dot" id="healthDot"></span><span id="healthLabel">checking…</span></span></div>
+        <div class="mono" id="healthDetail" style="color:var(--muted);font-size:0.8rem">—</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Model Status</h2>
+      <div class="body" id="modelPanel" style="min-height:140px">
+        <div class="empty">Loading models…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Task Center</h2>
+      <div class="body" id="taskPanel" style="min-height:140px">
+        <div class="empty">Loading tasks…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Agent Monitor</h2>
+      <div class="body" id="agentPanel" style="min-height:140px">
+        <div class="empty">Loading agents…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Approvals</h2>
+      <div class="body" id="approvalPanel" style="min-height:140px">
+        <div class="empty">Loading approvals…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Memory Center</h2>
+      <div class="body" id="memoryPanel" style="min-height:140px">
+        <div class="empty">Loading memory…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/v1';
+let token = localStorage.getItem('jarvis_token');
+if (!token) { window.location.replace('/login'); }
+
+async function json(path, { method = 'GET', body } = {}) {
+  const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { localStorage.removeItem('jarvis_token'); window.location.replace('/login'); }
+  return res.json();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function badge(state) {
+  const map = { queued: 'badge-queued', running: 'badge-running', completed: 'badge-completed', failed: 'badge-failed', blocked: 'badge-running', pending: 'badge-pending', granted: 'badge-granted', denied: 'badge-denied' };
+  const cls = map[state] || 'badge-queued';
+  return `<span class="badge ${cls}">${escapeHtml(String(state))}</span>`;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+async function loadHealth() {
+  try {
+    const data = await json('/health');
+    document.getElementById('healthDot').className = 'dot up';
+    document.getElementById('healthLabel').textContent = 'API alive';
+    document.getElementById('healthDetail').textContent = JSON.stringify(data);
+  } catch (e) {
+    document.getElementById('healthDot').className = 'dot down';
+    document.getElementById('healthLabel').textContent = 'API unreachable';
+    document.getElementById('healthDetail').textContent = e.message;
+  }
+}
+
+async function loadModels() {
+  const panel = document.getElementById('modelPanel');
+  try {
+    const [models, providers, routes] = await Promise.all([
+      json('/models'), json('/models/providers'), json('/models/routes'),
+    ]);
+    let html = '<table><thead><tr><th>Model</th><th>Provider</th><th>Streaming</th><th>Tools</th><th>Vision</th><th>Context</th></tr></thead><tbody>';
+    for (const m of models) {
+      html += `<tr><td class="mono">${escapeHtml(m.name)}</td><td>${escapeHtml(m.provider || '—')}</td><td>${m.capability.streaming ? 'yes' : 'no'}</td><td>${m.capability.tool_calling ? 'yes' : 'no'}</td><td>${m.capability.vision ? 'yes' : 'no'}</td><td class="mono">${m.capability.max_context_tokens}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    html += '<div class="row" style="margin-top:10px"><span class="pill"><span class="dot up"></span><span>' + providers.length + ' providers</span></span>';
+    html += '<span class="pill"><span class="dot up"></span><span>' + routes.length + ' routes</span></span></div>';
+    panel.innerHTML = html;
+  } catch (e) { panel.innerHTML = '<div class="error">Failed: ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadTasks() {
+  const panel = document.getElementById('taskPanel');
+  try {
+    const tasks = await json('/tasks?limit=10');
+    if (!tasks.length) { panel.innerHTML = '<div class="empty">No tasks.</div>'; return; }
+    let html = '<table><thead><tr><th>ID</th><th>Type</th><th>State</th><th>Retry</th><th>Actions</th></tr></thead><tbody>';
+    for (const t of tasks) {
+      const short = t.id.length > 8 ? t.id.slice(0, 8) + '…' : t.id;
+      html += `<tr><td class="mono">${escapeHtml(short)}</td><td>${escapeHtml(t.task_type)}</td>${badge(t.state)}<td class="mono">${t.retry_count}</td><td class="actions"><button class="btn secondary" onclick="openTask('${escapeHtml(t.id)}')">Details</button></td></tr>`;
+    }
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+  } catch (e) { panel.innerHTML = '<div class="error">Failed: ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadAgents() {
+  const panel = document.getElementById('agentPanel');
+  try {
+    const agents = await json('/agents?limit=10');
+    if (!agents.length) { panel.innerHTML = '<div class="empty">No agents.</div>'; return; }
+    let html = '<table><thead><tr><th>Name</th><th>Version</th><th>Active</th><th>Max runtime</th></tr></thead><tbody>';
+    for (const a of agents) {
+      html += `<tr><td>${escapeHtml(a.name)}</td><td class="mono">${escapeHtml(a.version)}</td><td>${a.is_active ? '<span class="badge badge-running">active</span>' : '<span class="badge badge-denied">inactive</span>'}</td><td class="mono">${a.max_runtime_seconds}s</td></tr>`;
+    }
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+  } catch (e) { panel.innerHTML = '<div class="error">Failed: ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadApprovals() {
+  const panel = document.getElementById('approvalPanel');
+  try {
+    const approvals = await json('/approvals?limit=10');
+    if (!approvals.length) { panel.innerHTML = '<div class="empty">No pending approvals.</div>'; return; }
+    let html = '<table><thead><tr><th>Task</th><th>State</th><th>Expires</th><th>Actions</th></tr></thead><tbody>';
+    for (const a of approvals) {
+      const short = (a.task_id || '').length > 8 ? (a.task_id || '').slice(0, 8) + '…' : (a.task_id || '—');
+      html += `<tr><td class="mono">${escapeHtml(short)}</td>${badge(a.state)}<td class="mono">${escapeHtml(a.expires_at || '—')}</td><td class="actions">`;
+      if (a.state === 'pending') {
+        html += `<button class="btn" onclick="decideApproval('${escapeHtml(a.id)}','granted')">Approve</button> <button class="btn danger" onclick="decideApproval('${escapeHtml(a.id)}','denied')">Deny</button>`;
+      }
+      html += '</td></tr>';
+    }
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+  } catch (e) { panel.innerHTML = '<div class="error">Failed: ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadMemory() {
+  const panel = document.getElementById('memoryPanel');
+  try {
+    const items = await json('/memory?limit=10');
+    if (!items.length) { panel.innerHTML = '<div class="empty">No memory items.</div>'; return; }
+    let html = '<table><thead><tr><th>Type</th><th>Content</th><th>Source</th><th>Confidence</th></tr></thead><tbody>';
+    for (const m of items) {
+      const content = (m.content || '').slice(0, 60);
+      html += `<tr><td class="mono">${escapeHtml(m.memory_type)}</td><td>${escapeHtml(content)}</td><td class="mono">${escapeHtml(m.source || '—')}</td><td class="mono">${m.confidence ?? '—'}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+  } catch (e) { panel.innerHTML = '<div class="error">Failed: ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function openTask(taskId) {
+  const task = await json('/tasks/' + encodeURIComponent(taskId));
+  const details = JSON.stringify(task, null, 2);
+  showToast('Task ' + escapeHtml(taskId) + ': ' + escapeHtml(task.state));
+  console.log(details);
+}
+
+async function decideApproval(approvalId, decision) {
+  await json('/approvals/' + encodeURIComponent(approvalId) + '/' + decision, { method: 'POST' });
+  showToast('Approval ' + decision);
+  loadApprovals();
+}
+
+async function init() {
+  try {
+    const me = await json('/auth/me');
+    document.getElementById('userName').textContent = me.username || me.id;
+  } catch (e) { document.getElementById('userName').textContent = '—'; }
+  loadHealth();
+  loadModels();
+  loadTasks();
+  loadAgents();
+  loadApprovals();
+  loadMemory();
+  setInterval(() => { loadHealth(); loadTasks(); loadApprovals(); loadMemory(); }, 30000);
+}
+
+document.getElementById('signoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('jarvis_token');
+  window.location.replace('/login');
+});
+
+init();
+</script>
+</body>
+</html>

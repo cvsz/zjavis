@@ -90,19 +90,28 @@ class ModelGateway:
 
         # Register Ollama provider if configured
         if settings.ollama_base_url:
+            ollama_model = settings.ollama_default_model or "llama3"
             self.register_provider(
                 "ollama",
                 OllamaProviderAdapter("ollama", None, settings.ollama_base_url),
             )
-            self._models["llama3"] = ModelCapability(
-                name="llama3",
+            self._models[ollama_model] = ModelCapability(
+                name=ollama_model,
                 tool_calling=False,
                 structured_output=False,
                 streaming=True,
                 vision=False,
                 max_context_tokens=8192,
             )
-            self.logger.info("Ollama provider registered")
+            self._routes["ollama"] = ModelRoute(
+                provider="ollama",
+                model=ollama_model,
+                capability=self._models[ollama_model],
+            )
+            self.logger.info(
+                "Ollama provider registered",
+                extra={"model": ollama_model},
+            )
 
         if settings.cloud_fallback_enabled:
             self.logger.warning(

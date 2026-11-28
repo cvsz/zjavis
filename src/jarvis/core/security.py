@@ -225,6 +225,9 @@ class Permission:
     DEPLOYMENT_REQUEST = "deployment.request"
     DEPLOYMENT_EXECUTE = "deployment.execute"
     SECRETS_METADATA_READ = "secrets.metadata.read"
+    VOICE_READ = "voice.read"
+    VOICE_WRITE = "voice.write"
+    VISION_READ = "vision.read"
 
     @classmethod
     def all(cls) -> list[str]:
@@ -241,6 +244,9 @@ class Permission:
             cls.DEPLOYMENT_REQUEST,
             cls.DEPLOYMENT_EXECUTE,
             cls.SECRETS_METADATA_READ,
+            cls.VOICE_READ,
+            cls.VOICE_WRITE,
+            cls.VISION_READ,
         ]
 
 

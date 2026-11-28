@@ -143,8 +143,8 @@ Security incidents affecting production systems should preserve evidence and use
 
 ### Security areas not yet implemented (BLOCKED / NOT RUN)
 
-- Voice interface (STT/TTS): requires audio hardware + provider credentials → BLOCKED
-- Vision interface: requires GPU hardware + vision model credentials → BLOCKED
+- Voice interface (STT/TTS): provider implementations, audio validation, policy enforcement, and tests IMPLEMENTED; live integration BLOCKED — requires audio hardware + STT/TTS provider credentials
+- Vision interface: provider implementations, image validation, policy enforcement, and tests IMPLEMENTED; live integration BLOCKED — requires GPU hardware + vision model credentials
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
 - Backup/restore: not implemented → NOT RUN
 - OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN

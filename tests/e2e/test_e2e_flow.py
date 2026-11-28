@@ -10,7 +10,8 @@ reliably without external services (PostgreSQL is available locally).
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import AsyncGenerator
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -69,8 +70,8 @@ def _make_app() -> TestClient:
     app = create_app()
     fake_session = _FakeSession()
 
-    async def _override_get_session() -> AsyncSession:
-        yield fake_session  # type: ignore[misc]
+    async def _override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield cast(AsyncSession, fake_session)
 
     app.dependency_overrides[get_session] = _override_get_session
     return TestClient(app)

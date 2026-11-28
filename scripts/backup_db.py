@@ -59,8 +59,10 @@ def backup(*, output: Path, encrypt: bool = False) -> Path:
     env = os.environ.copy()
     if params["password"]:
         env["PGPASSWORD"] = params["password"]
-    elif os.getenv("PGPASSWORD"):
-        env["PGPASSWORD"] = os.getenv("PGPASSWORD")
+    else:
+        pgpass = os.getenv("PGPASSWORD")
+        if pgpass is not None:
+            env["PGPASSWORD"] = pgpass
 
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -116,7 +118,7 @@ def backup(*, output: Path, encrypt: bool = False) -> Path:
         if enc_result.returncode != 0:
             print(f"age encryption failed:\n{enc_result.stderr}", file=sys.stderr)
             sys.exit(1)
-        encrypted.write_bytes(enc_result.stdout)
+        encrypted.write_bytes(enc_result.stdout.encode())
         output.unlink()
         backup_file = encrypted
         print(f"==> Encrypted backup written: {backup_file}")

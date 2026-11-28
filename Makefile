@@ -249,18 +249,18 @@ dockerlint: ## Lint Dockerfile with hadolint
 .PHONY: test
 test: ## Run Python unit tests
 	@printf '$(BLUE)==> Running unit tests...$(RESET)\n'
-	@$(UNITTEST) discover -s $(TESTS_DIR) -v
+	@PYTHONPATH=src $(PYTEST) tests/
 
 .PHONY: test-verbose
 test-verbose: ## Run Python unit tests with maximum verbosity
 	@printf '$(BLUE)==> Running unit tests (verbose)...$(RESET)\n'
-	@$(UNITTEST) discover -s $(TESTS_DIR) -v 2>&1 | head -200
+	@PYTHONPATH=src $(PYTEST) tests/ -v 2>&1 | head -200
 
 .PHONY: test-coverage
 test-coverage: ## Run tests with coverage (requires pytest-cov)
 	@printf '$(BLUE)==> Running tests with coverage...$(RESET)\n'
 	@if $(PYTHON) -c "import pytest_cov" 2>/dev/null; then \
-		$(PYTEST) $(TESTS_DIR) --cov=$(SCRIPTS_DIR) --cov-report=term-missing; \
+		PYTHONPATH=src $(PYTEST) tests/ --cov=$(SCRIPTS_DIR) --cov-report=term-missing; \
 	else \
 		printf '$(YELLOW)pytest-cov not installed, running standard tests$(RESET)\n'; \
 		$(MAKE) test; \

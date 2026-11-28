@@ -21,6 +21,7 @@ from jarvis.api.auth import router as auth_router
 from jarvis.api.conversations import router as conversations_router
 from jarvis.api.health import router as health_router
 from jarvis.api.memory import router as memory_router
+from jarvis.api.models import router as models_router
 from jarvis.api.smart_environment import router as smart_environment_router
 from jarvis.api.tasks import router as tasks_router
 from jarvis.api.vision import router as vision_router
@@ -35,6 +36,7 @@ from jarvis.core.exceptions import (
 )
 from jarvis.core.logging import get_logger, setup_logging
 from jarvis.core.metrics import record_request
+from jarvis.ui.routes import router as ui_router
 
 logger = get_logger(__name__)
 
@@ -169,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(conversations_router)
     app.include_router(memory_router)
+    app.include_router(models_router)
     app.include_router(approvals_router)
     app.include_router(audit_router)
     app.include_router(agents_router)
@@ -177,6 +180,7 @@ def create_app() -> FastAPI:
     app.include_router(vision_router)
     app.include_router(agent_runtime_router)
     app.include_router(smart_environment_router)
+    app.include_router(ui_router)
 
     logger.info(
         "JARVIS application created",

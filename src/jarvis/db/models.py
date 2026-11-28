@@ -326,6 +326,9 @@ class Memory(Base, TimestampMixin):
     confidence = Column(Integer, nullable=True)  # 0-100
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
+    embedding = Column(
+        Text, nullable=True
+    )  # JSON-encoded float list for semantic retrieval
 
 
 class Agent(Base, TimestampMixin):

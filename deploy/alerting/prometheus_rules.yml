@@ -1,0 +1,102 @@
+# JARVIS Prometheus alerting rules (Phase 11 — Production Hardening)
+#
+# These rules operate on the metrics emitted by `jarvis.core.metrics` and
+# exposed at `GET /metrics`. They are intentionally conservative: an alert
+# fires only after a sustained violation of `for` duration so transient
+# spikes do not page operators.
+#
+# Load these into Prometheus and route to Alertmanager. No secrets or
+# private data appear in any rule (per blueprint §17.2).
+
+groups:
+  - name: jarvis_auth
+    rules:
+      # Sudden burst of authentication failures may indicate brute force.
+      - alert: JarvisAuthFailuresHigh
+        expr: rate(jarvis_authn_failures_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate on JARVIS"
+          description: "{{ $value }} auth failures per second over the last 5 minutes."
+
+      # Authorization denials spike may indicate probing or a misconfiguration.
+      - alert: JarvisAuthzDenialsHigh
+        expr: rate(jarvis_authz_denials_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authorization denial rate on JARVIS"
+          description: "{{ $value }} authorization denials per second over the last 5 minutes."
+
+  - name: jarvis_agents
+    rules:
+      # Agent executions failing at an elevated rate.
+      - alert: JarvisAgentFailuresHigh
+        expr: (
+          sum by (agent_name) (
+            rate(jarvis_agent_executions_total{state="failed"}[5m])
+          )
+          /
+          sum by (agent_name) (
+            rate(jarvis_agent_executions_total[5m])
+          )
+        ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High agent failure rate on JARVIS"
+          description: "Agent {{ $labels.agent_name }} has a >10% failure rate over 10 minutes."
+
+      # Agent execution stuck running beyond the default bound.
+      - alert: JarvisAgentExecutionStuck
+        expr: jarvis_agent_concurrent_executions > 0
+        and
+        (time() - jarvis_agent_executions_total{state="completed"} > 300)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent execution may be stuck on JARVIS"
+          description: "An agent execution has exceeded the 300s default bound without completing."
+
+  - name: jarvis_api
+    rules:
+      # Elevated 5xx error rate on the core API.
+      - alert: JarvisApiServerErrors
+        expr: (
+          sum by (endpoint) (rate(jarvis_requests_total{status_code=~"5.."}[5m]))
+          /
+          sum by (endpoint) (rate(jarvis_requests_total[5m]))
+        ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on JARVIS API"
+          description: "Endpoint {{ $labels.endpoint }} is returning errors for >5% of requests over 5 minutes."
+
+      # p95 request latency above the blueprint SLO target (excluding model inference).
+      - alert: JarvisApiLatencyHigh
+        expr: histogram_quantile(0.95, rate(jarvis_request_duration_seconds_bucket[5m])) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JARVIS API p95 latency above SLO"
+          description: "p95 latency is {{ $value }}s, above the 300ms target (blueprint §22)."
+
+  - name: jarvis_memory
+    rules:
+      # Memory store growth without bound may indicate a leak.
+      - alert: JarvisMemoryItemsHigh
+        expr: jarvis_memory_items_total > 100000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JARVIS memory store growing large"
+          description: "{{ $value }} memory items in store; consider retention review."

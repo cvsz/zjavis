@@ -57,8 +57,10 @@ def _env() -> dict[str, str]:
     params = _parse_db_url(url)
     if params["password"]:
         env["PGPASSWORD"] = params["password"]
-    elif os.getenv("PGPASSWORD"):
-        env["PGPASSWORD"] = os.getenv("PGPASSWORD")
+    else:
+        pgpass = os.getenv("PGPASSWORD")
+        if pgpass is not None:
+            env["PGPASSWORD"] = pgpass
     return env
 
 

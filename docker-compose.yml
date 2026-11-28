@@ -32,6 +32,20 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: jarvis-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - jarvis_ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   jarvis:
     build:
       context: .
@@ -42,6 +56,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
     environment:
       JARVIS_APP_ENV: development
       JARVIS_LOG_LEVEL: debug
@@ -49,6 +65,7 @@ services:
       JARVIS_APP_SECRET: dev-secret-key-change-me-in-production
       JARVIS_HOST: 0.0.0.0
       JARVIS_PORT: 8000
+      JARVIS_OLLAMA_BASE_URL: http://ollama:11434
     ports:
       - "8000:8000"
     volumes:
@@ -63,3 +80,4 @@ services:
 volumes:
   jarvis_postgres_data:
   jarvis_redis_data:
+  jarvis_ollama_data:
