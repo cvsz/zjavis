@@ -137,6 +137,8 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [x] `AgentRuntime.execute_task()` now enforces tenant isolation: tenant_id and user_id are checked against the target task before execution (prevents cross-tenant task execution).
 - [x] Engineering capabilities (repository discovery, architecture analysis) self-register in the engineering capability registry on package import.
 - [x] Terminal tool adapter default changed to `enabled=False` (security-by-default; all Phase 7 adapters are disabled unless explicitly enabled).
+- [x] Alembic migrations — `alembic/env.py` `connectable.dispose()` sync engine bug fixed; `alembic upgrade head` verified passing against live PostgreSQL.
+- [x] RBAC permission filtering — `_ensure_default_permissions_and_role()` grants only declared permissions (`Permission.all()`), excluding stale database rows.
 
 - [x] Security remediation (all 9 high-severity findings fixed; 2 documented Bandit False Positives)
 - [x] Tenant isolation hardening on approval and conversation endpoints

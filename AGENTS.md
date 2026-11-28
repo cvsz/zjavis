@@ -85,6 +85,7 @@ At minimum, verify Markdown/YAML syntax for touched files, workflow permissions/
 - Engineering capabilities (repository discovery, architecture analysis) now self-register in the engineering capability registry on package import.
 - Terminal adapter default changed to `enabled=False` (security-by-default; all adapters disabled unless explicitly enabled).
 - `alembic/env.py` fixed: `connectable.dispose()` no longer awaited on sync engine (was `await connectable.dispose()` raising `TypeError: 'NoneType' object can't be awaited`, blocking all Alembic migrations); `alembic upgrade head` verified passing against live PostgreSQL.
+- RBAC permission filtering: `_ensure_default_permissions_and_role()` now grants only declared permissions (`Permission.all()`) to the default role, excluding stale database rows (e.g. `drill:read`).
 
 ## Pull requests and releases
 

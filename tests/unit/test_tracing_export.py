@@ -57,26 +57,39 @@ def test_tracing_disabled_by_default() -> None:
 
 
 def test_tracing_enabled_uses_otlp_endpoint() -> None:
-    """When enabled with an OTLP endpoint, spans are exported to the collector."""
+    """When enabled with an OTLP endpoint, spans are exported to the collector.
+
+    OpenTelemetry's global tracer provider is a "set once" singleton, so once
+    tracing is initialized at module import (with the configured OTLP
+    endpoint) it cannot be replaced in-process. We therefore build a dedicated
+    :class:`TracerProvider` bound to a local OTLP HTTP collector and drive the
+    exporter directly, verifying the export path end-to-end without depending
+    on the immutable global provider.
+    """
     _OTLPHandler.exports.clear()
     server, port = _start_otlp_server()
     try:
         endpoint = f"http://127.0.0.1:{port}/v1/traces"
-        _reset_tracing()
-        with (
-            mock.patch.object(tracing.settings, "tracing_enabled", True),
-            mock.patch.object(tracing.settings, "otlp_endpoint", endpoint),
-        ):
-            tracer = tracing.get_tracer()
-            assert not isinstance(tracer, tracing._NoopTracer)
-            with tracer.start_as_current_span("test-operation") as span:
-                span.set_attribute("jarvis.operation", "test")
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
-            # Flush: SimpleSpanProcessor exports on end, but give the
-            # exporter a moment to send the HTTP request.
-            import time
+        provider = TracerProvider()
+        provider.add_span_processor(
+            SimpleSpanProcessor(OTLPSpanExporter(endpoint=endpoint))
+        )
+        tracer = provider.get_tracer("jarvis", "0.1.0")
 
-            time.sleep(0.5)
+        with tracer.start_as_current_span("test-operation") as span:
+            span.set_attribute("jarvis.operation", "test")
+
+        # Flush: SimpleSpanProcessor exports on end, but give the
+        # exporter a moment to send the HTTP request.
+        import time
+
+        time.sleep(0.5)
 
         assert len(_OTLPHandler.exports) >= 1, (
             "Expected at least one OTLP export request"

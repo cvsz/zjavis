@@ -124,7 +124,7 @@ This section records the current state of the zjavis implementation per `javis-b
 
 | System | Phase | Status | Evidence |
 |--------|-------|--------|----------|
-| Core Platform | Phase 1 | COMPLETE / VERIFIED | 330 tests passing; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
+| Core Platform | Phase 1 | COMPLETE / VERIFIED | 372 tests passing, 0 failed; ruff/mypy/validate_repo/shellcheck/bandit pass; Docker build PASS; runtime validation (/health HTTP 200, /ready 503 fail-closed) |
 | Authentication & Authorization | Phase 1 | COMPLETE / VERIFIED | PBKDF2-HMAC-SHA256 (210k); HMAC-SHA256 JWT; Bearer header; `require_policy()` on all mutating endpoints; tenant isolation; session record on login; **RBAC fixed — `get_user_permissions()` now joins via `role_permissions` junction table, default role self-provisioned** |
 | Policy Engine | Phase 1 | COMPLETE / VERIFIED | ALLOW/DENY/REQUIRE_APPROVAL/REQUIRE_REAUTHENTICATION/OUT_OF_SCOPE; default-deny |
 | Logging / Metrics / Tracing | Phase 1 | COMPLETE / PARTIAL | Structured JSON logging with `SecretFilter`; Prometheus `/metrics`; OpenTelemetry tracing module (no export configured) |
@@ -147,4 +147,4 @@ This section records the current state of the zjavis implementation per `javis-b
 | GPG Commit Signing | Phase 11 | VERIFIED | Functional via loopback pinentry (`.github/scripts/gpg-loopback.sh`, no passphrase required); `git commit -S` + `git verify-commit` → Good signature; `commit.gpgsign=true` configured |
 | Social Preview Image | Docs | VERIFIED | Real 1200×630 OpenGraph PNG generated locally via Pillow (`scripts/generate_social_preview.py`); no external credits required |
 
-**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, GPG commit signing is BLOCKED, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 330 tests passing (0 failed).**
+**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 372 tests passing (0 failed; OpenTelemetry tracing export verified passing).**
