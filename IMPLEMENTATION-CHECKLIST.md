@@ -137,8 +137,8 @@ This section records the current state of the zjavis implementation per `javis-b
 | Path Traversal Prevention | Phase 6/7 | IMPLEMENTED / VERIFIED | `validate_safe_path()` confines paths within base directory using `os.path.realpath()` |
 | Tool & Computer Integration | Phase 7 | IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry. All adapters disabled by default. |
 | Engineering Intelligence | Phase 8 | IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed; self-register on package import |
-| Voice Intelligence | Phase 4 | BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
-| Vision Intelligence | Phase 5 | BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
+| Voice Intelligence | Phase 4 | IMPLEMENTED (code-ready) | Provider implementations, audio validation (25 MB cap), policy enforcement (`VOICE_READ`/`VOICE_WRITE`), metrics, and unit tests; live STT/TTS BLOCKED — no audio hardware + STT/TTS provider credentials |
+| Vision Intelligence | Phase 5 | IMPLEMENTED (code-ready) | Provider implementations (NVIDIA NIM), image validation (magic-byte, 10 MB cap, content-type allowlist), policy enforcement (`VISION_READ`), metrics, and unit tests; live vision BLOCKED — no GPU + vision model credentials |
 | Smart Environment | Phase 9 | BLOCKED | Stub only — requires IoT hardware + device credentials |
 | Dashboard / Clients | Phase 10 | IMPLEMENTED / PARTIAL | Operator CLI implemented (`src/jarvis/client/cli.py` + `jarvis.client` library); **web dashboard added (`src/jarvis/ui/` with `/login`, `/dashboard`, model status, task center, agent monitor, approvals, memory center, system health)**; desktop, mobile NOT RUN |
 | Backup / Restore | Phase 11 | PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |

@@ -11,7 +11,7 @@ Changes must remain generic where applicable, secure by default, easy to customi
 - **Repository:** `cvsz/zjavis` (root: `/mnt/zdata/zjavis`)
 - **Blueprint:** `javis-blueprint.md`
 - **Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)
-- **Phase status:** Phase 1 (Core Platform) COMPLETE and VERIFIED; Phase 3 (Memory & Knowledge) IMPLEMENTED — semantic/vector retrieval (JSON embeddings + cosine similarity) and document ingestion pipeline added; Phase 7 (Tool & Computer Integration) IMPLEMENTED; Phase 8 (Engineering Intelligence) IMPLEMENTED; Phase 10 (CLI client) IMPLEMENTED — operator CLI (`src/jarvis/client/cli.py`); Phase 11 (Production Hardening) PARTIAL — Prometheus alerting rules + concurrency tests added; Phases 2, 4-6, 9 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+- **Phase status:** Phase 1 (Core Platform) COMPLETE and VERIFIED; Phase 3 (Memory & Knowledge) IMPLEMENTED — semantic/vector retrieval (JSON embeddings + cosine similarity) and document ingestion pipeline added; Phase 4 (Voice Intelligence) IMPLEMENTED (code-ready; live STT/TTS BLOCKED — no audio hardware/provider credentials); Phase 5 (Vision Intelligence) IMPLEMENTED (code-ready; live vision BLOCKED — no GPU/vision model credentials); Phase 7 (Tool & Computer Integration) IMPLEMENTED; Phase 8 (Engineering Intelligence) IMPLEMENTED; Phase 10 (CLI client) IMPLEMENTED — operator CLI (`src/jarvis/client/cli.py`); Phase 11 (Production Hardening) PARTIAL — Prometheus alerting rules + concurrency tests added; Phases 2, 6, 9 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
 - **Version:** 0.1.0
 
 ## Operating rules
