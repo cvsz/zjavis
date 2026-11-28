@@ -155,10 +155,31 @@ class Settings(BaseSettings):
         default=None, description="TTS provider endpoint (optional)"
     )
     vision_enabled: bool = Field(default=False, description="Enable vision interface")
+    vision_provider: str = Field(
+        default="local",
+        description="Vision provider: local, nvidia-nim, openai",
+    )
+    vision_api_key: str | None = Field(
+        default=None, description="Vision provider API key"
+    )
+    vision_api_url: str | None = Field(
+        default=None, description="Vision provider endpoint (optional)"
+    )
+    vision_model: str | None = Field(
+        default=None, description="Vision model name (e.g. nemotron, gpt-4v)"
+    )
     vision_gpu_device: str = Field(
         default="cpu",
         description="Vision inference device (e.g. 'cpu' or 'cuda:0'). "
         "Defaults to CPU so vision works without GPU hardware.",
+    )
+    vision_max_image_bytes: int = Field(
+        default=10485760,
+        description="Maximum image upload size in bytes (default 10 MB)",
+    )
+    vision_allowed_content_types: str = Field(
+        default="image/png,image/jpeg,image/webp",
+        description="Comma-separated allowed image content types",
     )
     agent_runtime_enabled: bool = Field(
         default=True, description="Enable agent runtime"

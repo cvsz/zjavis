@@ -8,6 +8,7 @@ keys come from configuration.
 
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -16,9 +17,34 @@ import httpx
 from jarvis.core.config import settings
 from jarvis.core.exceptions import ProviderError
 from jarvis.core.logging import get_logger
+from jarvis.core.metrics import record_voice_request
 from jarvis.core.security import redact_secret
 
 logger = get_logger(__name__)
+
+# Maximum audio size enforced as a defense-in-depth cap (25 MB).
+MAX_AUDIO_BYTES = 25 * 1024 * 1024
+
+
+def validate_audio(audio_bytes: bytes) -> None:
+    """Validate an audio payload before processing.
+
+    Enforces a maximum size limit. Raises :class:`ValueError` for empty
+    or oversized audio.
+
+    Args:
+        audio_bytes: Raw audio data.
+
+    Raises:
+        ValueError: If the audio is empty or exceeds the size limit.
+    """
+    if not audio_bytes:
+        raise ValueError("Audio data is empty")
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise ValueError(
+            f"Audio exceeds maximum size of {MAX_AUDIO_BYTES} bytes "
+            f"({len(audio_bytes)} bytes provided)"
+        )
 
 
 class VoiceProvider(ABC):
@@ -586,9 +612,27 @@ class VoiceService:
         self, *, audio_bytes: bytes, language: str | None = None
     ) -> dict[str, Any]:
         self._require_enabled()
-        return await self.provider.speech_to_text(
-            audio_bytes=audio_bytes, language=language
-        )
+        validate_audio(audio_bytes)
+        start = time.time()
+        outcome = "success"
+        try:
+            return await self.provider.speech_to_text(
+                audio_bytes=audio_bytes, language=language
+            )
+        except Exception:
+            outcome = "error"
+            raise
+        finally:
+            duration = time.time() - start
+            record_voice_request(
+                operation="stt",
+                provider=getattr(
+                    self.provider, "__class__", type(self.provider)
+                ).__name__.lower(),
+                outcome=outcome,
+                duration=duration,
+                audio_bytes=len(audio_bytes),
+            )
 
     async def text_to_speech(
         self,
@@ -598,9 +642,27 @@ class VoiceService:
         language: str | None = None,
     ) -> dict[str, Any]:
         self._require_enabled()
-        return await self.provider.text_to_speech(
-            text=text, voice=voice, language=language
-        )
+        start = time.time()
+        outcome = "success"
+        try:
+            result = await self.provider.text_to_speech(
+                text=text, voice=voice, language=language
+            )
+            return result
+        except Exception:
+            outcome = "error"
+            raise
+        finally:
+            duration = time.time() - start
+            record_voice_request(
+                operation="tts",
+                provider=getattr(
+                    self.provider, "__class__", type(self.provider)
+                ).__name__.lower(),
+                outcome=outcome,
+                duration=duration,
+                audio_bytes=0,
+            )
 
 
 voice = VoiceService(

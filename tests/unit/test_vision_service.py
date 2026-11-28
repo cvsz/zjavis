@@ -67,13 +67,17 @@ class TestVisionServiceEnabled:
 
     def test_describe_image_delegates(self) -> None:
         service = VisionService(provider=LocalVisionProvider(), enabled=True)
-        result = asyncio.run(service.describe_image(image_bytes=b"\x89PNG", prompt="x"))
+        result = asyncio.run(
+            service.describe_image(image_bytes=b"\x89PNG\r\n\x1a\n", prompt="x")
+        )
         assert result["error"] == "local vision not implemented"
 
     def test_analyze_image_delegates(self) -> None:
         service = VisionService(provider=LocalVisionProvider(), enabled=True)
         result = asyncio.run(
-            service.analyze_image(image_bytes=b"\x89PNG", questions=["q"])
+            service.analyze_image(
+                image_bytes=b"\x89PNG\r\n\x1a\n", questions=["q"]
+            )
         )
         assert result["error"] == "local vision not implemented"
 

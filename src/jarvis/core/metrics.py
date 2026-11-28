@@ -177,3 +177,79 @@ def record_authz_denial(permission: str, actor_id: str) -> None:
 def record_authn_failure() -> None:
     """Record an authentication failure metric."""
     AUTHN_FAILURE_COUNT.inc()
+
+
+def record_voice_request(
+    operation: str, provider: str, outcome: str, duration: float, audio_bytes: int = 0
+) -> None:
+    """Record a voice interface request metric."""
+    VOICE_REQUEST_COUNT.labels(
+        operation=operation, provider=provider, outcome=outcome
+    ).inc()
+    VOICE_REQUEST_LATENCY.labels(operation=operation, provider=provider).observe(
+        duration
+    )
+    if audio_bytes > 0:
+        VOICE_AUDIO_BYTES.labels(operation=operation, provider=provider).inc(
+            audio_bytes
+        )
+
+
+def record_vision_request(
+    operation: str,
+    provider: str,
+    outcome: str,
+    duration: float,
+    image_bytes: int = 0,
+) -> None:
+    """Record a vision interface request metric."""
+    VISION_REQUEST_COUNT.labels(
+        operation=operation, provider=provider, outcome=outcome
+    ).inc()
+    VISION_REQUEST_LATENCY.labels(operation=operation, provider=provider).observe(
+        duration
+    )
+    if image_bytes > 0:
+        VISION_IMAGE_BYTES.labels(operation=operation, provider=provider).inc(
+            image_bytes
+        )
+
+
+# --- Voice metrics ---
+VOICE_REQUEST_COUNT = Counter(
+    "jarvis_voice_requests_total",
+    "Total number of voice interface requests",
+    ["operation", "provider", "outcome"],  # operation: stt or tts
+)
+
+VOICE_REQUEST_LATENCY = Histogram(
+    "jarvis_voice_request_duration_seconds",
+    "Voice interface request latency in seconds",
+    ["operation", "provider"],
+)
+
+VOICE_AUDIO_BYTES = Counter(
+    "jarvis_voice_audio_bytes_total",
+    "Total audio bytes processed by the voice interface",
+    ["operation", "provider"],
+)
+
+
+# --- Vision metrics ---
+VISION_REQUEST_COUNT = Counter(
+    "jarvis_vision_requests_total",
+    "Total number of vision interface requests",
+    ["operation", "provider", "outcome"],  # operation: describe or analyze
+)
+
+VISION_REQUEST_LATENCY = Histogram(
+    "jarvis_vision_request_duration_seconds",
+    "Vision interface request latency in seconds",
+    ["operation", "provider"],
+)
+
+VISION_IMAGE_BYTES = Counter(
+    "jarvis_vision_image_bytes_total",
+    "Total image bytes processed by the vision interface",
+    ["operation", "provider"],
+)

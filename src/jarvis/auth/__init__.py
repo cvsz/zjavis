@@ -279,8 +279,13 @@ async def _ensure_default_permissions_and_role(
         session.add(role)
         await session.flush()
 
-    # 3. Grant all permissions to the default role (idempotent).
-    perms = await session.execute(_sa_select(DbPermission))
+    # 3. Grant only declared permissions (from Permission.all()) to the
+    # default role (idempotent). Excludes stale permissions that may linger
+    # in the database but are not part of the declared capability set.
+    declared_perm_names = set(Permission.all())
+    perms = await session.execute(
+        _sa_select(DbPermission).where(DbPermission.name.in_(declared_perm_names))
+    )
     for perm in perms.scalars().all():
         rp = await session.execute(
             _sa_select(RolePermission).where(

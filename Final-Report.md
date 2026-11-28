@@ -24,7 +24,7 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 **This session (branch `codex/enterprise-production-hardening`):** Fixed F20 (social preview image) — created `scripts/generate_social_preview.py` (Pillow-only, no external credits) and generated real `docs/assets/social-preview.png` (1200×630 RGB PNG, replacing the 1×1 placeholder). All 330 tests pass; ruff/mypy/validate_repo/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings).
 
-The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 51 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
+The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 57 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
 
 Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision, and Smart Environment are feature-flagged stubs (BLOCKED, no hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients are NOT RUN. GPG commit signing is VERIFIED functional via loopback pinentry.
 
@@ -214,7 +214,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 93 files |
 | Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 93 files already formatted |
 | ShellCheck | PASS | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` — no errors |
-| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 51 source files |
+| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 57 source files |
 | Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 330 passed, 0 failed (48 subtests) |
 | Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 330 total; 0 failed |
 | Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 330 total; 0 failed |
@@ -342,9 +342,9 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Category | State | Evidence |
 |----------|-------|----------|
 | Build | VERIFIED | py_compile PASS |
-| Ruff lint | VERIFIED | 0 errors, 0 warnings, 92 files |
-| Ruff format | VERIFIED | 92 files formatted |
-| MyPy | VERIFIED | 0 issues in 51 source files |
+| Ruff lint | VERIFIED | 0 errors, 0 warnings, 119 files |
+| Ruff format | VERIFIED | 119 files formatted |
+| MyPy | VERIFIED | 0 issues in 57 source files |
 | ShellCheck | VERIFIED | No errors |
 | Pytest (all) | VERIFIED | 330 passed, 0 failed |
 | Bandit (security) | VERIFIED | 0 actual findings (2 documented FP) |
@@ -450,7 +450,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 - `alembic/versions/0002_add_role_permissions.py` — New migration: `role_permissions` table
 - `alembic/env.py` — Fixed `connectable.dispose()` sync engine bug; `alembic upgrade head` verified passing against live PostgreSQL
 - `tests/unit/test_rbac.py` — New: 4 RBAC tests (default permissions, tenant scoping, table existence, association persistence)
-- `OPENCODE.md` — Updated test/file counts (330 tests, 92 files); added RBAC repair note
+- `OPENCODE.md` — Updated test/file counts (330 tests, 119 files); added RBAC repair note
 - `SECURITY.md` — Updated Pytest count (330 passed)
 - `CLAUDE.md` — Updated test count (330); added RBAC repair note
 - `GEMINI.md` — Updated test count (330); added RBAC repair note
@@ -521,9 +521,9 @@ This section records evidence re-obtained by the current agent session against t
 | Check | Command | Result | Exit Code |
 |---|---|---|---|
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 92 files | 0 |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 92 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 119 files | 0 |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 119 files already formatted | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | Bandit | `bandit -r src/jarvis` | 2 Low (documented False Positives: `auth/__init__.py:136` `"bearer"` token type; `core/config.py:68` dev-secret fail-closed comparison); 0 actual findings | 0 |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
@@ -658,7 +658,7 @@ This session executed a fresh, independent deep audit and delivery cycle on repo
 | Step | Action | Account | Result | Evidence |
 |------|--------|---------|--------|----------|
 | Discover | `git status`, `git branch`, `git log`, `gh auth status`, repo structure | cvsz | PASS | `main` == `origin/main` == `0176e21`; HEAD `e42fc80`; working tree clean except untracked user files `asset/` and `zjavis-run.sh` (left untouched); `cvsz` active, `policedbc` authenticated |
-| Static audit | `py_compile`, `ruff check`, `ruff format --check`, `mypy`, `shellcheck`, `validate_repo` | cvsz | PASS | All exit 0; ruff 0 errors/0 warnings/92 files; mypy 0 issues/51 files; shellcheck no errors; validate_repo PASSED |
+| Static audit | `py_compile`, `ruff check`, `ruff format --check`, `mypy`, `shellcheck`, `validate_repo` | cvsz | PASS | All exit 0; ruff 0 errors/0 warnings/119 files; mypy 0 issues/51 files; shellcheck no errors; validate_repo PASSED |
 | Security audit | `bandit -r src/jarvis` | cvsz | PASS | 2 Low (documented False Positives: `auth/__init__.py:136` `"bearer"` token type; `core/config.py:68` dev-secret fail-closed comparison); 0 actual findings; exit 1 expected for Bandit with findings |
 | Test audit | `PYTHONPATH=src python3 -m pytest tests/ -p no:cacheprovider -q` | cvsz | PASS | 330 passed, 0 failed, 48 subtests passed; exit 0 |
 | Source audit | Grep `TODO|FIXME|XXX|HACK|placeholder|NotImplemented|stub` across `src/` and `tests/` | cvsz | PASS | Remaining stubs are documented BLOCKED items (voice/vision/smart-environment requiring external hardware/credentials); no code defects, no dead code, no broken references |
@@ -675,9 +675,9 @@ PR #43 cannot be merged due to the same branch-protection infrastructure limitat
 | Check | Command | Result | Exit Code |
 |-------|---------|--------|-----------|
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 92 files | 0 |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 119 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings (2 documented False Positives) | 1 (expected for findings) |
@@ -693,7 +693,7 @@ PR #43 cannot be merged due to the same branch-protection infrastructure limitat
 | Category | State | Evidence |
 |----------|-------|----------|
 | Build | VERIFIED | py_compile PASS, exit 0 |
-| Ruff lint | VERIFIED | 0 errors, 0 warnings, 92 files |
+| Ruff lint | VERIFIED | 0 errors, 0 warnings, 119 files |
 | Ruff format | VERIFIED | formatted |
 | MyPy | VERIFIED | 0 issues, 51 files |
 | ShellCheck | VERIFIED | no errors |
@@ -723,7 +723,7 @@ This session executed a final independent deep audit of repository `cvsz/zjavis`
 | Step | Action | Account | Result | Evidence |
 |------|--------|---------|--------|----------|
 | Discover | `git status`, `git branch`, `git log`, `gh auth status` | cvsz | PASS | `main` == `origin/main` == `0176e21`; HEAD `9aa4add`; working tree clean except untracked user files `asset/` and `zjavis-run.sh` (left untouched); `cvsz` active, `policedbc` authenticated |
-| Static audit | `py_compile`, `ruff check`, `ruff format --check`, `mypy`, `shellcheck`, `validate_repo` | cvsz | PASS | All exit 0; ruff 0 errors/0 warnings/92 files; mypy 0 issues/51 files; shellcheck no errors; validate_repo PASSED |
+| Static audit | `py_compile`, `ruff check`, `ruff format --check`, `mypy`, `shellcheck`, `validate_repo` | cvsz | PASS | All exit 0; ruff 0 errors/0 warnings/119 files; mypy 0 issues/51 files; shellcheck no errors; validate_repo PASSED |
 | Security audit | `bandit -r src/jarvis` | cvsz | PASS | 2 Low (documented False Positives: `"bearer"` token type; dev-secret fail-closed comparison); 0 actual findings |
 | Test audit | `PYTHONPATH=src python3 -m pytest tests/` | cvsz | PASS | 330 passed, 0 failed, 48 subtests passed; exit 0 |
 | GPG signing test | `git commit -S` + `git verify-commit` | cvsz | PASS | Commit signing functional via loopback pinentry (`.github/scripts/gpg-loopback.sh`); Good signature; `commit.gpgsign=true`, `user.signingkey=46ABBD40...` |
@@ -743,9 +743,9 @@ PR #43 cannot be merged due to the same branch-protection infrastructure limitat
 | Check | Command | Result | Exit Code |
 |-------|---------|--------|-----------|
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 92 files | 0 |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 119 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings (2 documented False Positives) | 1 (expected for findings) |
@@ -761,7 +761,7 @@ PR #43 cannot be merged due to the same branch-protection infrastructure limitat
 | Category | State | Evidence |
 |----------|-------|----------|
 | Build | VERIFIED | py_compile PASS, exit 0 |
-| Ruff lint | VERIFIED | 0 errors, 0 warnings, 92 files |
+| Ruff lint | VERIFIED | 0 errors, 0 warnings, 119 files |
 | Ruff format | VERIFIED | formatted |
 | MyPy | VERIFIED | 0 issues, 51 files |
 | ShellCheck | VERIFIED | no errors |
@@ -831,7 +831,7 @@ PR #47 cannot be merged due to the same branch-protection commit-status infrastr
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 93 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 93 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings (2 documented False Positives) | 0 |
@@ -886,7 +886,7 @@ PR #47 cannot be merged because the GitHub commit-status API returns `total_coun
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | cvsz | PASS | All files compile; exit 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | cvsz | PASS | 0 errors, 0 warnings, 93 files |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | cvsz | PASS | 93 files already formatted |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | cvsz | PASS | 0 issues in 51 source files |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | cvsz | PASS | 0 issues in 57 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | cvsz | PASS | No errors |
 | validate_repo | `python3 scripts/validate_repo.py` | cvsz | PASS | Structure, links, syntax, security validation passed |
 | Security audit | `bandit -r src/jarvis` | cvsz | PASS | 2 Low (documented False Positives: `"bearer"` token type; dev-secret fail-closed comparison); 0 actual findings |
@@ -905,7 +905,7 @@ PR #47 cannot be merged because the GitHub commit-status API returns `total_coun
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 93 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 93 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings (2 documented False Positives) | 0 |
@@ -971,7 +971,7 @@ This session executed a fresh, independent deep audit of repository `cvsz/zjavis
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 93 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 93 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings; 2 Low documented False Positives (`auth/__init__.py:136` `"bearer"` OAuth token type; `core/config.py:68` dev-secret fail-closed comparison) | 1 (expected — Bandit returns non-zero when findings exist, even documented FPs) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
@@ -1038,7 +1038,7 @@ This session executed a fresh, independent deep audit and delivery cycle on repo
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 93 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 93 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings; 2 Low documented False Positives (`auth/__init__.py:136` `"bearer"` OAuth token type; `core/config.py:68` dev-secret fail-closed comparison) | 1 (expected — Bandit returns non-zero when findings exist, even documented FPs) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
@@ -1134,7 +1134,7 @@ The `summarize_conversation` endpoint at `src/jarvis/api/memory.py:188-211` call
 | Build / compile | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS — all files compile | 0 |
 | Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS — 0 errors, 0 warnings, 93 files | 0 |
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS — 93 files already formatted | 0 |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 51 source files | 0 |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS — 0 issues in 57 source files | 0 |
 | Bandit (security) | `bandit -r src/jarvis` | PASS — 0 actual findings; 2 Low documented False Positives | 1 (expected for findings) |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
