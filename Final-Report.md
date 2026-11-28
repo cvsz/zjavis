@@ -1404,7 +1404,10 @@ This session executed a full deep audit and implementation cycle on repository `
 | validate_repo | `python3 scripts/validate_repo.py` | PASS — structure, links, syntax, security validation | 0 |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS — no errors | 0 |
 | GPG signed commit | `git commit -S` + `git verify-commit HEAD` | PASS — Good signature | 0 |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | Ran in CI; local run in progress at session end | — |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/ -p no:cacheprovider -q` | 444 passed, 3 failed (all pre-existing/environmental, unrelated to this session); 48 subtests passed | 1 |
+| Pytest failures (pre-existing, not caused by this session) | `tests/unit/test_rbac.py::test_get_user_permissions_returns_default_role_permissions` | FAIL — pre-existing RBAC test; tests `auth/__init__.py` `get_user_permissions()` which this session did NOT modify | — |
+| Pytest failures (pre-existing, not caused by this session) | `tests/unit/test_rbac.py::test_get_user_permissions_tenant_scoped` | FAIL — pre-existing RBAC test; tests `auth/__init__.py` `get_user_permissions()` which this session did NOT modify | — |
+| Pytest failures (environmental, not caused by this session) | `tests/unit/test_tracing_export.py::test_tracing_enabled_uses_otlp_endpoint` | FAIL — `otel-collector` hostname DNS resolution error (`NameResolutionError`); no OTLP collector running in this environment | — |
 
 ### 24.5 Pull Request #52
 
