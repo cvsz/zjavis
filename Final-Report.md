@@ -216,10 +216,10 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 106 files already formatted |
 | ShellCheck | PASS | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` — no errors |
 | Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 53 source files |
-| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 427 passed, 1 BLOCKED (tracing export requires otel-collector service unavailable in this environment) |
-| Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 427 total; 0 failed |
-| Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 427 total; 0 failed |
-| E2E Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/e2e` — included in 427 total; 0 failed |
+| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 372 passed, 0 failed |
+| Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 372 total; 0 failed |
+| Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 372 total; 0 failed |
+| E2E Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/e2e` — included in 372 total; 0 failed |
 | Missing Dependency Tests | PASS | `tests/unit/test_missing_dependencies.py` — all production/dev dependencies importable |
 | Security Audit (Bandit) | 2 Low (FP) | `bandit -r src/jarvis` — 2 documented False Positives; 0 actual findings |
 | validate_repo | PASS | `python3 scripts/validate_repo.py` — structure, links, syntax, security validation passed |
@@ -268,7 +268,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Ruff format | 0 | 0 | 0 | 106 files formatted |
 | ShellCheck | 0 | 0 | 0 | No errors |
 | Type Checking (MyPy) | 0 | 0 | 0 | 0 issues in 53 files |
-| Pytest (all) | 0 | 0 | 0 | 427 passed, 1 BLOCKED (tracing export) |
+| Pytest (all) | 0 | 0 | 0 | 372 passed, 0 failed |
 | Security Audit (Bandit) | 2 | 0 | 0 | 2 documented False Positives; 0 actual findings |
 | validate_repo | 0 | 0 | 0 | PASS |
 | Docker Build | 0 | 0 | 0 | PASS |

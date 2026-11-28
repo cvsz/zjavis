@@ -163,7 +163,7 @@ Security incidents affecting production systems should preserve evidence and use
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 106 files already formatted |
 | MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 53 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 427 passed, 1 BLOCKED (tracing export requires otel-collector service unavailable in this environment; external prerequisite, not a code defect) |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 372 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |
