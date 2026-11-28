@@ -140,6 +140,7 @@ Security incidents affecting production systems should preserve evidence and use
 | A4 | Medium | `src/jarvis/api/auth.py` | Login returned tokens but created no session record — tokens could not be tracked or revoked | Login now persists a `Session` row (token hash, expiry, tenant) for revocation and audit support | FIXED |
 | A5 | Medium | `src/jarvis/ai/agent_runtime.py` | `AgentRuntime.execute_task()` loaded a task by ID only, with no tenant/user scope check — a caller knowing another tenant's task ID could invoke it | `execute_task()` now accepts `tenant_id` and `user_id` and rejects the call with `AuthorizationError` (`tenant_isolation_violation` / `user_ownership_violation`) when the task does not belong to the scoped principal | FIXED |
 | A6 | Low | `src/jarvis/tools/terminal.py` | Shared `terminal_tool` singleton was `enabled=True` by default, contradicting the security-by-default principle that all adapters are disabled unless explicitly enabled | `terminal_tool` default changed to `enabled=False`; Git and Docker adapters use their own dedicated `TerminalToolAdapter(enabled=True)` instances so they remain independently operable | FIXED |
+| A7 | Medium | `src/jarvis/auth/__init__.py` | `_ensure_default_permissions_and_role()` granted every `DbPermission` row from the database to the default role, including stale permissions (e.g. `drill:read`) not in the declared capability set | Filter to declared permissions only (`Permission.all()`) before granting; stale DB rows excluded | FIXED |
 
 ### Security areas not yet implemented (BLOCKED / NOT RUN)
 
@@ -162,7 +163,7 @@ Security incidents affecting production systems should preserve evidence and use
 | Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 106 files already formatted |
 | MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 53 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 372 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 427 passed, 1 BLOCKED (tracing export requires otel-collector service unavailable in this environment; external prerequisite, not a code defect) |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |

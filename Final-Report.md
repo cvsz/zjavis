@@ -150,6 +150,7 @@ All features below are implemented, tested, and verified. All adapters are featu
 | A4 | Medium | `src/jarvis/api/auth.py` | Login created no `Session` record | Login now persists `Session` row for revocation | FIXED |
 | A5 | Medium | `src/jarvis/ai/agent_runtime.py` | `execute_task()` no tenant/user scope check | Tenant/user isolation enforced | FIXED |
 | A6 | Low | `src/jarvis/tools/terminal.py` | `terminal_tool` `enabled=True` by default | Default changed to `enabled=False` | FIXED |
+| A7 | Medium | `src/jarvis/auth/__init__.py` | `_ensure_default_permissions_and_role()` granted every `DbPermission` row from the database to the default role, including stale permissions not in the declared capability set | Filter to declared permissions only (`Permission.all()`); stale DB rows excluded | FIXED |
 
 **Bandit scan:** 2 Low findings (both documented False Positives; 0 actual findings)  
 **Actual security vulnerabilities remaining:** 0
@@ -211,14 +212,14 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 | Verification | Result | Evidence |
 |--------------|--------|----------|
 | Build | PASS | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` — all files compile without syntax errors |
-| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 93 files |
-| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 93 files already formatted |
+| Ruff lint | PASS | `python3 -m ruff check src/ tests/ scripts/` — 0 errors, 0 warnings across 106 files |
+| Ruff format | PASS | `python3 -m ruff format --check src/ tests/ scripts/` — 106 files already formatted |
 | ShellCheck | PASS | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` — no errors |
-| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 51 source files |
-| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 330 passed, 0 failed (48 subtests) |
-| Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 330 total; 0 failed |
-| Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 330 total; 0 failed |
-| E2E Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/e2e` — included in 330 total; 0 failed |
+| Type Checking (MyPy) | PASS | `python3 -m mypy --explicit-package-bases src/jarvis` — 0 issues in 53 source files |
+| Pytest (all) | PASS | `PYTHONPATH=src python3 -m pytest tests/` — 427 passed, 1 BLOCKED (tracing export requires otel-collector service unavailable in this environment) |
+| Unit Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/unit` — included in 427 total; 0 failed |
+| Integration Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/integration` — included in 427 total; 0 failed |
+| E2E Tests | PASS | `PYTHONPATH=src python3 -m pytest tests/e2e` — included in 427 total; 0 failed |
 | Missing Dependency Tests | PASS | `tests/unit/test_missing_dependencies.py` — all production/dev dependencies importable |
 | Security Audit (Bandit) | 2 Low (FP) | `bandit -r src/jarvis` — 2 documented False Positives; 0 actual findings |
 | validate_repo | PASS | `python3 scripts/validate_repo.py` — structure, links, syntax, security validation passed |
@@ -264,10 +265,10 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 |----------------|--------------|-----------------|-------------|-------|
 | Build | 0 | 0 | 0 | All files compile |
 | Ruff lint | 0 | 0 | 0 | 0 errors, 0 warnings |
-| Ruff format | 0 | 0 | 0 | 93 files formatted |
+| Ruff format | 0 | 0 | 0 | 106 files formatted |
 | ShellCheck | 0 | 0 | 0 | No errors |
-| Type Checking (MyPy) | 0 | 0 | 0 | 0 issues in 51 files |
-| Pytest (all) | 0 | 0 | 0 | 330 passed, 0 failed |
+| Type Checking (MyPy) | 0 | 0 | 0 | 0 issues in 53 files |
+| Pytest (all) | 0 | 0 | 0 | 427 passed, 1 BLOCKED (tracing export) |
 | Security Audit (Bandit) | 2 | 0 | 0 | 2 documented False Positives; 0 actual findings |
 | validate_repo | 0 | 0 | 0 | PASS |
 | Docker Build | 0 | 0 | 0 | PASS |
