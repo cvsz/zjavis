@@ -15,9 +15,9 @@ telemetry.
 
 from __future__ import annotations
 
-import os
 from typing import Any, Self
 
+from jarvis.core.config import settings
 from jarvis.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,12 +30,7 @@ _tracing_initialized: bool = False
 
 def _is_tracing_enabled() -> bool:
     """Return True if OpenTelemetry tracing is explicitly enabled."""
-    return os.getenv("JARVIS_TRACING_ENABLED", "false").lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return bool(settings.tracing_enabled)
 
 
 def _init_tracer() -> Any:
@@ -68,9 +63,9 @@ def _init_tracer() -> Any:
         )
 
         _tracer_provider = TracerProvider()
-        # Export to console by default; configure an OTLP exporter via env
+        # Export to console by default; configure an OTLP exporter via
         # JARVIS_OTLP_ENDPOINT for production use.
-        otlp_endpoint = os.getenv("JARVIS_OTLP_ENDPOINT")
+        otlp_endpoint = settings.otlp_endpoint
         exporter: Any
         if otlp_endpoint:
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import (

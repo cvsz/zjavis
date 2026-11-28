@@ -138,5 +138,15 @@ class Settings(BaseSettings):
         default=False, description="Enable smart environment integration"
     )
 
+    # --- OpenTelemetry tracing ---------------------------------------------
+    tracing_enabled: bool = Field(
+        default=False,
+        description="Enable OpenTelemetry distributed tracing",
+    )
+    otlp_endpoint: str | None = Field(
+        default=None,
+        description="OTLP HTTP trace export endpoint (e.g. http://collector:4318/v1/traces)",
+    )
+
 
 settings = Settings()

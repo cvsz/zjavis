@@ -85,6 +85,9 @@ env:
   JARVIS_VISION_ENABLED: "false"
   JARVIS_AGENT_RUNTIME_ENABLED: "true"
   JARVIS_SMART_ENVIRONMENT_ENABLED: "false"
+  # OpenTelemetry tracing export (disabled by default; enable with a collector)
+  JARVIS_TRACING_ENABLED: "false"
+  JARVIS_OTLP_ENDPOINT: ""
 
 # Secret values (override via --set or external secrets)
 secret:
@@ -127,3 +130,9 @@ podSecurityContext: {}
 # Volumes
 volumes: []
 volumeMounts: []
+
+# Backup CronJob
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  imagePullPolicy: IfNotPresent

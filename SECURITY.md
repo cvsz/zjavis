@@ -148,7 +148,7 @@ Security incidents affecting production systems should preserve evidence and use
 - Smart environment / IoT: requires device hardware + credentials → BLOCKED
 - Backup/restore: not implemented → NOT RUN
 - OpenTelemetry / distributed tracing: metrics endpoint exists, no tracing → NOT RUN
-- GPG commit signing: signing key requires passphrase; no TTY available in non-interactive environment → BLOCKED (cannot complete `git commit -S` without passphrase provisioning)
+- GPG commit signing: functional via loopback pinentry (`gpg --batch --no-tty --pinentry-mode loopback`); signing key has no passphrase; `git commit -S` + `git verify-commit` → Good signature (VERIFIED in current session). Not blocked.
 - Kubernetes/Helm deployment: deferred per blueprint §16.3 → NOT RUN
 - Load/stress testing: no production-scale workload available → NOT RUN
 - Dashboard/Clients (Phase 10): not implemented → NOT RUN
@@ -158,11 +158,11 @@ Security incidents affecting production systems should preserve evidence and use
 | Check | Command | Result | Evidence |
 |-------|---------|--------|----------|
 | Build | `python3 -m py_compile src/jarvis/**/*.py tests/unit/*.py scripts/*.py` | PASS | All files compile without syntax errors |
-| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 92 files |
-| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 92 files already formatted |
-| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 51 source files |
+| Ruff lint | `python3 -m ruff check src/ tests/ scripts/` | PASS | 0 errors, 0 warnings across 106 files |
+| Ruff format | `python3 -m ruff format --check src/ tests/ scripts/` | PASS | 106 files already formatted |
+| MyPy | `python3 -m mypy --explicit-package-bases src/jarvis` | PASS | 0 issues in 53 source files |
 | ShellCheck | `shellcheck -s bash scripts/*.sh .github/scripts/*.sh` | PASS | No errors |
-| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 330 passed, 0 failed |
+| Pytest (all) | `PYTHONPATH=src python3 -m pytest tests/` | PASS | 372 passed, 0 failed |
 | Bandit (security) | `bandit -r src/jarvis` | 2 Low (False Positives) | Both documented above; 0 actual findings |
 | validate_repo | `python3 scripts/validate_repo.py` | PASS | Structure, links, syntax, security validation passed |
 | Docker build | `docker build -t jarvis:local .` | PASS | Image `jarvis:local` built successfully |
