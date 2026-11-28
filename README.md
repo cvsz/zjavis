@@ -32,7 +32,7 @@
 [![Phase 1 Core Platform](https://img.shields.io/badge/Phase%201-COMPLETE-brightgreen)](javis-blueprint.md)
 [![Phase 7 Tool Integration](https://img.shields.io/badge/Phase%207-IMPLEMENTED-brightgreen)](javis-blueprint.md)
 [![Phase 8 Engineering Intel](https://img.shields.io/badge/Phase%208-IMPLEMENTED-brightgreen)](javis-blueprint.md)
-[![Voice/Vision/SmartEnv](https://img.shields.io/badge/Voice%2FVision%2FSmartEnv-BLOCKED-red)](docs/roadmap.md)
+[![Voice/Vision/SmartEnv](https://img.shields.io/badge/Voice%2FVision%2FSmartEnv-PARTIAL-yellow)](docs/roadmap.md)
 [![Phase 10 Dashboard/CLI](https://img.shields.io/badge/Phase%2010-CLI%20IMPLEMENTED-yellow)](javis-blueprint.md)
 
 </div>
@@ -55,8 +55,8 @@
 | Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; delegates to OrchestrationEngine |
 | SSRF Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
 | Path Traversal Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_safe_path()` confines paths within base directory using `os.path.realpath()` |
-| Voice Intelligence (Phase 4) | ⚠️ BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
-| Vision Intelligence (Phase 5) | ⚠️ BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
+| Voice Intelligence (Phase 4) | ⚠️ IMPLEMENTED / BLOCKED (live) | NVIDIA NIM + local providers, audio validation, policy enforcement, metrics, tests; **live STT/TTS requires audio hardware + provider credentials** |
+| Vision Intelligence (Phase 5) | ⚠️ IMPLEMENTED / BLOCKED (live) | NVIDIA NIM + local providers, image validation, policy enforcement, metrics, tests; **live vision requires GPU + vision model credentials** |
 | Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
 | Tool & Computer Integration (Phase 7) | ✅ IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry |
 | Engineering Intelligence (Phase 8) | ✅ IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed |
@@ -168,8 +168,8 @@ and memories.
 | Tasks | `/api/v1/tasks` | `POST`, `GET`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | Yes + policy + tenant isolation (`state` not directly mutable via API) |
 | Audit | `/api/v1/audit` | `GET /events` | Yes + tenant isolation |
 | Health | `/` | `GET /health`, `GET /ready`, `GET /metrics` | No |
-| Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged, disabled) | Yes |
-| Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged, disabled) | Yes |
+| Voice | `/api/v1/voice` | `POST /speech-to-text`, `POST /text-to-speech` (feature-flagged, disabled; policy + validation + metrics) | Yes + policy (`VOICE_READ`/`VOICE_WRITE`) |
+| Vision | `/api/v1/vision` | `POST /describe`, `POST /analyze` (feature-flagged, disabled; policy + validation + metrics) | Yes + policy (`VISION_READ`) |
 | Agent Runtime | `/api/v1/agent-runtime` | `POST /execute` (feature-flagged) | Yes + policy (`REPOSITORY_WRITE`); `execute_task()` enforces tenant isolation (tenant_id/user_id scope checked against target task) |
 | Smart Environment | `/api/v1/smart-environment` | `GET /devices`, `GET /devices/{id}/state`, `POST /devices/{id}/state` (feature-flagged, disabled) | Yes |
 | Tool Registry | Internal | `src/jarvis/tools/` — File, Terminal, Git, Docker, MCP, Browser adapters | Feature-flagged, disabled by default |
@@ -543,7 +543,8 @@ The following items are **not** implemented or verified and must not be counted 
 
 - Tool & Computer Integration (Phase 7) — IMPLEMENTED (file, terminal, git, docker, MCP, browser adapters)
 - Engineering Intelligence (Phase 8) — IMPLEMENTED (repository discovery, architecture analysis)
-- Voice, Vision, Smart Environment are stubs only (feature-flagged, disabled by default) — BLOCKED (no hardware/credentials)
+- Voice (Phase 4) & Vision (Phase 5) — provider implementations, image/audio validation, policy enforcement, metrics, and tests IMPLEMENTED; live hardware/credential integration BLOCKED (no GPU/audio, no live provider credentials)
+- Smart Environment (Phase 9) — stub only (feature-flagged, disabled by default) — BLOCKED (no IoT hardware/credentials)
 - Backup/restore runbooks — documentation implemented; restore drill NOT RUN
 - OpenTelemetry / distributed tracing — module implemented; no tracing export configured
 - Alembic migrations — `0002_add_role_permissions` added (RBAC junction table); `alembic/env.py` `connectable.dispose()` sync engine bug fixed; migrations verified passing against live PostgreSQL
@@ -556,8 +557,8 @@ The following items are **not** implemented or verified and must not be counted 
 
 | Phase | Blocked By | Required Hardware | Required Credentials |
 |-------|-----------|-------------------|---------------------|
-| 4 — Voice Intelligence | No audio I/O, no STT/TTS provider | Microphone + speakers/headphones | Azure Speech / AWS / Google Cloud Speech API keys |
-| 5 — Vision Intelligence | No discrete GPU, no vision model provider | Dedicated GPU (CUDA/ROCm) | OpenAI GPT-4V / NVIDIA NIM VLM API keys |
+| 4 — Voice Intelligence | No live audio I/O test, no STT/TTS credentials | Microphone + speakers/headphones | Azure Speech / AWS / Google Cloud Speech / NVIDIA NIM API keys |
+| 5 — Vision Intelligence | No discrete GPU test, no vision model credentials | Dedicated GPU (CUDA/ROCm) | NVIDIA NIM / OpenAI GPT-4V API keys |
 | 9 — Smart Environment | No IoT devices, no broker | Sensors, actuators, GPIO/I2C adapters | MQTT broker credentials + device API keys |
 
 **System hardware detected** (from `C:\Users\cvsz.ZEAZ\Documents\ZEAZ.html` CPU-Z report):

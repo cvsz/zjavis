@@ -44,26 +44,38 @@ The roadmap below tracks the actual implementation status of zjavis, not the gen
 - [ ] Semantic/vector retrieval (pgvector) — NOT IMPLEMENTED (no pgvector extension available)
 - [ ] Document ingestion pipeline — NOT IMPLEMENTED
 
-## Phase 4 — Voice Intelligence (STUB — BLOCKED)
+## Phase 4 — Voice Intelligence (IMPLEMENTED — code-ready; live BLOCKED)
 
-- [ ] Audio capture — requires audio hardware
-- [ ] VAD / audio preprocessing — requires audio hardware
-- [ ] STT — requires STT provider credentials
-- [ ] TTS — requires TTS provider credentials
+- [x] Provider abstraction: `VoiceProvider` ABC with STT/TTS (voice.py)
+- [x] LocalVoiceProvider stub (no hardware/credentials required)
+- [x] Azure, Google, NVIDIA NIM, AWS provider adapters (AWS notes SigV4 not implemented)
+- [x] Provider selection (`_build_provider`); mixed/partial config falls back to local stub
+- [x] Audio payload validation: size cap (25 MB), empty rejection (validate_audio)
+- [x] Execution-time policy enforcement: `VOICE_READ` (STT), `VOICE_WRITE` (TTS) via `require_policy()`
+- [x] Feature-flagged, disabled by default (`JARVIS_VOICE_ENABLED`)
+- [x] Prometheus metrics: `jarvis_voice_requests_total`, latency, audio bytes
+- [x] Unit tests: providers, service enable/disable, provider selection, validation
+- [ ] Real STT/TTS pipeline tested on supported hardware — BLOCKED (no audio hardware + no live provider credentials)
 - [ ] Streaming, interruption, wake-word — NOT IMPLEMENTED
-- [x] Voice API endpoints (feature-flagged, disabled by default, return 501)
-- [x] LocalVoiceProvider placeholder (returns error, no hardware dependency)
-- Status: BLOCKED — requires audio hardware + STT/TTS provider credentials not available
+- [x] Voice API endpoints (feature-flagged, disabled by default, return 501 when disabled)
+- Status: IMPLEMENTED (code-ready, policy-governed, tested); live integration BLOCKED — requires audio hardware + STT/TTS provider credentials not available
 
-## Phase 5 — Vision Intelligence (STUB — BLOCKED)
+## Phase 5 — Vision Intelligence (IMPLEMENTED — code-ready; live BLOCKED)
 
-- [ ] Image understanding — requires vision model provider credentials
-- [ ] OCR — NOT IMPLEMENTED
-- [ ] Screen understanding — NOT IMPLEMENTED
-- [ ] Video frame analysis — NOT IMPLEMENTED
-- [x] Vision API endpoints (feature-flagged, disabled by default, return 501)
-- [x] LocalVisionProvider placeholder (returns error, no GPU dependency)
-- Status: BLOCKED — requires GPU hardware + vision model provider credentials not available
+- [x] Provider abstraction: `VisionProvider` ABC with describe_image/analyze_image (vision.py)
+- [x] LocalVisionProvider stub (no GPU/credentials required)
+- [x] NVIDIA NIM vision-language provider (chat/completions with base64 image input)
+- [x] Image validation: magic-byte content-type detection (PNG/JPEG/WEBP), size cap (10 MB), empty/rejection (validate_image)
+- [x] Provider selection (`_build_provider`); `nvidia` accepted as alias for `nvidia-nim`; unknown falls back to local stub
+- [x] Execution-time policy enforcement: `VISION_READ` via `require_policy()`
+- [x] Feature-flagged, disabled by default (`JARVIS_VISION_ENABLED`); CPU fallback device
+- [x] Prometheus metrics: `jarvis_vision_requests_total`, latency, image bytes
+- [x] Config fields: `vision_provider`, `vision_api_key`, `vision_api_url`, `vision_model`, `vision_max_image_bytes`
+- [x] Unit tests: validation, detection, providers, service enable/disable, provider selection
+- [ ] Real vision pipeline tested on supported hardware — BLOCKED (no discrete GPU + no live vision model credentials)
+- [ ] OCR, screen understanding, video frame analysis — NOT IMPLEMENTED
+- [x] Vision API endpoints (feature-flagged, disabled by default, return 501 when disabled)
+- Status: IMPLEMENTED (code-ready, policy-governed, tested); live integration BLOCKED — requires GPU hardware + vision model provider credentials not available
 
 ## Phase 6 — Agent Runtime (IMPLEMENTED — approval-gated)
 
