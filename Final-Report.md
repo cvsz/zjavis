@@ -26,7 +26,7 @@ Engineering Role: Lead Software Architect / Senior Systems Engineer / Security E
 
 The JARVIS repository core platform (Phase 1 per javis-blueprint.md §21) has been implemented, tested, and verified. All **330** tests pass (225 unit/integration + 46 template + **59** Phase 7/8/RBAC; 0 failed), ruff/mypy/validate_repo/shellcheck/bandit checks pass (bandit: 2 documented False Positives, 0 actual findings), Docker build succeeds (`jarvis:local` image built successfully), and runtime validation passed (`GET /health` HTTP 200; `/ready` returns 503 fail-closed when DB unavailable). **Re-verified in this session:** `PYTHONPATH=src python3 -m pytest tests/` → 330 passed, 0 failed, 48 subtests passed; `ruff check src/ tests/ scripts/` → 0 errors, 0 warnings; `mypy --explicit-package-bases src/jarvis` → 0 issues in 57 source files; `python3 scripts/validate_repo.py` → PASSED; `bandit -r src/jarvis` → 2 Low (documented False Positives), 0 actual findings.
 
-Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision, and Smart Environment are feature-flagged stubs (BLOCKED, no hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients are NOT RUN. GPG commit signing is VERIFIED functional via loopback pinentry.
+Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain. Voice, Vision code-ready implementations (providers, validation, policy enforcement, metrics, tests) IMPLEMENTED; live integration BLOCKED (no audio/GPU hardware + no provider credentials). Smart Environment is a feature-flagged stub (BLOCKED, no IoT hardware/credentials); backup/restore restore drill, OpenTelemetry tracing export, Kubernetes/Helm, load/stress testing, Phase 10 clients are NOT RUN. GPG commit signing is VERIFIED functional via loopback pinentry.
 
 ---
 
@@ -364,7 +364,7 @@ The initial schema (`alembic/versions/0001_initial_schema.py`) with 14 core enti
 
 ### Not Production Ready (BLOCKED / NOT RUN)
 
-- Voice, Vision, Smart Environment: stubs only (BLOCKED, no hardware/credentials)
+- Voice, Vision: code-ready implementations (providers, validation, policy enforcement, metrics, tests) IMPLEMENTED; live integration BLOCKED (no audio/GPU hardware + no provider credentials). Smart Environment: stub only (BLOCKED, no IoT hardware/credentials)
 - Backup/restore restore drill: NOT RUN
 - OpenTelemetry tracing export: NOT RUN
 - GPG commit signing: VERIFIED — functional via loopback pinentry (no passphrase required); all branch commits GPG-signed
@@ -503,7 +503,7 @@ Per the mandatory rules: this system is **not** claimed as Production Ready or 1
 | COMPLETED | Step 5d PR #41 created | `gh pr create`; PR #41 (`codex/enterprise-production-hardening` → `main`) at https://github.com/cvsz/zjavis/pull/41 |
 | COMPLETED | Step 5e Independent review (policedbc) PR #41 | `gh pr review --approve`; `reviewDecision: APPROVED` (distinct account from author `cvsz`); `verify-independent-approval` check PASSED |
 | BLOCKED | Step 5f PR #41 merge to main | `gh pr merge 41 --merge --delete-branch` → exit 1 "base branch policy prohibits the merge"; commit-status API `total_count: 0` on head `87b8252` despite all 4 required checks passing; `strict: true`; `--admin`/`--force` NOT used. Infrastructure limitation requiring repository-admin reconciliation |
-| BLOCKED | Voice / Vision / Smart Environment | Stub only; no hardware/credentials |
+| BLOCKED | Voice / Vision / Smart Environment | Voice/Vision code-ready implementations IMPLEMENTED; live integration BLOCKED (no audio/GPU hardware + no provider credentials). Smart Environment stub only; no IoT hardware/credentials |
 | COMPLETED | GPG commit signing | All 17 branch commits show `git log %G?=G` (good signature, `cvsz <cvsz@zksato.local>`); `commit.gpgsign=true` configured; loopback pinentry mode makes signing functional without `GPG_PASSPHRASE` (clearsign verified exit 0). |
 | NOT RUN | Backup/restore restore drill | Documentation only; drill not executed |
 | NOT RUN | OpenTelemetry tracing export | No OTLP endpoint configured |
@@ -1464,7 +1464,7 @@ Per the mandatory rules, `--admin`, `--force`, and force-push were NOT used. Thi
 |------|--------|--------|
 | PR #52 merge to main | BLOCKED | Commit-status API `total_count: 0` despite all checks SUCCESS + independent approval; `strict: true` branch protection; `--admin`/`--force` prohibited |
 | PR #51 merge to main | BLOCKED | Same infrastructure limitation as PR #52 |
-| Voice / Vision / Smart Environment | BLOCKED | Requires audio/GPU/IoT hardware and provider credentials; feature-flagged off |
+| Voice / Vision / Smart Environment | BLOCKED (live) | Voice/Vision code-ready implementations IMPLEMENTED (providers, validation, policy enforcement, metrics, tests); live integration BLOCKED (no audio/GPU hardware + no provider credentials). Smart Environment stub only; no IoT hardware/credentials |
 | Backup / restore restore drill | NOT RUN | Documentation only; no drill executed |
 | OpenTelemetry tracing export | NOT RUN | No OTLP endpoint configured |
 | Kubernetes / Helm deployment | NOT RUN | Deferred per blueprint §16.3 |
