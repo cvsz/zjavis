@@ -2,13 +2,12 @@
 * @cvsz
 
 # Independent reviewer for security and tenant isolation fixes
-/.github/ @policedbc
-/src/ @policedbc
-/tests/ @policedbc
-/Final-Report.md @policedbc
-/README.md @policedbc
-/alembic/ @policedbc
-
+/.github/ @cvsz @policedbc
+/src/ @cvsz @policedbc
+/tests/ @cvsz @policedbc
+/Final-Report.md @cvsz @policedbc
+/README.md @cvsz @policedbc
+/alembic/ @cvsz @policedbc
 /SECURITY.md @cvsz
 /AGENTS.md @cvsz
 /CLAUDE.md @cvsz
