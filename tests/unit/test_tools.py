@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import os
 import tempfile
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -73,7 +75,7 @@ class _ConcreteAdapter(BaseToolAdapter):
     def __init__(self, *, provider_name: str = "test", enabled: bool = True) -> None:
         super().__init__(provider_name=provider_name, enabled=enabled)
 
-    async def execute(self, *, action: str, params: dict) -> ToolResult:
+    async def execute(self, *, action: str, params: dict[str, Any]) -> ToolResult:
         return ToolResult(success=True, data={"action": action}, provider="test")
 
 
@@ -103,7 +105,7 @@ class TestFileToolAdapter:
     """Tests for FileToolAdapter."""
 
     @pytest.fixture
-    def tmp_dir(self) -> str:
+    def tmp_dir(self) -> Generator[str, None, None]:
         with tempfile.TemporaryDirectory() as tmp:
             yield tmp
 

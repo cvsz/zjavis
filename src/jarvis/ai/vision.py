@@ -17,6 +17,8 @@ from jarvis.core.config import settings
 class VisionProvider(ABC):
     """Abstract base class for vision providers."""
 
+    device: str
+
     @abstractmethod
     async def describe_image(
         self,
@@ -58,7 +60,12 @@ class LocalVisionProvider(VisionProvider):
     Returns a stub result indicating vision processing is not available
     locally. This keeps the system functional without GPU hardware
     or external credentials while the ``vision_enabled`` flag is false.
+    Targets ``device`` (defaults to ``cpu``) so the system works without
+    GPU hardware and can be pointed at a GPU device such as ``cuda:0``.
     """
+
+    def __init__(self, *, device: str = "cpu") -> None:
+        self.device = device
 
     async def describe_image(
         self,
@@ -70,6 +77,7 @@ class LocalVisionProvider(VisionProvider):
             "description": "",
             "confidence": 0.0,
             "provider": "local",
+            "device": self.device,
             "error": "local vision not implemented",
         }
 
@@ -82,6 +90,7 @@ class LocalVisionProvider(VisionProvider):
         return {
             "answers": {q: "" for q in questions},
             "provider": "local",
+            "device": self.device,
             "error": "local vision not implemented",
         }
 
@@ -97,9 +106,11 @@ class VisionService:
         *,
         provider: VisionProvider | None = None,
         enabled: bool = False,
+        device: str = "cpu",
     ) -> None:
-        self.provider = provider or LocalVisionProvider()
+        self.provider = provider or LocalVisionProvider(device=device)
         self.enabled = enabled
+        self.device = self.provider.device
 
     def _require_enabled(self) -> None:
         if not self.enabled:
@@ -131,6 +142,7 @@ class VisionService:
 
 
 vision = VisionService(
-    provider=LocalVisionProvider(),
+    provider=LocalVisionProvider(device=settings.vision_gpu_device),
     enabled=settings.vision_enabled,
+    device=settings.vision_gpu_device,
 )

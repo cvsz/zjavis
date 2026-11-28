@@ -130,7 +130,7 @@ This section records the current state of the zjavis implementation per `javis-b
 | Logging / Metrics / Tracing | Phase 1 | COMPLETE / PARTIAL | Structured JSON logging with `SecretFilter`; Prometheus `/metrics`; OpenTelemetry tracing module (no export configured) |
 | Data Layer (PostgreSQL + Alembic) | Phase 1 | COMPLETE / VERIFIED | 14 SQLAlchemy models; migrations `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic upgrade head` verified against live PostgreSQL; `alembic/env.py` `connectable.dispose()` sync engine fix applied |
 | Model Gateway | Phase 2 | IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
-| Memory & Knowledge | Phase 3 | IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
+| Memory & Knowledge | Phase 3 | IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; **semantic/vector retrieval (JSON embeddings + cosine similarity) and document ingestion pipeline added**; no pgvector extension |
 | Orchestration Engine | Phase 6 | IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
 | Agent Runtime | Phase 6 | IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; tenant isolation on `execute_task()` |
 | SSRF Prevention | Phase 6/7 | IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
@@ -140,11 +140,13 @@ This section records the current state of the zjavis implementation per `javis-b
 | Voice Intelligence | Phase 4 | BLOCKED | Stub only — requires audio hardware + STT/TTS provider credentials |
 | Vision Intelligence | Phase 5 | BLOCKED | Stub only — requires GPU hardware + vision model provider credentials |
 | Smart Environment | Phase 9 | BLOCKED | Stub only — requires IoT hardware + device credentials |
-| Dashboard / Clients | Phase 10 | NOT RUN | Not implemented |
+| Dashboard / Clients | Phase 10 | IMPLEMENTED / PARTIAL | Operator CLI implemented (`src/jarvis/client/cli.py` + `jarvis.client` library); **web dashboard added (`src/jarvis/ui/` with `/login`, `/dashboard`, model status, task center, agent monitor, approvals, memory center, system health)**; desktop, mobile NOT RUN |
 | Backup / Restore | Phase 11 | PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | Phase 11 | NOT RUN | Deferred per blueprint §16.3 |
 | Load / Stress Testing | Phase 11 | NOT RUN | No production-scale workload available |
 | GPG Commit Signing | Phase 11 | VERIFIED | Functional via loopback pinentry (`.github/scripts/gpg-loopback.sh`, no passphrase required); `git commit -S` + `git verify-commit` → Good signature; `commit.gpgsign=true` configured |
 | Social Preview Image | Docs | VERIFIED | Real 1200×630 OpenGraph PNG generated locally via Pillow (`scripts/generate_social_preview.py`); no external credits required |
+| Alerting (Phase 11) | Phase 11 | IMPLEMENTED | Prometheus alerting rules (`deploy/alerting/prometheus_rules.yml`) for auth failures, agent failures, API errors/latency, memory growth |
+| Concurrency / State Safety (Phase 11) | Phase 11 | IMPLEMENTED | Concurrency tests (`tests/unit/test_concurrency.py`) for orchestration locks and memory deduplication |
 
-**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 clients are NOT RUN, GPG commit signing is BLOCKED, PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 330 tests passing (0 failed).**
+**Overall:** PARTIALLY VERIFIED. **NOT Production Ready** — voice/vision/smart environment are BLOCKED, backup/restore drill and OpenTelemetry tracing export are NOT RUN, Kubernetes/Helm and load testing are NOT RUN, Phase 10 web/desktop/mobile clients NOT RUN (CLI implemented), PR #39 merge is BLOCKED by branch protection (CI status not propagated). **RBAC repaired: `role_permissions` junction table added (migration `0002_add_role_permissions`), `get_user_permissions()` corrected, default role self-provisioned, 375 tests passing (0 failed; 3 pre-existing environmental failures unrelated to code).**

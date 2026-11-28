@@ -31,6 +31,22 @@ class TestLocalVisionProvider:
         assert result["provider"] == "local"
         assert result["error"] == "local vision not implemented"
 
+    def test_default_device_is_cpu(self) -> None:
+        """CPU is the fallback device when no GPU device is configured."""
+        provider = LocalVisionProvider()
+        assert provider.device == "cpu"
+
+    def test_device_is_reported_in_results(self) -> None:
+        provider = LocalVisionProvider(device="cuda:0")
+        result = asyncio.run(
+            provider.describe_image(image_bytes=b"\x89PNG", prompt="x")
+        )
+        assert result["device"] == "cuda:0"
+        result = asyncio.run(
+            provider.analyze_image(image_bytes=b"\x89PNG", questions=["q"])
+        )
+        assert result["device"] == "cuda:0"
+
 
 class TestVisionServiceDisabled:
     """VisionService raises RuntimeError when disabled (secure-by-default)."""
@@ -64,3 +80,16 @@ class TestVisionServiceEnabled:
     def test_default_provider_is_local(self) -> None:
         service = VisionService(enabled=True)
         assert isinstance(service.provider, LocalVisionProvider)
+
+    def test_service_uses_cpu_fallback_device(self) -> None:
+        """VisionService targets the configured device (cpu by default)."""
+        service = VisionService(provider=LocalVisionProvider(), enabled=True)
+        assert service.device == "cpu"
+
+    def test_service_uses_configured_gpu_device(self) -> None:
+        service = VisionService(
+            provider=LocalVisionProvider(device="cuda:0"),
+            enabled=True,
+            device="cuda:0",
+        )
+        assert service.device == "cuda:0"

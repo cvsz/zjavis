@@ -295,3 +295,119 @@ async def search_memory(
         )
         for m in memories
     ]
+
+
+class IngestRequest(BaseModel):
+    content: str = Field(..., min_length=1, description="Text to ingest")
+    source: str = Field(..., max_length=255, description="Source identifier")
+    source_type: str = Field(
+        default="document", max_length=50, description="Type of source"
+    )
+    source_id: str | None = Field(default=None, max_length=255)
+    memory_type: str = Field(default="semantic", max_length=50)
+    confidence: int | None = Field(default=80, ge=0, le=100)
+    chunk_size: int = Field(default=1000, ge=100, le=10000)
+    overlap: int = Field(default=200, ge=0, le=1000)
+
+
+class IngestResponse(BaseModel):
+    ingested: int
+    memories: list[MemoryResponse]
+
+
+class SemanticSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    memory_type: str | None = Field(default=None, max_length=50)
+    limit: int = Field(default=10, ge=1, le=100)
+    threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+@router.post(
+    "/ingest", response_model=IngestResponse, status_code=status.HTTP_201_CREATED
+)
+async def ingest_document(
+    request: IngestRequest,
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+    _: None = Depends(
+        require_policy(
+            required_permission=Permission.DATABASE_MUTATE,
+            action="ingest document",
+            risk_level="low",
+        )
+    ),
+    authorization: str | None = None,
+) -> IngestResponse:
+    """Ingest a document into memory: chunk, embed, and store each chunk."""
+    user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
+    service = MemoryService(session)
+    created = await service.ingest_text(
+        tenant_id=str(tenant.id),
+        user_id=str(user.id),
+        content=request.content,
+        source=request.source,
+        source_type=request.source_type,
+        source_id=request.source_id,
+        memory_type=request.memory_type,
+        confidence=request.confidence,
+        chunk_size=request.chunk_size,
+        overlap=request.overlap,
+    )
+    return IngestResponse(
+        ingested=len(created),
+        memories=[
+            MemoryResponse(
+                id=str(m.id),
+                tenant_id=str(m.tenant_id),
+                user_id=str(m.user_id),
+                memory_type=m.memory_type,
+                content=m.content,
+                source=m.source,
+                source_type=m.source_type,
+                source_id=m.source_id,
+                confidence=m.confidence,
+                expires_at=str(m.expires_at) if m.expires_at else None,
+                is_deleted=m.is_deleted,
+                created_at=str(m.created_at),
+                updated_at=str(m.updated_at),
+            )
+            for m in created
+        ],
+    )
+
+
+@router.post("/search", response_model=list[MemoryResponse])
+async def semantic_search_memory(
+    request: SemanticSearchRequest,
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+    authorization: str | None = None,
+) -> list[MemoryResponse]:
+    """Semantic (vector-similarity) search across tenant memories."""
+    user = await get_current_user(session, authorization)
+    tenant = await get_or_create_user_tenant(session, user)
+    service = MemoryService(session)
+    results = await service.search_memories_semantic(
+        tenant_id=str(tenant.id),
+        query=request.query,
+        memory_type=request.memory_type,
+        limit=request.limit,
+        threshold=request.threshold,
+    )
+    return [
+        MemoryResponse(
+            id=str(m.id),
+            tenant_id=str(m.tenant_id),
+            user_id=str(m.user_id),
+            memory_type=m.memory_type,
+            content=m.content,
+            source=m.source,
+            source_type=m.source_type,
+            source_id=m.source_id,
+            confidence=m.confidence,
+            expires_at=str(m.expires_at) if m.expires_at else None,
+            is_deleted=m.is_deleted,
+            created_at=str(m.created_at),
+            updated_at=str(m.updated_at),
+        )
+        for m, _ in results
+    ]

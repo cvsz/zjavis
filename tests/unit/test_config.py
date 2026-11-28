@@ -37,8 +37,15 @@ def test_default_settings() -> None:
         assert s.request_timeout_seconds == 120
         assert s.voice_enabled is False
         assert s.vision_enabled is False
+        assert s.vision_gpu_device == "cpu"
         assert s.agent_runtime_enabled is True
         assert s.smart_environment_enabled is False
+        assert s.voice_stt_provider == "local"
+        assert s.voice_stt_api_key is None
+        assert s.voice_stt_api_url is None
+        assert s.voice_tts_provider == "local"
+        assert s.voice_tts_api_key is None
+        assert s.voice_tts_api_url is None
 
 
 def test_env_prefix_loading() -> None:
@@ -51,6 +58,13 @@ def test_env_prefix_loading() -> None:
         "JARVIS_LOG_LEVEL": "debug",
         "JARVIS_CLOUD_FALLBACK_ENABLED": "true",
         "JARVIS_VOICE_ENABLED": "true",
+        "JARVIS_VISION_GPU_DEVICE": "cuda:0",
+        "JARVIS_VOICE_STT_PROVIDER": "azure",
+        "JARVIS_VOICE_STT_API_KEY": "test-stt-key",
+        "JARVIS_VOICE_STT_API_URL": "https://stt.example.com",
+        "JARVIS_VOICE_TTS_PROVIDER": "google",
+        "JARVIS_VOICE_TTS_API_KEY": "test-tts-key",
+        "JARVIS_VOICE_TTS_API_URL": "https://tts.example.com",
     }
     with patch.dict(os.environ, env, clear=True):
         s = Settings(_env_file=None)
@@ -61,6 +75,13 @@ def test_env_prefix_loading() -> None:
         assert s.app_secret == "test-secret-key-for-unit-tests-only"
         assert s.cloud_fallback_enabled is True
         assert s.voice_enabled is True
+        assert s.vision_gpu_device == "cuda:0"
+        assert s.voice_stt_provider == "azure"
+        assert s.voice_stt_api_key == "test-stt-key"
+        assert s.voice_stt_api_url == "https://stt.example.com"
+        assert s.voice_tts_provider == "google"
+        assert s.voice_tts_api_key == "test-tts-key"
+        assert s.voice_tts_api_url == "https://tts.example.com"
 
 
 def test_secret_key_has_dev_default() -> None:

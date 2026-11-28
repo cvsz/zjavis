@@ -21,6 +21,13 @@ data:
   JARVIS_MODEL_GATEWAY_BUDGET_LIMIT: "100000"
   JARVIS_MODEL_GATEWAY_BUDGET_WINDOW_SECONDS: "86400"
   JARVIS_VOICE_ENABLED: "false"
+  # Requires audio hardware + STT/TTS provider credentials. Disabled by default.
+  # JARVIS_VOICE_STT_PROVIDER: "local"      # e.g. local, azure, aws, google
+  # JARVIS_VOICE_STT_API_KEY: ""            # STT provider API key (secret)
+  # JARVIS_VOICE_STT_API_URL: ""            # STT provider endpoint (optional)
+  # JARVIS_VOICE_TTS_PROVIDER: "local"      # e.g. local, azure, aws, google
+  # JARVIS_VOICE_TTS_API_KEY: ""            # TTS provider API key (secret)
+  # JARVIS_VOICE_TTS_API_URL: ""            # TTS provider endpoint (optional)
   JARVIS_VISION_ENABLED: "false"
   JARVIS_AGENT_RUNTIME_ENABLED: "true"
   JARVIS_SMART_ENVIRONMENT_ENABLED: "false"

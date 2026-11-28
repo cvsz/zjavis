@@ -111,6 +111,10 @@ class Settings(BaseSettings):
         default=None,
         description="Ollama base URL (default: http://localhost:11434)",
     )
+    ollama_default_model: str | None = Field(
+        default="llama3",
+        description="Default Ollama model name used when the ollama provider is registered",
+    )
 
     # --- Model Gateway Budget Configuration --------------------------------
     model_gateway_budget_enabled: bool = Field(
@@ -130,7 +134,32 @@ class Settings(BaseSettings):
     voice_enabled: bool = Field(
         default=False, description="Enable voice interface (requires hardware)"
     )
+    voice_stt_provider: str = Field(
+        default="local",
+        description="Speech-to-text provider: local, azure, aws, google, nvidia",
+    )
+    voice_stt_api_key: str | None = Field(
+        default=None, description="STT provider API key"
+    )
+    voice_stt_api_url: str | None = Field(
+        default=None, description="STT provider endpoint (optional)"
+    )
+    voice_tts_provider: str = Field(
+        default="local",
+        description="Text-to-speech provider: local, azure, aws, google, nvidia",
+    )
+    voice_tts_api_key: str | None = Field(
+        default=None, description="TTS provider API key"
+    )
+    voice_tts_api_url: str | None = Field(
+        default=None, description="TTS provider endpoint (optional)"
+    )
     vision_enabled: bool = Field(default=False, description="Enable vision interface")
+    vision_gpu_device: str = Field(
+        default="cpu",
+        description="Vision inference device (e.g. 'cpu' or 'cuda:0'). "
+        "Defaults to CPU so vision works without GPU hardware.",
+    )
     agent_runtime_enabled: bool = Field(
         default=True, description="Enable agent runtime"
     )

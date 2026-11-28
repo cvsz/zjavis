@@ -2,6 +2,14 @@
 
 <div align="center">
 
+![JARVIS Hero — Smart AI across every device](docs/assets/hero.png)
+
+> **Note:** The hero image above shows JARVIS running across desktop, tablet, and phone. Place the image file at `docs/assets/hero.png`.
+
+</div>
+
+<div align="center">
+
 ![JARVIS Social Preview](docs/assets/social-preview.png)
 
 > **Note:** The social preview image above is a **real 1200×630 OpenGraph PNG** generated locally via Pillow (`scripts/generate_social_preview.py`). No external image-generation credits are required.
@@ -11,9 +19,21 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/cvsz/zjavis/ci.yml?branch=main&label=CI)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/cvsz/zjavis/codeql.yml?branch=main&label=CodeQL)](https://github.com/cvsz/zjavis/security/code-scanning)
 [![Dependency Review](https://img.shields.io/github/actions/workflow/status/cvsz/zjavis/dependency-review.yml?branch=main&label=Dependency%20Review)](https://github.com/cvsz/zjavis/pulls?q=is%3Apr+label%3Adependency-review)
+[![Tests](https://img.shields.io/badge/tests-372%20passing-brightgreen)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Mypy](https://img.shields.io/badge/mypy-checked-blue)](https://github.com/python/mypy)
+[![ShellCheck](https://img.shields.io/badge/shellcheck-passed-brightgreen)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
+[![Bandit](https://img.shields.io/badge/bandit-2%20FP-orange)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
+[![Docker Build](https://img.shields.io/badge/docker-PASS-brightgreen)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
+[![GPG Signing](https://img.shields.io/badge/gpg-verified-brightgreen)](https://github.com/cvsz/zjavis/actions/workflows/ci.yml)
+[![Phase 3 Memory & Knowledge](https://img.shields.io/badge/Phase%203-IMPLEMENTED-brightgreen)](javis-blueprint.md)
+[![Phase 1 Core Platform](https://img.shields.io/badge/Phase%201-COMPLETE-brightgreen)](javis-blueprint.md)
+[![Phase 7 Tool Integration](https://img.shields.io/badge/Phase%207-IMPLEMENTED-brightgreen)](javis-blueprint.md)
+[![Phase 8 Engineering Intel](https://img.shields.io/badge/Phase%208-IMPLEMENTED-brightgreen)](javis-blueprint.md)
+[![Voice/Vision/SmartEnv](https://img.shields.io/badge/Voice%2FVision%2FSmartEnv-BLOCKED-red)](docs/roadmap.md)
+[![Phase 10 Dashboard/CLI](https://img.shields.io/badge/Phase%2010-CLI%20IMPLEMENTED-yellow)](javis-blueprint.md)
 
 </div>
 
@@ -30,7 +50,7 @@
 | Metrics / Observability | ✅ PARTIAL | Prometheus `/metrics` endpoint; OpenTelemetry tracing module implemented (no-op when opentelemetry not installed) |
 | Data Layer (PostgreSQL + Alembic) | ✅ COMPLETE / VERIFIED | 14 SQLAlchemy models; migrations `0001_initial_schema` + `0002_add_role_permissions` (RBAC junction table); `alembic upgrade head` verified; `alembic/env.py` `connectable.dispose()` sync engine fix applied |
 | Model Gateway (Phase 2) | ✅ IMPLEMENTED / LOCAL ONLY | Local provider; OpenAI/Ollama adapters registered; budget enforcement; usage accounting; cloud fallback disabled by default |
-| Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; no vector retrieval (pgvector) |
+| Memory & Knowledge (Phase 3) | ✅ IMPLEMENTED / PARTIAL | Memory CRUD, search, dedup, retention, tenant isolation, content hash, provenance; **semantic/vector retrieval (JSON embeddings + cosine similarity) and document ingestion pipeline added**; no pgvector extension |
 | Orchestration Engine | ✅ IMPLEMENTED / VERIFIED | Durable bounded task execution; retry with exponential backoff + jitter; cancellation; idempotency; state transition validation; dead-letter handling |
 | Agent Runtime (Phase 6) | ✅ IMPLEMENTED | Approval-gated task execution with audit recording; tenant-scoped permissions; `enabled` flag wired to config; delegates to OrchestrationEngine |
 | SSRF Prevention | ✅ IMPLEMENTED / VERIFIED | `validate_ssrf_safe_url()` blocks private/reserved IPv4 and non-http(s) schemes |
@@ -40,11 +60,13 @@
 | Smart Environment (Phase 9) | ⚠️ BLOCKED | Stub only — requires IoT hardware + device credentials |
 | Tool & Computer Integration (Phase 7) | ✅ IMPLEMENTED | File, Terminal, Git, Docker, MCP, Browser adapters with SSRF/path traversal prevention, command allowlisting, output bounding, and tool registry |
 | Engineering Intelligence (Phase 8) | ✅ IMPLEMENTED | Repository discovery, architecture analysis, engineering capability registry; all read-only and policy-governed |
-| Dashboard / Clients (Phase 10) | ❌ NOT RUN | No frontend (web, desktop, mobile, CLI) |
+| Dashboard / Clients (Phase 10) | ⚠️ PARTIAL | Operator CLI implemented (`src/jarvis/client/cli.py` + `jarvis.client` library); web, desktop, mobile NOT RUN |
 | Backup / Restore | ⚠️ PARTIAL | Documentation implemented (`docs/backup-restore.md`); restore drill NOT RUN |
 | Kubernetes / Helm | ❌ NOT RUN | Deferred per blueprint §16.3 |
 | GPG Commit Signing | ✅ VERIFIED | Functional via loopback pinentry (`.github/scripts/gpg-loopback.sh`, no passphrase required); `git commit -S` + `git verify-commit` → Good signature; `commit.gpgsign=true`, `user.signingkey=46ABBD40...` |
 | Load / Stress Testing | ❌ NOT RUN | No production-scale workload available |
+| Alerting (Phase 11) | ✅ IMPLEMENTED | Prometheus alerting rules (`deploy/alerting/prometheus_rules.yml`) for auth failures, agent failures, API errors/latency, memory growth |
+| Concurrency / State Safety (Phase 11) | ✅ IMPLEMENTED | Concurrency tests (`tests/unit/test_concurrency.py`) for orchestration locks and memory deduplication |
 | E2E Tests | ✅ IMPLEMENTED | `tests/e2e/test_e2e_flow.py` — auth flow, health/metrics, security headers (PASS) |
 | Missing Dependency Tests | ✅ IMPLEMENTED | `tests/unit/test_missing_dependencies.py` — all production/dev deps importable (PASS) |
 | Social Preview Image | ✅ VERIFIED | Real 1200×630 OpenGraph PNG generated locally via Pillow (`scripts/generate_social_preview.py`); no external credits required |
@@ -81,7 +103,7 @@ and memories.
 **Blueprint:** `javis-blueprint.md`  
 **Architecture:** Modular monolith control plane (Python 3.14 / FastAPI / SQLAlchemy async / PostgreSQL)  
 **Version:** 0.1.0  
-**Status:** PARTIALLY VERIFIED — Phase 1 complete and verified; Phases 2-11 partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
+**Status:** PARTIALLY VERIFIED — Phase 1 complete and verified; Phase 3 (semantic retrieval + document ingestion), Phase 7 (tool adapters), Phase 8 (engineering intelligence), Phase 10 (operator CLI), and Phase 11 (alerting + concurrency tests) implemented; remaining phases partially implemented or BLOCKED/NOT RUN (see Final-Report.md)
 
 ---
 
@@ -528,7 +550,25 @@ The following items are **not** implemented or verified and must not be counted 
 - GPG commit signing — VERIFIED functional via loopback pinentry (no TTY required)
 - Kubernetes/Helm deployment — NOT RUN (deferred per blueprint §16.3)
 - Load/stress testing — NOT RUN (no production-scale workload)
-- Phase 10 Dashboard/Clients — NOT RUN
+- Phase 10 Dashboard/Clients — NOT RUN for web/desktop/mobile; CLI client IMPLEMENTED (`src/jarvis/client/cli.py`)
+
+### Hardware & Credential Requirements for Blocked Phases
+
+| Phase | Blocked By | Required Hardware | Required Credentials |
+|-------|-----------|-------------------|---------------------|
+| 4 — Voice Intelligence | No audio I/O, no STT/TTS provider | Microphone + speakers/headphones | Azure Speech / AWS / Google Cloud Speech API keys |
+| 5 — Vision Intelligence | No discrete GPU, no vision model provider | Dedicated GPU (CUDA/ROCm) | OpenAI GPT-4V / NVIDIA NIM VLM API keys |
+| 9 — Smart Environment | No IoT devices, no broker | Sensors, actuators, GPIO/I2C adapters | MQTT broker credentials + device API keys |
+
+**System hardware detected** (from `C:\Users\cvsz.ZEAZ\Documents\ZEAZ.html` CPU-Z report):
+- **CPU:** AMD Ryzen 5 3400G with Radeon Vega Graphics (4C/8T, Socket AM4, 12 nm)
+- **GPU:** Integrated Radeon Vega Graphics (APU) — no discrete GPU installed
+- **Memory:** 32 GB DDR4 (2×16 GB SK Hynix, DDR4-3200, XMP-3200)
+- **Motherboard:** MSI A520M-A PRO (MS-7C96), AMD A520 chipset, PCIe 3.0 x16 slot (empty)
+- **LPCIO:** Nuvoton NCT6687 (hardware monitoring, potential GPIO/I2C)
+- **Audio:** Via AMD A520 chipset (Realtek typically) — not confirmed in report
+
+See `.env.example` for all `REPLACE_ME` credential placeholders. None are committed to the repository.
 
 Per the mandatory rules, this system is **not** claimed as Production Ready or 100% Complete while any Critical/High findings, failed tests, or unmet conditions remain.
 

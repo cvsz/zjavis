@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -47,7 +48,7 @@ def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
             return ImageFont.truetype(path, size)
         except OSError:
             continue
-    return ImageFont.load_default()
+    return cast(ImageFont.FreeTypeFont, ImageFont.load_default())
 
 
 def generate() -> None:

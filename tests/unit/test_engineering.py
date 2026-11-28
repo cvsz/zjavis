@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -54,7 +55,7 @@ class TestRepositoryDiscovery:
     """Tests for RepositoryDiscovery."""
 
     @pytest.fixture
-    def tmp_repo(self) -> str:
+    def tmp_repo(self) -> Generator[str, None, None]:
         with tempfile.TemporaryDirectory() as tmp:
             # Create a minimal repo structure
             os.makedirs(os.path.join(tmp, "src", "jarvis"), exist_ok=True)
@@ -139,7 +140,7 @@ class TestArchitectureAnalyzer:
     """Tests for ArchitectureAnalyzer."""
 
     @pytest.fixture
-    def tmp_repo(self) -> str:
+    def tmp_repo(self) -> Generator[str, None, None]:
         with tempfile.TemporaryDirectory() as tmp:
             os.makedirs(os.path.join(tmp, "api"), exist_ok=True)
             os.makedirs(os.path.join(tmp, "core"), exist_ok=True)
